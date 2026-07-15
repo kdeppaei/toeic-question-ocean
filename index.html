@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 440 題，支援 Cookie、Local Storage、Session Storage 分工、間隔複習與弱點分析。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 456 題，支援個人單字本、間隔複習、三種瀏覽器儲存分工與弱點分析。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,12 +13,13 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.6</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.7</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
       <button data-nav="setupView">▶　開始練習</button>
       <button data-nav="wrongView">✎　錯題本</button>
+      <button data-nav="vocabView">◇　個人單字本</button>
       <button data-nav="historyView">▥　歷史成績</button>
       <button data-nav="analyticsView">◫　弱點分析</button>
       <button data-nav="storageView">▣　儲存中心</button>
@@ -50,7 +51,7 @@
         <div class="hero">
           <small style="font-weight:900;letter-spacing:.08em">NO API · NO LOGIN · LOCAL FIRST</small>
           <h2>把多益練習，做成真正能每天使用的題海系統。</h2>
-          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、間隔複習、三種瀏覽器儲存分工、歷史統計，以及 JSON／CSV／列印報告。</p>
+          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、個人單字本、間隔複習、三種瀏覽器儲存分工，以及 JSON／CSV／列印報告。</p>
           <div class="hero-actions">
             <button class="btn" data-go-setup>設定練習</button>
             <button class="btn secondary" id="heroQuick">立即隨機 20 題</button>
@@ -67,9 +68,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges"><span class="badge">v1.6 更新</span><span class="badge gray">Cookie</span><span class="badge gray">Local Storage</span><span class="badge gray">Session Storage</span></div>
-          <h3 style="margin:13px 0 7px">新增儲存中心，讓三種瀏覽器儲存各司其職</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.75">Cookie 用於每日目標等小型偏好；Local Storage 管理長期學習資料與備份；Session Storage 保存單一分頁的考場筆記。</p>
+          <div class="badges"><span class="badge">v1.7 更新</span><span class="badge gray">456 題</span><span class="badge gray">單字本</span><span class="badge gray">可改選答案</span></div>
+          <h3 style="margin:13px 0 7px">答題先暫選再確認，並加入個人單字本</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">選項點擊後先暫選，可反悔改選；按確認答案後才鎖定。Part 5／7 可選取文字加入單字本，記錄中文、例句、熟悉度與複習日。</p>
         </article>
 
         <div class="stats-grid">
@@ -152,6 +153,7 @@
             <div class="quiz-actions">
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn danger" id="quitPractice">結束練習</button>
+                <button class="btn" id="addSelectedVocab">＋選取單字</button>
                 <button class="btn" id="markReview">☆ 標記待檢查</button>
               </div>
               <button class="btn primary" id="nextQuestion" disabled>下一題</button>
@@ -207,6 +209,32 @@
           <div class="group"><button class="btn primary" id="practiceDue">今日複習</button><button class="btn" id="practiceWrong">練習錯題</button><button class="btn danger" id="clearWrong">清空錯題本</button></div>
         </div>
         <div id="wrongList"></div>
+      </section>
+
+      <section id="vocabView" class="view">
+        <div class="toolbar">
+          <div><h2 style="margin:0">個人單字本</h2><p style="color:var(--muted);margin:5px 0 0">從 Part 5／7 題目選字加入，或手動記錄中文、例句、熟悉度與下次複習日。</p></div>
+          <div class="group"><button class="btn" id="exportVocab">匯出單字本</button><button class="btn danger" id="clearVocab">清空單字本</button></div>
+        </div>
+        <div class="setup-grid">
+          <article class="card">
+            <h3 style="margin-top:0">新增單字</h3>
+            <div class="form-grid">
+              <label><span>單字 / 片語</span><input id="vocabWord" type="text" placeholder="procurement"></label>
+              <label><span>來源 Part</span><select id="vocabPart"><option value="5">Part 5</option><option value="7">Part 7</option><option value="6">Part 6</option><option value="other">其他</option></select></label>
+              <label><span>中文 / 筆記</span><input id="vocabMeaning" type="text" placeholder="採購；取得"></label>
+              <label><span>熟悉度</span><select id="vocabFamiliarity"><option value="1">1 陌生</option><option value="2" selected>2 模糊</option><option value="3">3 普通</option><option value="4">4 熟悉</option><option value="5">5 已掌握</option></select></label>
+            </div>
+            <label style="margin-top:12px;display:block"><span>例句</span><textarea id="vocabExample" rows="4" placeholder="The revised delivery note was sent to procurement."></textarea></label>
+            <div class="storage-actions"><button class="btn primary" id="saveVocab">儲存單字</button><button class="btn" id="resetVocabForm">清空表單</button></div>
+          </article>
+          <article class="card">
+            <h3 style="margin-top:0">單字概況</h3>
+            <div class="mini-list" id="vocabSummary"></div>
+          </article>
+        </div>
+        <div class="section-head"><div><h2>單字清單</h2><p>熟悉度越低、到期日越早，越會排在前面。</p></div></div>
+        <div id="vocabList"></div>
       </section>
 
       <section id="historyView" class="view">
@@ -313,6 +341,7 @@
 <script src="./question-bank.js"></script>
 <script src="./question-bank-v15.js"></script>
 <script src="./question-bank-v16.js"></script>
+<script src="./question-bank-v17.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

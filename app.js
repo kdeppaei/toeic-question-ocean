@@ -7,7 +7,8 @@ const KEYS = {
   theme: "toeicOcean.theme.v1",
   active: "toeicOcean.activeSession.v1",
   performance: "toeicOcean.performance.v1",
-  reviewSchedule: "toeicOcean.reviewSchedule.v1"
+  reviewSchedule: "toeicOcean.reviewSchedule.v1",
+  vocab: "toeicOcean.vocab.v1"
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
@@ -25,6 +26,7 @@ const state = {
   session: [],
   currentIndex: 0,
   answers: [],
+  pendingSelections: [],
   reviewFlags: [],
   questionStartedAt: null,
   questionStartedIndex: null,
@@ -147,6 +149,121 @@ function startDueReview(){
   if(!list.length){ showToast("今天沒有到期複習題"); return; }
   startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"review"});
 }
+function getVocab(){ return load(KEYS.vocab, []); }
+function saveVocab(list){ save(KEYS.vocab, list); }
+function normalizeWord(word){ return String(word||"").trim().replace(/\s+/g," "); }
+function dateInputValue(timestamp){
+  const d=timestamp?new Date(timestamp):new Date(dateAfterDays(7));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function dateFromInput(value){
+  if(!value) return dateAfterDays(7);
+  const d=new Date(`${value}T00:00:00`);
+  return Number.isNaN(d.getTime())?dateAfterDays(7):d.getTime();
+}
+function upsertVocab(entry){
+  const word=normalizeWord(entry.word);
+  if(!word){ showToast("請輸入單字或片語"); return false; }
+  const list=getVocab();
+  const key=word.toLowerCase();
+  const existingIndex=list.findIndex(item=>item.key===key);
+  const current=existingIndex>=0?list[existingIndex]:{};
+  const item={
+    id:current.id||`VOC-${Date.now()}`,
+    key,
+    word,
+    meaning:String(entry.meaning??current.meaning??"").trim(),
+    example:String(entry.example??current.example??"").trim(),
+    part:String(entry.part??current.part??"other"),
+    familiarity:Math.max(1,Math.min(5,Number(entry.familiarity??current.familiarity??2))),
+    nextReviewAt:entry.nextReviewAt??current.nextReviewAt??dateAfterDays(7),
+    sourceQuestionId:entry.sourceQuestionId??current.sourceQuestionId??"",
+    createdAt:current.createdAt||Date.now(),
+    updatedAt:Date.now()
+  };
+  if(existingIndex>=0) list[existingIndex]=item;
+  else list.unshift(item);
+  saveVocab(list);
+  return true;
+}
+function resetVocabForm(){
+  $("#vocabWord").value="";
+  $("#vocabMeaning").value="";
+  $("#vocabExample").value="";
+  $("#vocabFamiliarity").value="2";
+  $("#vocabPart").value="5";
+}
+function saveVocabFromForm(){
+  const ok=upsertVocab({
+    word:$("#vocabWord").value,
+    meaning:$("#vocabMeaning").value,
+    example:$("#vocabExample").value,
+    part:$("#vocabPart").value,
+    familiarity:Number($("#vocabFamiliarity").value),
+    nextReviewAt:dateAfterDays(7)
+  });
+  if(ok){ resetVocabForm(); renderVocab(); showToast("單字已儲存"); }
+}
+function addSelectedVocab(){
+  const q=currentQ();
+  const selected=normalizeWord(window.getSelection?.().toString()||"");
+  if(!selected){ showToast("請先在題目或文章中選取單字"); return; }
+  const meaning=prompt(`為「${selected}」加入中文或筆記：`,"");
+  if(meaning===null) return;
+  const ok=upsertVocab({
+    word:selected,
+    meaning,
+    example:q?.prompt||q?.passage||"",
+    part:q?.part||"other",
+    familiarity:1,
+    sourceQuestionId:q?.id||"",
+    nextReviewAt:dateAfterDays(3)
+  });
+  if(ok){ showToast("已加入個人單字本"); renderVocab(); }
+}
+function removeVocab(id){
+  saveVocab(getVocab().filter(item=>item.id!==id));
+  renderVocab();
+}
+function updateVocabField(id,field,value){
+  const list=getVocab();
+  const item=list.find(x=>x.id===id);
+  if(!item) return;
+  if(field==="familiarity") item.familiarity=Math.max(1,Math.min(5,Number(value)||1));
+  else if(field==="nextReviewAt") item.nextReviewAt=dateFromInput(value);
+  else item[field]=String(value??"").trim();
+  item.updatedAt=Date.now();
+  saveVocab(list);
+  renderVocab();
+}
+function exportVocab(){
+  download(new Blob([JSON.stringify(getVocab(),null,2)],{type:"application/json"}),`toeic-vocab-${Date.now()}.json`);
+}
+function renderVocab(){
+  const list=getVocab().sort((a,b)=>(a.nextReviewAt||0)-(b.nextReviewAt||0)||(a.familiarity||1)-(b.familiarity||1));
+  const due=list.filter(item=>(item.nextReviewAt||0)<=Date.now()).length;
+  const avg=list.length?Math.round(list.reduce((s,item)=>s+(item.familiarity||1),0)/list.length*10)/10:0;
+  $("#vocabSummary").innerHTML=`
+    <div class="mini-item">總單字 <strong style="float:right">${list.length}</strong></div>
+    <div class="mini-item">今日到期 <strong style="float:right;color:var(--amber)">${due}</strong></div>
+    <div class="mini-item">平均熟悉度 <strong style="float:right;color:var(--primary)">${avg || "—"}</strong></div>`;
+  $("#vocabList").innerHTML=list.length?list.map(item=>`
+    <article class="vocab-item">
+      <div class="badges"><span class="badge">Part ${safe(item.part)}</span><span class="badge gray">下次 ${formatReviewDate(item.nextReviewAt)}</span>${item.sourceQuestionId?`<span class="badge gray">${safe(item.sourceQuestionId)}</span>`:""}</div>
+      <h3>${safe(item.word)}</h3>
+      <p><b>中文／筆記：</b>${safe(item.meaning||"未填寫")}</p>
+      ${item.example?`<p><b>例句：</b>${safe(item.example)}</p>`:""}
+      <div class="vocab-meta">
+        <label><span>熟悉度</span><select data-vocab-id="${item.id}" data-vocab-field="familiarity">
+          ${[1,2,3,4,5].map(n=>`<option value="${n}" ${Number(item.familiarity)===n?"selected":""}>${n}</option>`).join("")}
+        </select></label>
+        <label><span>下次複習</span><input type="date" value="${dateInputValue(item.nextReviewAt)}" data-vocab-id="${item.id}" data-vocab-field="nextReviewAt"></label>
+        <button class="btn danger" data-remove-vocab="${item.id}">移除</button>
+      </div>
+    </article>`).join(""):'<div class="card empty">尚未加入單字。練習時選取題目中的單字，或手動新增。</div>';
+  $$("[data-remove-vocab]").forEach(btn=>btn.onclick=()=>removeVocab(btn.dataset.removeVocab));
+  $$("[data-vocab-field]").forEach(input=>input.onchange=()=>updateVocabField(input.dataset.vocabId,input.dataset.vocabField,input.value));
+}
 
 function encodeSession(session){
   return session.map(q=>({
@@ -211,12 +328,13 @@ function showView(id){
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
   const titles={
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
   if(id==="setupView") updateAvailable();
   if(id==="wrongView") renderWrongBook();
+  if(id==="vocabView") renderVocab();
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
@@ -241,6 +359,7 @@ function activeSnapshot(){
     sessionRefs:encodeSession(state.session),
     currentIndex:state.currentIndex,
     answers:state.answers,
+    pendingSelections:state.pendingSelections,
     reviewFlags:state.reviewFlags,
     questionStartedAt:state.questionStartedAt,
     questionStartedIndex:state.questionStartedIndex,
@@ -290,6 +409,7 @@ function restoreActive(){
     session,
     currentIndex,
     answers:snapshot.answers||[],
+    pendingSelections:snapshot.pendingSelections||[],
     reviewFlags:snapshot.reviewFlags||Array(session.length).fill(false),
     questionStartedAt:snapshot.questionStartedAt||null,
     questionStartedIndex:snapshot.questionStartedIndex??null,
@@ -396,6 +516,7 @@ function startSession(list, options={}){
   state.session=sessionFrom(list,count);
   state.currentIndex=0;
   state.answers=[];
+  state.pendingSelections=[];
   state.reviewFlags=Array(state.session.length).fill(false);
   state.audioPlays={};
   state.autoPlayedAudio={};
@@ -481,6 +602,7 @@ function startMockExam(){
   state.session=session;
   state.currentIndex=0;
   state.answers=[];
+  state.pendingSelections=[];
   state.reviewFlags=Array(session.length).fill(false);
   state.audioPlays={};
   state.autoPlayedAudio={};
@@ -621,6 +743,8 @@ function renderQuestion(){
   ensureQuestionClock();
   const existing=state.answers[state.currentIndex];
   const answered=!!existing;
+  const pending=state.pendingSelections[state.currentIndex];
+  const hasPending=Number.isInteger(pending);
   const grouped=!!q._groupKey && q._groupSize>1;
   const groupComplete=grouped?isGroupComplete(q._groupKey):true;
   const revealAnswer=answered && state.options.instant && groupComplete;
@@ -653,6 +777,8 @@ function renderQuestion(){
       else cls="dim";
     }else if(answered && i===existing.selected){
       cls="selected";
+    }else if(!answered && hasPending && i===pending){
+      cls="pending";
     }
     return `<button class="choice ${cls}" data-choice="${i}" ${answered?"disabled":""}><span class="choice-letter">${letter(i)}</span><span>${safe(c)}</span></button>`;
   }).join("");
@@ -671,13 +797,15 @@ function renderQuestion(){
     feedback=`<div class="feedback"><strong>答案已記錄</strong><div style="margin-top:8px">本回合完成後再統一批改。</div></div>`;
   }
   $("#questionArea").innerHTML=`${stimulus}<div class="question">${safe(q.prompt)}</div><div class="choices">${choices}</div>${feedback}`;
-  $("#nextQuestion").disabled=!answered;
-  $("#nextQuestion").textContent=state.sessionMode==="mock"&&state.currentIndex===state.mockBoundary-1
-    ?"進入 Reading"
-    :state.currentIndex===state.session.length-1?"完成練習":"下一題";
+  $("#nextQuestion").disabled=!answered && !hasPending;
+  $("#nextQuestion").textContent=!answered
+    ? "確認答案"
+    : state.sessionMode==="mock"&&state.currentIndex===state.mockBoundary-1
+      ?"進入 Reading"
+      :state.currentIndex===state.session.length-1?"完成練習":"下一題";
   $("#markReview").textContent=state.reviewFlags[state.currentIndex]?"★ 已標記待檢查":"☆ 標記待檢查";
   $("#markReview").className=state.reviewFlags[state.currentIndex]?"btn primary":"btn";
-  $$("[data-choice]").forEach(b=>b.addEventListener("click",()=>answerQuestion(Number(b.dataset.choice))));
+  $$("[data-choice]").forEach(b=>b.addEventListener("click",()=>selectChoice(Number(b.dataset.choice))));
   $("#listenBtn")?.addEventListener("click",()=>playQuestionAudio(q));
   $("#listenAnswerBtn")?.addEventListener("click",()=>speak(q.choices[q.answer]));
   $("#markReview").onclick=()=>toggleReview();
@@ -727,6 +855,12 @@ function speak(text){
   u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
   speechSynthesis.speak(u);
 }
+function selectChoice(selected){
+  if(state.answers[state.currentIndex]) return;
+  state.pendingSelections[state.currentIndex]=selected;
+  persistActive();
+  renderQuestion();
+}
 function answerQuestion(selected,timedOut=false){
   if(state.answers[state.currentIndex]) return;
   clearInterval(state.timerId);
@@ -734,6 +868,7 @@ function answerQuestion(selected,timedOut=false){
   state.answers[state.currentIndex]={
     id:q.id,selected,correct,timedOut,elapsed:elapsedForCurrentQuestion()
   };
+  state.pendingSelections[state.currentIndex]=undefined;
   state.questionEndsAt=null;
   updateReviewSchedule(q.id, correct);
   persistActive();
@@ -743,7 +878,11 @@ function answerQuestion(selected,timedOut=false){
   renderQuestion();
 }
 function nextQuestion(){
-  if(!state.answers[state.currentIndex]) return;
+  if(!state.answers[state.currentIndex]){
+    const pending=state.pendingSelections[state.currentIndex];
+    if(Number.isInteger(pending)) answerQuestion(pending);
+    return;
+  }
   if(state.sessionMode==="mock"&&state.mockSection==="listening"&&state.currentIndex===state.mockBoundary-1){
     enterReadingSection();
     return;
@@ -978,6 +1117,7 @@ function localStorageRows(){
     ["錯題本", `${getWrongIds().length} 題`, KEYS.wrong],
     ["歷史成績", `${getHistory().length} 筆`, KEYS.history],
     ["自訂題庫", `${load(KEYS.custom,[]).length} 題`, KEYS.custom],
+    ["個人單字本", `${getVocab().length} 筆`, KEYS.vocab],
     ["間隔複習", `${Object.keys(getReviewSchedule()).length} 題`, KEYS.reviewSchedule],
     ["弱點分析", `${performance.total} 題`, KEYS.performance],
     ["未完成練習", `${snapshotQuestionCount(active)} 題`, KEYS.active]
@@ -1003,6 +1143,7 @@ function exportLearningState(){
       wrong:getWrongIds(),
       history:getHistory(),
       customBank:load(KEYS.custom,[]),
+      vocab:getVocab(),
       performance:getPerformance(),
       reviewSchedule:getReviewSchedule(),
       activeSession:load(KEYS.active,null)
@@ -1111,6 +1252,7 @@ $("#quick10").onclick=()=>startSession(getBank(),{count:10,seconds:0});
 $("#heroQuick").onclick=()=>startSession(getBank(),{count:20,seconds:0});
 $("#nextQuestion").onclick=nextQuestion;
 $("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
+$("#addSelectedVocab").onclick=addSelectedVocab;
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
 $("#practiceDue").onclick=startDueReview;
 $("#practiceWrong").onclick=()=>{ const ids=getWrongIds(),map=new Map(getBank().map(q=>[q.id,q])); startSession(ids.map(id=>map.get(id)).filter(Boolean),{count:ids.length,seconds:0}); };
@@ -1125,6 +1267,10 @@ $("#exportLearningState").onclick=exportLearningState;
 $("#refreshStorageSummary").onclick=renderStorageCenter;
 $("#sessionScratchpad").addEventListener("input",saveSessionScratchpad);
 $("#clearSessionScratchpad").onclick=clearSessionScratchpad;
+$("#saveVocab").onclick=saveVocabFromForm;
+$("#resetVocabForm").onclick=resetVocabForm;
+$("#exportVocab").onclick=exportVocab;
+$("#clearVocab").onclick=()=>{ if(confirm("確定清空個人單字本？")){ saveVocab([]); renderVocab(); } };
 $("#importBank").onclick=async()=>{
   const file=$("#importFile").files[0]; if(!file){showToast("請先選擇 JSON 檔");return;}
   try{
@@ -1138,7 +1284,7 @@ $("#importBank").onclick=async()=>{
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape") closeMobileNav();
   if(state.currentView!=="practiceView")return;
-  if(["1","2","3","4"].includes(e.key)) answerQuestion(Number(e.key)-1);
+  if(["1","2","3","4"].includes(e.key)) selectChoice(Number(e.key)-1);
   if(e.key==="Enter") nextQuestion();
   if(e.key.toLowerCase()==="l"&&currentQ()?.audioText) playQuestionAudio(currentQ());
   if(e.key.toLowerCase()==="r") toggleReview();

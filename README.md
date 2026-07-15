@@ -6,6 +6,13 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v1.7
+
+- Changed answer selection to a two-step flow: choose an option first, then confirm the answer, so learners can change their mind before locking it.
+- Added a personal vocabulary notebook backed by Local Storage.
+- Practice pages can send selected Part 5 / Part 7 text into the vocabulary notebook with meaning, example, familiarity, and next review date.
+- Expanded the built-in bank from 440 to 456 questions with additional Part 5 and Part 7 practice.
+
 ### v1.6
 
 - Added a Storage Center page.
