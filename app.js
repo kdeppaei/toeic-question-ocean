@@ -11,6 +11,14 @@ const KEYS = {
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
+const COOKIE_KEYS = {
+  dailyGoal: "toeicOcean.dailyGoal",
+  lastVisit: "toeicOcean.lastVisit"
+};
+const SESSION_KEYS = {
+  scratchpad: "toeicOcean.sessionScratchpad",
+  scratchUpdatedAt: "toeicOcean.sessionScratchUpdatedAt"
+};
 
 const state = {
   currentView: "homeView",
@@ -53,6 +61,36 @@ function storageSet(k,v){
 }
 const load = (k,d) => { try { return JSON.parse(storageGet(k)) ?? d; } catch { return d; } };
 const save = (k,v) => storageSet(k, JSON.stringify(v));
+const byteSize = (value) => new TextEncoder().encode(String(value ?? "")).length;
+
+function cookiePath(){
+  return location.pathname.includes("/toeic-question-ocean/") ? "/toeic-question-ocean" : "/";
+}
+function setCookie(name,value,days=30){
+  const expires=new Date(Date.now()+days*86400000).toUTCString();
+  const secure=location.protocol==="https:"?"; Secure":"";
+  document.cookie=`${name}=${encodeURIComponent(value)}; expires=${expires}; path=${cookiePath()}; SameSite=Lax${secure}`;
+}
+function getCookie(name){
+  const prefix=`${name}=`;
+  return document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith(prefix))?.slice(prefix.length) || "";
+}
+function deleteCookie(name){
+  const secure=location.protocol==="https:"?"; Secure":"";
+  document.cookie=`${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=${cookiePath()}; SameSite=Lax${secure}`;
+}
+function sessionGet(key, fallback=""){
+  try { return window.sessionStorage.getItem(key) ?? fallback; }
+  catch { return fallback; }
+}
+function sessionSet(key, value){
+  try { window.sessionStorage.setItem(key,value); return true; }
+  catch { return false; }
+}
+function sessionRemove(key){
+  try { window.sessionStorage.removeItem(key); return true; }
+  catch { return false; }
+}
 
 function getBank() {
   const custom = load(KEYS.custom, []);
@@ -173,7 +211,7 @@ function showView(id){
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
   const titles={
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",historyView:"歷史成績",analyticsView:"弱點分析",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
@@ -181,6 +219,7 @@ function showView(id){
   if(id==="wrongView") renderWrongBook();
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
+  if(id==="storageView") renderStorageCenter();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function openMobileNav(){
@@ -904,6 +943,105 @@ function renderAnalytics(){
   if(!recommendations.length) recommendations.push("累積至少三題同分類作答後，系統才會提供可靠的弱點建議。");
   $("#analyticsRecommendations").innerHTML=recommendations.map(text=>`<div class="mini-item">${safe(text)}</div>`).join("");
 }
+function updateVisitCookie(){
+  try { setCookie(COOKIE_KEYS.lastVisit,new Date().toISOString(),30); }
+  catch {}
+}
+function saveCookieGoal(){
+  const value=Math.max(1,Math.min(200,Number($("#cookieDailyGoal").value)||20));
+  const days=Number($("#cookieExpireDays").value)||30;
+  setCookie(COOKIE_KEYS.dailyGoal,String(value),days);
+  updateVisitCookie();
+  renderCookieSummary();
+  showToast(`每日目標已用 Cookie 保留 ${days} 天`);
+}
+function clearCookieGoal(){
+  deleteCookie(COOKIE_KEYS.dailyGoal);
+  renderCookieSummary();
+  showToast("每日目標 Cookie 已清除");
+}
+function renderCookieSummary(){
+  const goal=decodeURIComponent(getCookie(COOKIE_KEYS.dailyGoal)||"");
+  const lastVisit=decodeURIComponent(getCookie(COOKIE_KEYS.lastVisit)||"");
+  if(goal) $("#cookieDailyGoal").value=goal;
+  const support=location.protocol==="file:"
+    ?"目前以 file:// 開啟，部分瀏覽器不允許 Cookie；部署網址可正常使用。"
+    :navigator.cookieEnabled?"Cookie 可用，資料會限制在本站路徑。":"瀏覽器目前停用 Cookie。";
+  $("#cookieSummary").innerHTML=`
+    <div class="mini-item">目前目標 <strong style="float:right">${goal?`${safe(goal)} 題/日`:"未設定"}</strong></div>
+    <div class="mini-item">最後造訪 <strong style="float:right">${lastVisit?new Date(lastVisit).toLocaleDateString("zh-TW"):"未記錄"}</strong></div>
+    <div class="mini-item">${safe(support)}</div>`;
+}
+function localStorageRows(){
+  const performance=getPerformance(), active=load(KEYS.active,null);
+  return [
+    ["錯題本", `${getWrongIds().length} 題`, KEYS.wrong],
+    ["歷史成績", `${getHistory().length} 筆`, KEYS.history],
+    ["自訂題庫", `${load(KEYS.custom,[]).length} 題`, KEYS.custom],
+    ["間隔複習", `${Object.keys(getReviewSchedule()).length} 題`, KEYS.reviewSchedule],
+    ["弱點分析", `${performance.total} 題`, KEYS.performance],
+    ["未完成練習", `${snapshotQuestionCount(active)} 題`, KEYS.active]
+  ];
+}
+function renderLocalStorageSummary(){
+  const rows=localStorageRows();
+  const totalBytes=rows.reduce((sum,row)=>sum+byteSize(storageGet(row[2])||""),0);
+  $("#localStorageSummary").innerHTML=[
+    `<div class="mini-item">估計用量 <strong style="float:right">${(totalBytes/1024).toFixed(1)} KB</strong></div>`,
+    ...rows.map(([label,value,key])=>`<div class="mini-item">${label}<strong style="float:right">${safe(value)}</strong><div style="clear:both;color:var(--muted);font-size:11px;margin-top:4px">${safe(key)}</div></div>`)
+  ].join("");
+}
+function exportLearningState(){
+  const payload={
+    exportedAt:new Date().toISOString(),
+    version:"1.6",
+    cookie:{
+      dailyGoal:decodeURIComponent(getCookie(COOKIE_KEYS.dailyGoal)||""),
+      lastVisit:decodeURIComponent(getCookie(COOKIE_KEYS.lastVisit)||"")
+    },
+    localStorage:{
+      wrong:getWrongIds(),
+      history:getHistory(),
+      customBank:load(KEYS.custom,[]),
+      performance:getPerformance(),
+      reviewSchedule:getReviewSchedule(),
+      activeSession:load(KEYS.active,null)
+    },
+    sessionStorage:{
+      scratchpad:sessionGet(SESSION_KEYS.scratchpad,""),
+      scratchUpdatedAt:sessionGet(SESSION_KEYS.scratchUpdatedAt,"")
+    }
+  };
+  download(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),`toeic-ocean-learning-backup-${Date.now()}.json`);
+}
+function saveSessionScratchpad(){
+  const value=$("#sessionScratchpad").value;
+  sessionSet(SESSION_KEYS.scratchpad,value);
+  sessionSet(SESSION_KEYS.scratchUpdatedAt,new Date().toISOString());
+  renderSessionStorageSummary();
+}
+function clearSessionScratchpad(){
+  sessionRemove(SESSION_KEYS.scratchpad);
+  sessionRemove(SESSION_KEYS.scratchUpdatedAt);
+  $("#sessionScratchpad").value="";
+  renderSessionStorageSummary();
+  showToast("本分頁筆記已清除");
+}
+function renderSessionStorageSummary(){
+  const scratch=sessionGet(SESSION_KEYS.scratchpad,"");
+  const updated=sessionGet(SESSION_KEYS.scratchUpdatedAt,"");
+  $("#sessionStorageSummary").innerHTML=`
+    <div class="mini-item">目前字數 <strong style="float:right">${scratch.length}</strong></div>
+    <div class="mini-item">暫存大小 <strong style="float:right">${(byteSize(scratch)/1024).toFixed(1)} KB</strong></div>
+    <div class="mini-item">更新時間 <strong style="float:right">${updated?new Date(updated).toLocaleTimeString("zh-TW"):"未暫存"}</strong></div>`;
+}
+function renderStorageCenter(){
+  renderCookieSummary();
+  renderLocalStorageSummary();
+  const scratch=sessionGet(SESSION_KEYS.scratchpad,"");
+  if($("#sessionScratchpad").value!==scratch) $("#sessionScratchpad").value=scratch;
+  renderSessionStorageSummary();
+}
 function renderHistory(){
   const h=getHistory();
   $("#historyRows").innerHTML=h.length?h.map(x=>`<tr><td>${new Date(x.date).toLocaleString("zh-TW")}</td><td>${safe(x.mode||"自由練習")}</td><td>${x.total}</td><td>${x.correct}</td><td>${x.accuracy}%</td><td>${safe(x.parts)}</td></tr>`).join(""):'<tr><td colspan="6" class="empty">尚無紀錄</td></tr>';
@@ -981,6 +1119,12 @@ $("#clearHistory").onclick=()=>{ if(confirm("確定清空歷史紀錄？")){save
 $("#exportJson").onclick=exportResultJson; $("#exportCsv").onclick=exportResultCsv; $("#printReport").onclick=()=>window.print();
 $("#exportBank").onclick=()=>download(new Blob([JSON.stringify(getBank(),null,2)],{type:"application/json"}),"toeic-question-bank.json");
 $("#resetBank").onclick=()=>{ if(confirm("移除所有自訂題庫？")){save(KEYS.custom,[]);renderDashboard();showToast("自訂題庫已移除");} };
+$("#saveCookieGoal").onclick=saveCookieGoal;
+$("#clearCookieGoal").onclick=clearCookieGoal;
+$("#exportLearningState").onclick=exportLearningState;
+$("#refreshStorageSummary").onclick=renderStorageCenter;
+$("#sessionScratchpad").addEventListener("input",saveSessionScratchpad);
+$("#clearSessionScratchpad").onclick=clearSessionScratchpad;
 $("#importBank").onclick=async()=>{
   const file=$("#importFile").files[0]; if(!file){showToast("請先選擇 JSON 檔");return;}
   try{
@@ -1005,4 +1149,5 @@ document.addEventListener("keydown",e=>{
   }
 });
 
+updateVisitCookie();
 renderDashboard(); updateAvailable(); renderResumeBanner();

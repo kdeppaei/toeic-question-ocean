@@ -6,6 +6,14 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v1.6
+
+- Added a Storage Center page.
+- Uses Cookie for the small daily-goal preference and last-visit marker.
+- Uses Local Storage for long-term learning data summaries and JSON backup export.
+- Uses Session Storage for per-tab scratch notes that do not sync across windows.
+- Expanded the built-in bank from 430 to 440 questions.
+
 ### v1.5
 
 - Added spaced review for wrong answers with 1, 3, 7, 14, and 30 day intervals.
