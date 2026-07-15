@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 456 題，支援個人單字本、間隔複習、三種瀏覽器儲存分工與弱點分析。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 476 題，支援題庫自動單字庫、個人單字本、間隔複習、三種瀏覽器儲存分工與弱點分析。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,13 +13,14 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.7</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.8</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
       <button data-nav="setupView">▶　開始練習</button>
       <button data-nav="wrongView">✎　錯題本</button>
       <button data-nav="vocabView">◇　個人單字本</button>
+      <button data-nav="autoVocabView">A-Z　題庫單字庫</button>
       <button data-nav="historyView">▥　歷史成績</button>
       <button data-nav="analyticsView">◫　弱點分析</button>
       <button data-nav="storageView">▣　儲存中心</button>
@@ -51,7 +52,7 @@
         <div class="hero">
           <small style="font-weight:900;letter-spacing:.08em">NO API · NO LOGIN · LOCAL FIRST</small>
           <h2>把多益練習，做成真正能每天使用的題海系統。</h2>
-          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、個人單字本、間隔複習、三種瀏覽器儲存分工，以及 JSON／CSV／列印報告。</p>
+          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、題庫自動單字庫、個人單字本、間隔複習，以及 JSON／CSV／列印報告。</p>
           <div class="hero-actions">
             <button class="btn" data-go-setup>設定練習</button>
             <button class="btn secondary" id="heroQuick">立即隨機 20 題</button>
@@ -68,9 +69,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges"><span class="badge">v1.7 更新</span><span class="badge gray">456 題</span><span class="badge gray">單字本</span><span class="badge gray">可改選答案</span></div>
-          <h3 style="margin:13px 0 7px">答題先暫選再確認，並加入個人單字本</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.75">選項點擊後先暫選，可反悔改選；按確認答案後才鎖定。Part 5／7 可選取文字加入單字本，記錄中文、例句、熟悉度與複習日。</p>
+          <div class="badges"><span class="badge">v1.8 更新</span><span class="badge gray">476 題</span><span class="badge gray">A-Z 單字庫</span><span class="badge gray">自動抽字</span></div>
+          <h3 style="margin:13px 0 7px">題庫文字自動變成背單字清單</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">新增題庫單字庫，會從現有題目、選項與閱讀文章擷取英文詞，依 A-Z 分類；已收錄詞條會顯示中文、KK 音標、詞性與題庫例句。</p>
         </article>
 
         <div class="stats-grid">
@@ -237,6 +238,38 @@
         <div id="vocabList"></div>
       </section>
 
+      <section id="autoVocabView" class="view">
+        <div class="toolbar">
+          <div>
+            <h2 style="margin:0">題庫單字庫</h2>
+            <p style="color:var(--muted);margin:5px 0 0">從題目、選項、閱讀文章與聽力逐字稿自動抽字，依 A-Z 分類背單字。</p>
+          </div>
+          <div class="group"><button class="btn" id="refreshAutoVocab">重新掃描題庫</button></div>
+        </div>
+
+        <div class="stats-grid auto-vocab-stats">
+          <article class="card"><div class="stat-label">題庫候選詞</div><div class="stat-value" id="autoVocabTotal">0</div><div class="stat-foot">由目前題庫即時擷取</div></article>
+          <article class="card"><div class="stat-label">已完成詞條</div><div class="stat-value" id="autoVocabKnown">0</div><div class="stat-foot">含中文、KK、詞性</div></article>
+          <article class="card"><div class="stat-label">待補詞庫</div><div class="stat-value" id="autoVocabPending">0</div><div class="stat-foot">新題目會先進入這裡</div></article>
+          <article class="card"><div class="stat-label">目前篩選</div><div class="stat-value" id="autoVocabShown">0</div><div class="stat-foot">顯示於下方卡片</div></article>
+        </div>
+
+        <article class="card auto-vocab-panel">
+          <div class="form-grid">
+            <label><span>搜尋單字</span><input id="autoVocabSearch" type="text" placeholder="warranty / 採購 / /ˈvɛndɚ/"></label>
+            <label><span>顯示模式</span><select id="autoVocabStatus"><option value="known" selected>已完成詞條</option><option value="all">全部抽字</option><option value="pending">待補詞庫</option></select></label>
+            <label><span>排序</span><select id="autoVocabSort"><option value="alpha" selected>A-Z</option><option value="frequency">題庫出現次數</option></select></label>
+            <label><span>來源 Part</span><select id="autoVocabPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+          </div>
+          <div class="az-strip" id="autoVocabLetters"></div>
+        </article>
+
+        <div class="section-head">
+          <div><h2>單字卡</h2><p>例句優先取自題庫原文；按「加入個人單字本」可排入你的長期複習。</p></div>
+        </div>
+        <div id="autoVocabList" class="auto-vocab-grid"></div>
+      </section>
+
       <section id="historyView" class="view">
         <div class="toolbar"><div><h2 style="margin:0">歷史成績</h2><p style="color:var(--muted);margin:5px 0 0">最多保留最近 50 次。</p></div><button class="btn danger" id="clearHistory">清空紀錄</button></div>
         <div class="card" style="overflow:auto"><table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>答對</th><th>正確率</th><th>題型</th></tr></thead><tbody id="historyRows"></tbody></table></div>
@@ -342,6 +375,8 @@
 <script src="./question-bank-v15.js"></script>
 <script src="./question-bank-v16.js"></script>
 <script src="./question-bank-v17.js"></script>
+<script src="./question-bank-v18.js"></script>
+<script src="./vocab-lexicon.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

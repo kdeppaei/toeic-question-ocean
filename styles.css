@@ -283,7 +283,7 @@
     .estimate-card strong { display:block; margin-top:6px; font-size:31px; color:var(--primary); }
     .estimate-note { padding:12px 14px; border-radius:12px; background:var(--amber-soft); color:var(--amber); line-height:1.65; font-size:13px; }
     @media (max-width:650px){
-      .mock-grid,.analytics-grid,.estimate-grid,.storage-grid,.storage-map{grid-template-columns:1fr;}
+      .mock-grid,.analytics-grid,.estimate-grid,.storage-grid,.storage-map,.auto-vocab-grid{grid-template-columns:1fr;}
     }
     .quiz-actions { display:flex; justify-content:space-between; gap:10px; margin-top:20px; }
     .progress { height:10px; background:var(--surface-2); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
@@ -312,6 +312,26 @@
     .vocab-item h3 { margin:9px 0 7px; }
     .vocab-item p { margin:7px 0; color:var(--muted); line-height:1.65; }
     .vocab-meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .auto-vocab-panel { margin-top:18px; }
+    .auto-vocab-stats .stat-value { font-size:30px; }
+    .az-strip { display:flex; flex-wrap:wrap; gap:7px; margin-top:16px; }
+    .az-btn {
+      min-width:46px; border:1px solid var(--line); border-radius:10px; padding:8px 9px;
+      background:var(--surface-2); color:var(--muted); font-weight:950;
+    }
+    .az-btn.active, .az-btn:hover { color:var(--primary); border-color:var(--primary); background:var(--primary-soft); }
+    .az-btn small { display:block; margin-top:2px; font-size:10px; color:inherit; opacity:.76; }
+    .auto-vocab-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .word-card {
+      padding:16px; border:1px solid var(--line); border-radius:14px; background:var(--surface);
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .word-card.pending { border-style:dashed; background:color-mix(in srgb,var(--amber-soft) 46%,var(--surface)); }
+    .word-card h3 { margin:0; font-size:24px; display:flex; flex-wrap:wrap; gap:9px; align-items:baseline; }
+    .word-card h3 small { color:var(--primary); font-size:14px; font-weight:900; }
+    .word-card p { margin:0; color:var(--muted); line-height:1.65; }
+    .word-card .example { padding:11px 12px; border-radius:11px; background:var(--surface-2); border:1px solid var(--line); }
+    .word-card .sources { color:var(--muted); font-size:12px; line-height:1.55; }
     .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin-bottom:14px; }
     .toolbar .group { display:flex; flex-wrap:wrap; gap:8px; }
     .empty { color:var(--muted); text-align:center; padding:45px 15px; }
@@ -335,7 +355,7 @@
       .main { margin-left:0; }
       .mobile-menu { display:grid; }
       .stats-grid, .module-grid { grid-template-columns:repeat(2,1fr); }
-      .practice-layout, .setup-grid, .storage-grid, .storage-map { grid-template-columns:1fr; }
+      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid { grid-template-columns:1fr; }
     }
     @media (max-width: 650px) {
       .content, .topbar-inner { padding-left:14px; padding-right:14px; }

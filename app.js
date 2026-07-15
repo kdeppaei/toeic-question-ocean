@@ -1,4 +1,5 @@
 const BUILTIN_BANK = window.BUILTIN_BANK || [];
+const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -20,6 +21,17 @@ const SESSION_KEYS = {
   scratchpad: "toeicOcean.sessionScratchpad",
   scratchUpdatedAt: "toeicOcean.sessionScratchUpdatedAt"
 };
+const AUTO_VOCAB_LETTERS = ["all", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+const AUTO_VOCAB_STOP_WORDS = new Set([
+  "able","about","above","after","again","against","also","although","always","among","another","answer","any","april","around",
+  "because","been","before","being","below","best","between","blank","bring","came","could","days","december","does","doing",
+  "during","each","either","else","every","february","first","following","friday","from","have","having","here","hers","himself",
+  "into","itself","january","july","june","last","later","make","many","march","might","monday","more","most","must","next",
+  "november","october","only","other","ours","over","phrase","please","question","rarely","saturday","second","september",
+  "shall","should","since","some","still","such","than","that","their","them","then","there","these","they","third","this",
+  "those","through","thursday","today","tomorrow","tuesday","under","until","very","wednesday","were","what","when","where",
+  "which","while","whose","with","within","word","would","yesterday","your","yours"
+]);
 
 const state = {
   currentView: "homeView",
@@ -43,7 +55,8 @@ const state = {
   audioPlays: {},
   autoPlayedAudio: {},
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
-  lastResult: null
+  lastResult: null,
+  autoVocabLetter: "all"
 };
 
 const $ = (s) => document.querySelector(s);
@@ -265,6 +278,160 @@ function renderVocab(){
   $$("[data-vocab-field]").forEach(input=>input.onchange=()=>updateVocabField(input.dataset.vocabId,input.dataset.vocabField,input.value));
 }
 
+function normalizeAutoWord(raw){
+  return String(raw||"")
+    .toLowerCase()
+    .replace(/^'+|'+$/g,"")
+    .replace(/'s$/,"")
+    .replace(/[^a-z-]/g,"")
+    .replace(/^-+|-+$/g,"");
+}
+function autoLexiconKey(word){
+  const direct=TOEIC_VOCAB_LEXICON[word]?word:null;
+  if(direct) return direct;
+  const candidates=[];
+  if(word.endsWith("ies")) candidates.push(`${word.slice(0,-3)}y`);
+  if(word.endsWith("ves")) candidates.push(`${word.slice(0,-3)}f`);
+  if(word.endsWith("ing")) candidates.push(word.slice(0,-3), word.slice(0,-3).replace(/(.)\1$/,"$1"));
+  if(word.endsWith("ed")) candidates.push(word.slice(0,-2), word.slice(0,-2).replace(/(.)\1$/,"$1"));
+  if(word.endsWith("es")) candidates.push(word.slice(0,-2));
+  if(word.endsWith("s")) candidates.push(word.slice(0,-1));
+  return candidates.find(x=>TOEIC_VOCAB_LEXICON[x]) || word;
+}
+function autoVocabSourceText(q){
+  return [q.prompt, ...(q.choices||[]), q.passage, q.audioText].filter(Boolean).join(" ");
+}
+function sentenceCandidates(text){
+  return String(text||"")
+    .replace(/\s+/g," ")
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map(x=>x.trim())
+    .filter(Boolean);
+}
+function findExampleForWord(q, word){
+  const sources=[q.prompt, ...(q.choices||[]), q.passage, q.audioText].filter(Boolean);
+  const re=new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`,"i");
+  for(const text of sources){
+    const sentence=sentenceCandidates(text).find(line=>re.test(line));
+    if(sentence) return sentence;
+  }
+  return q.prompt || "";
+}
+function buildAutoVocabEntries(){
+  const map=new Map();
+  getBank().forEach(q=>{
+    const text=autoVocabSourceText(q);
+    for(const match of text.matchAll(/[A-Za-z][A-Za-z'-]*/g)){
+      const raw=match[0];
+      let word=normalizeAutoWord(raw);
+      if(!word || word.length<4 || word.includes("-") || word.includes("'") || AUTO_VOCAB_STOP_WORDS.has(word)) continue;
+      const key=autoLexiconKey(word);
+      if(AUTO_VOCAB_STOP_WORDS.has(key)) continue;
+      const info=TOEIC_VOCAB_LEXICON[key] || null;
+      const existing=map.get(key) || {
+        key,
+        word:key,
+        count:0,
+        parts:new Set(),
+        questionIds:new Set(),
+        example:"",
+        known:!!info,
+        pos:info?.pos || "",
+        kk:info?.kk || "",
+        zh:info?.zh || "",
+        letter:key.charAt(0).toUpperCase()
+      };
+      existing.count+=1;
+      existing.parts.add(q.part);
+      existing.questionIds.add(q.id);
+      if(!existing.example) existing.example=info?.example || findExampleForWord(q, raw);
+      map.set(key, existing);
+    }
+  });
+  return [...map.values()].map(item=>({
+    ...item,
+    parts:[...item.parts].sort((a,b)=>Number(a)-Number(b)),
+    questionIds:[...item.questionIds],
+    status:item.known?"known":"pending"
+  }));
+}
+function autoVocabFilteredEntries(){
+  const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
+  const status=$("#autoVocabStatus")?.value || "known";
+  const part=$("#autoVocabPart")?.value || "all";
+  const sort=$("#autoVocabSort")?.value || "alpha";
+  let entries=buildAutoVocabEntries();
+  if(status==="known") entries=entries.filter(x=>x.known);
+  if(status==="pending") entries=entries.filter(x=>!x.known);
+  if(part!=="all") entries=entries.filter(x=>x.parts.includes(part));
+  if(query){
+    entries=entries.filter(x=>[
+      x.word,x.zh,x.kk,x.pos,x.example,...x.questionIds
+    ].some(value=>String(value||"").toLowerCase().includes(query)));
+  }
+  if(state.autoVocabLetter && state.autoVocabLetter!=="all") entries=entries.filter(x=>x.letter===state.autoVocabLetter);
+  entries.sort(sort==="frequency"
+    ? (a,b)=>b.count-a.count || a.word.localeCompare(b.word)
+    : (a,b)=>a.word.localeCompare(b.word) || b.count-a.count);
+  return entries;
+}
+function addAutoVocabToPersonal(key){
+  const entry=buildAutoVocabEntries().find(x=>x.key===key);
+  if(!entry){ showToast("找不到這個題庫單字"); return; }
+  const ok=upsertVocab({
+    word:entry.word,
+    meaning:entry.zh || "待補中文解釋",
+    example:entry.example,
+    part:entry.parts[0] || "other",
+    familiarity:1,
+    sourceQuestionId:entry.questionIds[0] || "",
+    nextReviewAt:dateAfterDays(3)
+  });
+  if(ok) showToast("已加入個人單字本");
+}
+function renderAutoVocab(){
+  const all=buildAutoVocabEntries();
+  const known=all.filter(x=>x.known).length;
+  const pending=all.length-known;
+  const status=$("#autoVocabStatus")?.value || "known";
+  const part=$("#autoVocabPart")?.value || "all";
+  const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
+  const letterBase=all.filter(x=>
+    (status==="all" || (status==="known" ? x.known : !x.known)) &&
+    (part==="all" || x.parts.includes(part)) &&
+    (!query || [x.word,x.zh,x.kk,x.pos,x.example,...x.questionIds].some(value=>String(value||"").toLowerCase().includes(query)))
+  );
+  const letterCounts=new Map();
+  letterBase.forEach(x=>letterCounts.set(x.letter,(letterCounts.get(x.letter)||0)+1));
+  const entries=autoVocabFilteredEntries();
+  $("#autoVocabTotal").textContent=all.length;
+  $("#autoVocabKnown").textContent=known;
+  $("#autoVocabPending").textContent=pending;
+  $("#autoVocabShown").textContent=entries.length;
+  $("#autoVocabLetters").innerHTML=AUTO_VOCAB_LETTERS.map(letter=>{
+    const active=(state.autoVocabLetter||"all")===letter;
+    const label=letter==="all"?"ALL":letter;
+    const count=letter==="all"?letterBase.length:(letterCounts.get(letter)||0);
+    return `<button class="az-btn ${active?"active":""}" data-auto-letter="${letter}">${label}<small>${count}</small></button>`;
+  }).join("");
+  $("#autoVocabList").innerHTML=entries.length?entries.map(entry=>`
+    <article class="word-card ${entry.known?"":"pending"}">
+      <div class="badges">
+        <span class="badge">${safe(entry.letter)}</span>
+        <span class="badge gray">出現 ${entry.count} 次</span>
+        <span class="badge gray">Part ${entry.parts.map(safe).join(" / ")}</span>
+        ${entry.known?`<span class="badge">已完成詞條</span>`:`<span class="badge gray">待補詞庫</span>`}
+      </div>
+      <h3>${safe(entry.word)} <small>${safe(entry.kk || "KK 待補")}</small></h3>
+      <p><b>${safe(entry.pos || "詞性待補")}</b>　${safe(entry.zh || "待補中文解釋")}</p>
+      <p class="example"><b>題庫例句：</b>${safe(entry.example || "尚未擷取到完整例句")}</p>
+      <div class="sources">來源題號：${safe(entry.questionIds.slice(0,6).join(", "))}${entry.questionIds.length>6?` 等 ${entry.questionIds.length} 題`:""}</div>
+      <div class="vocab-meta"><button class="btn" data-add-auto-vocab="${safe(entry.key)}">加入個人單字本</button></div>
+    </article>`).join(""):'<div class="card empty">這個條件下沒有單字。試著切換字母、顯示模式或清空搜尋。</div>';
+  $$("[data-auto-letter]").forEach(btn=>btn.onclick=()=>{ state.autoVocabLetter=btn.dataset.autoLetter; renderAutoVocab(); });
+  $$("[data-add-auto-vocab]").forEach(btn=>btn.onclick=()=>addAutoVocabToPersonal(btn.dataset.addAutoVocab));
+}
+
 function encodeSession(session){
   return session.map(q=>({
     id:q.id,
@@ -328,13 +495,14 @@ function showView(id){
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
   const titles={
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
   if(id==="setupView") updateAvailable();
   if(id==="wrongView") renderWrongBook();
   if(id==="vocabView") renderVocab();
+  if(id==="autoVocabView") renderAutoVocab();
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
@@ -1271,6 +1439,11 @@ $("#saveVocab").onclick=saveVocabFromForm;
 $("#resetVocabForm").onclick=resetVocabForm;
 $("#exportVocab").onclick=exportVocab;
 $("#clearVocab").onclick=()=>{ if(confirm("確定清空個人單字本？")){ saveVocab([]); renderVocab(); } };
+$("#refreshAutoVocab").onclick=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); showToast("已重新掃描題庫單字"); };
+$("#autoVocabSearch").addEventListener("input",()=>{ state.autoVocabLetter="all"; renderAutoVocab(); });
+$("#autoVocabStatus").onchange=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); };
+$("#autoVocabSort").onchange=renderAutoVocab;
+$("#autoVocabPart").onchange=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); };
 $("#importBank").onclick=async()=>{
   const file=$("#importFile").files[0]; if(!file){showToast("請先選擇 JSON 檔");return;}
   try{

@@ -6,6 +6,13 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v1.8
+
+- Added an A-Z question-bank vocabulary page that scans current question text, answer choices, passages, and listening transcripts.
+- Added a local TOEIC vocabulary lexicon with Traditional Chinese meanings, KK phonetics, parts of speech, and question-sourced examples.
+- New question-bank words appear automatically; unknown terms are shown in a pending lexicon view for future enrichment.
+- Expanded the built-in bank from 456 to 476 questions with new Part 5 and Part 7 practice.
+
 ### v1.7
 
 - Changed answer selection to a two-step flow: choose an option first, then confirm the answer, so learners can change their mind before locking it.
@@ -30,7 +37,7 @@ Each feature release should include a focused question-bank expansion. Large cha
 
 ## Recommended Next Directions
 
-- Personal vocabulary notebook for selected Part 5 and Part 7 words.
+- Vocabulary review mode for the personal notebook and the A-Z question-bank vocabulary page.
 - Question quality dashboard with disabled status, difficulty edits, dispute notes, and per-question accuracy.
 - Accent metadata and filters for listening questions.
 - Part 1 image-description support with local image assets.
