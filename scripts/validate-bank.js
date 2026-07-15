@@ -1,10 +1,12 @@
 const fs = require("fs");
 const vm = require("vm");
 
-const source = fs.readFileSync("question-bank.js", "utf8");
 const sandbox = { window: {} };
 vm.createContext(sandbox);
-vm.runInContext(source, sandbox);
+fs.readdirSync(".")
+  .filter((file) => /^question-bank.*\.js$/.test(file))
+  .sort((a, b) => (a === "question-bank.js" ? -1 : b === "question-bank.js" ? 1 : a.localeCompare(b)))
+  .forEach((file) => vm.runInContext(fs.readFileSync(file, "utf8"), sandbox, { filename: file }));
 
 const bank = sandbox.window.BUILTIN_BANK;
 const validParts = new Set(["2", "3", "4", "5", "6", "7"]);

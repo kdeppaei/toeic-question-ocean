@@ -112,7 +112,7 @@
     .hero-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
     .hero .btn { background:white; color:#193aab; border-color:white; }
     .hero .btn.secondary { background:rgba(255,255,255,.14); color:white; border-color:rgba(255,255,255,.25); }
-    .stats-grid { margin-top: 20px; display:grid; grid-template-columns:repeat(4,1fr); gap:15px; }
+    .stats-grid { margin-top: 20px; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; }
     .card {
       background: var(--surface); border:1px solid var(--line); border-radius:var(--radius);
       box-shadow:var(--shadow); padding:20px;

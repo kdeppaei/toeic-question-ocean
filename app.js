@@ -6,8 +6,11 @@ const KEYS = {
   custom: "toeicOcean.customBank.v1",
   theme: "toeicOcean.theme.v1",
   active: "toeicOcean.activeSession.v1",
-  performance: "toeicOcean.performance.v1"
+  performance: "toeicOcean.performance.v1",
+  reviewSchedule: "toeicOcean.reviewSchedule.v1"
 };
+
+const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
 
 const state = {
   currentView: "homeView",
@@ -60,6 +63,52 @@ function getBank() {
 function getWrongIds(){ return load(KEYS.wrong, []); }
 function setWrongIds(ids){ save(KEYS.wrong, [...new Set(ids)]); }
 function getHistory(){ return load(KEYS.history, []); }
+function getReviewSchedule(){ return load(KEYS.reviewSchedule, {}); }
+function saveReviewSchedule(schedule){ save(KEYS.reviewSchedule, schedule); }
+function dateAfterDays(days){ const d=new Date(); d.setDate(d.getDate()+days); d.setHours(0,0,0,0); return d.getTime(); }
+function formatReviewDate(timestamp){
+  if(!timestamp) return "未排程";
+  return new Date(timestamp).toLocaleDateString("zh-TW",{month:"numeric",day:"numeric"});
+}
+function updateReviewSchedule(id, correct){
+  const schedule=getReviewSchedule();
+  const current=schedule[id];
+  if(correct&&!current) return;
+  const intervalIndex=correct
+    ? Math.min((current?.intervalIndex??-1)+1, REVIEW_INTERVAL_DAYS.length-1)
+    : 0;
+  const streak=correct?(current?.streak||0)+1:0;
+  const lapses=correct?(current?.lapses||0):(current?.lapses||0)+1;
+  schedule[id]={
+    id,
+    intervalIndex,
+    streak,
+    lapses,
+    lastReviewedAt:Date.now(),
+    nextReviewAt:dateAfterDays(REVIEW_INTERVAL_DAYS[intervalIndex])
+  };
+  saveReviewSchedule(schedule);
+}
+function removeReviewSchedule(ids){
+  const remove=new Set(ids);
+  const schedule=getReviewSchedule();
+  remove.forEach(id=>delete schedule[id]);
+  saveReviewSchedule(schedule);
+}
+function dueReviewIds(){
+  const now=Date.now();
+  return Object.values(getReviewSchedule())
+    .filter(item=>item?.nextReviewAt&&item.nextReviewAt<=now)
+    .sort((a,b)=>a.nextReviewAt-b.nextReviewAt)
+    .map(item=>item.id);
+}
+function startDueReview(){
+  const ids=dueReviewIds();
+  const map=new Map(getBank().map(q=>[q.id,q]));
+  const list=ids.map(id=>map.get(id)).filter(Boolean);
+  if(!list.length){ showToast("今天沒有到期複習題"); return; }
+  startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"review"});
+}
 
 function encodeSession(session){
   return session.map(q=>({
@@ -647,6 +696,7 @@ function answerQuestion(selected,timedOut=false){
     id:q.id,selected,correct,timedOut,elapsed:elapsedForCurrentQuestion()
   };
   state.questionEndsAt=null;
+  updateReviewSchedule(q.id, correct);
   persistActive();
   if(!correct&&state.sessionMode!=="mock"){
     const ids=getWrongIds(); ids.push(q.id); setWrongIds(ids);
@@ -687,6 +737,10 @@ function renderSessionStats(){
   const done=state.answers.filter(Boolean), correct=done.filter(a=>a.correct).length;
   const scoreRows=state.sessionMode==="mock"
     ?`<div class="mini-item">模式 <strong style="float:right;color:var(--primary)">模考</strong></div>`
+    :state.sessionMode==="review"
+    ?`<div class="mini-item">模式 <strong style="float:right;color:var(--primary)">間隔複習</strong></div>
+       <div class="mini-item">答對 <strong style="float:right;color:var(--green)">${correct}</strong></div>
+       <div class="mini-item">答錯 <strong style="float:right;color:var(--red)">${done.length-correct}</strong></div>`
     :`<div class="mini-item">答對 <strong style="float:right;color:var(--green)">${correct}</strong></div>
        <div class="mini-item">答錯 <strong style="float:right;color:var(--red)">${done.length-correct}</strong></div>
        <div class="mini-item">目前正確率 <strong style="float:right">${done.length?Math.round(correct/done.length*100):0}%</strong></div>`;
@@ -740,13 +794,16 @@ function finishSession(){
     return {...answer,review:!!state.reviewFlags[i],question:q};
   });
   const correct=results.filter(r=>r.correct).length, total=results.length, accuracy=total?Math.round(correct/total*100):0;
+  results
+    .filter(r=>r.timedOut&&r.selected===null&&r.elapsed===null)
+    .forEach(r=>updateReviewSchedule(r.question.id,false));
   if(state.sessionMode==="mock"){
     const ids=getWrongIds();
     results.filter(r=>!r.correct).forEach(r=>ids.push(r.question.id));
     setWrongIds(ids);
   }
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
-  const mode=state.sessionMode==="mock"?"Part 2–7 模考":"自由練習";
+  const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":"自由練習";
   const record={id:Date.now(),date:new Date().toISOString(),mode,total,correct,accuracy,parts:partLabel,results};
   const history=getHistory();
   history.unshift({id:record.id,date:record.date,mode,total,correct,accuracy,parts:partLabel});
@@ -787,6 +844,7 @@ function renderDashboard(){
   const answered=history.reduce((s,h)=>s+h.total,0), correct=history.reduce((s,h)=>s+h.correct,0);
   $("#heroCount").textContent=bank.length; $("#totalBank").textContent=bank.length; $("#totalAnswered").textContent=answered;
   $("#overallAccuracy").textContent=answered?`${Math.round(correct/answered*100)}%`:"0%"; $("#wrongCount").textContent=wrong.length;
+  $("#dueReviewCount").textContent=dueReviewIds().length;
   const parts=["2","3","4","5","6","7"];
   const labels={"2":"應答","3":"對話","4":"獨白","5":"單句填空","6":"短文填空","7":"閱讀理解"};
   $("#moduleGrid").innerHTML=parts.map(p=>{
@@ -798,9 +856,15 @@ function renderDashboard(){
   $("#recentHistory").innerHTML=recent.length?`<table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>正確率</th><th>題型</th></tr></thead><tbody>${recent.map(h=>`<tr><td>${new Date(h.date).toLocaleString("zh-TW")}</td><td>${safe(h.mode||"自由練習")}</td><td>${h.total}</td><td>${h.accuracy}%</td><td>${safe(h.parts)}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">尚無練習紀錄，先完成第一回合吧。</div>';
 }
 function renderWrongBook(){
-  const ids=getWrongIds(), map=new Map(getBank().map(q=>[q.id,q])), items=ids.map(id=>map.get(id)).filter(Boolean);
-  $("#wrongList").innerHTML=items.length?items.map(q=>`<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span></div><h3>${safe(q.prompt)}</h3>${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" data-remove-wrong="${q.id}">移除</button></article>`).join(""):'<div class="card empty">目前沒有錯題。</div>';
-  $$("[data-remove-wrong]").forEach(b=>b.onclick=()=>{ setWrongIds(getWrongIds().filter(id=>id!==b.dataset.removeWrong)); renderWrongBook(); });
+  const ids=getWrongIds(), map=new Map(getBank().map(q=>[q.id,q])), schedule=getReviewSchedule(), now=Date.now();
+  const items=ids.map(id=>map.get(id)).filter(Boolean);
+  $("#practiceDue").disabled=!dueReviewIds().length;
+  $("#wrongList").innerHTML=items.length?items.map(q=>{
+    const review=schedule[q.id];
+    const due=review?.nextReviewAt&&review.nextReviewAt<=now;
+    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${review?`<span class="badge ${due?"":"gray"}">${due?"今日到期":"下次 "+formatReviewDate(review.nextReviewAt)}</span><span class="badge gray">連對 ${review.streak||0}</span>`:"<span class=\"badge gray\">未排程</span>"}</div><h3>${safe(q.prompt)}</h3>${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" data-remove-wrong="${q.id}">移除</button></article>`;
+  }).join(""):'<div class="card empty">目前沒有錯題。</div>';
+  $$("[data-remove-wrong]").forEach(b=>b.onclick=()=>{ const id=b.dataset.removeWrong; setWrongIds(getWrongIds().filter(x=>x!==id)); removeReviewSchedule([id]); renderWrongBook(); renderDashboard(); });
 }
 function percent(stat){
   return stat?.total?Math.round(stat.correct/stat.total*100):0;
@@ -910,8 +974,9 @@ $("#heroQuick").onclick=()=>startSession(getBank(),{count:20,seconds:0});
 $("#nextQuestion").onclick=nextQuestion;
 $("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
+$("#practiceDue").onclick=startDueReview;
 $("#practiceWrong").onclick=()=>{ const ids=getWrongIds(),map=new Map(getBank().map(q=>[q.id,q])); startSession(ids.map(id=>map.get(id)).filter(Boolean),{count:ids.length,seconds:0}); };
-$("#clearWrong").onclick=()=>{ if(confirm("確定清空錯題本？")){setWrongIds([]);renderWrongBook();renderDashboard();} };
+$("#clearWrong").onclick=()=>{ if(confirm("確定清空錯題本？")){removeReviewSchedule(getWrongIds());setWrongIds([]);renderWrongBook();renderDashboard();} };
 $("#clearHistory").onclick=()=>{ if(confirm("確定清空歷史紀錄？")){save(KEYS.history,[]);renderHistory();renderDashboard();} };
 $("#exportJson").onclick=exportResultJson; $("#exportCsv").onclick=exportResultCsv; $("#printReport").onclick=()=>window.print();
 $("#exportBank").onclick=()=>download(new Blob([JSON.stringify(getBank(),null,2)],{type:"application/json"}),"toeic-question-bank.json");
