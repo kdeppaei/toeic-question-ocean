@@ -6,6 +6,12 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v1.8.1
+
+- Changed the A-Z vocabulary page to show the full question-bank vocabulary by default instead of only completed lexicon entries.
+- Marked complete entries and pending question-bank candidates with distinct labels and colors in the same list.
+- Added pronunciation playback buttons to vocabulary cards using browser speech synthesis.
+
 ### v1.8
 
 - Added an A-Z question-bank vocabulary page that scans current question text, answer choices, passages, and listening transcripts.

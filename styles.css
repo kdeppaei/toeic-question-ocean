@@ -153,6 +153,7 @@
     .badges { display:flex; flex-wrap:wrap; gap:7px; }
     .badge { padding:6px 9px; border-radius:999px; background:var(--primary-soft); color:var(--primary); font-size:12px; font-weight:900; }
     .badge.gray { color:var(--muted); background:var(--surface-2); }
+    .badge.amber { color:var(--amber); background:var(--amber-soft); }
     .timer { font-variant-numeric:tabular-nums; font-weight:950; color:var(--primary); }
     .passage {
       white-space:pre-wrap; padding:18px; margin-bottom:18px; background:var(--surface-2);
@@ -327,8 +328,12 @@
       display:flex; flex-direction:column; gap:10px;
     }
     .word-card.pending { border-style:dashed; background:color-mix(in srgb,var(--amber-soft) 46%,var(--surface)); }
-    .word-card h3 { margin:0; font-size:24px; display:flex; flex-wrap:wrap; gap:9px; align-items:baseline; }
+    .word-card h3 { margin:0; font-size:24px; display:flex; flex-wrap:wrap; gap:9px; align-items:center; }
     .word-card h3 small { color:var(--primary); font-size:14px; font-weight:900; }
+    .word-card .speak-word {
+      width:34px; height:34px; border-radius:50%; font-size:13px; color:var(--primary);
+      background:var(--primary-soft); border-color:transparent;
+    }
     .word-card p { margin:0; color:var(--muted); line-height:1.65; }
     .word-card .example { padding:11px 12px; border-radius:11px; background:var(--surface-2); border:1px solid var(--line); }
     .word-card .sources { color:var(--muted); font-size:12px; line-height:1.55; }

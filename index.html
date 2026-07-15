@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.8</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.8.1</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -69,9 +69,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges"><span class="badge">v1.8 更新</span><span class="badge gray">476 題</span><span class="badge gray">A-Z 單字庫</span><span class="badge gray">自動抽字</span></div>
-          <h3 style="margin:13px 0 7px">題庫文字自動變成背單字清單</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.75">新增題庫單字庫，會從現有題目、選項與閱讀文章擷取英文詞，依 A-Z 分類；已收錄詞條會顯示中文、KK 音標、詞性與題庫例句。</p>
+          <div class="badges"><span class="badge">v1.8.1 更新</span><span class="badge gray">476 題</span><span class="badge gray">全量單字</span><span class="badge gray">可播放發音</span></div>
+          <h3 style="margin:13px 0 7px">題庫單字庫改成全貌瀏覽，並加入發音播放</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">A-Z 預設顯示全部題庫候選詞，完整詞條與待補資料用標籤和顏色區分；每張單字卡可播放英文讀音。</p>
         </article>
 
         <div class="stats-grid">
@@ -257,7 +257,7 @@
         <article class="card auto-vocab-panel">
           <div class="form-grid">
             <label><span>搜尋單字</span><input id="autoVocabSearch" type="text" placeholder="warranty / 採購 / /ˈvɛndɚ/"></label>
-            <label><span>顯示模式</span><select id="autoVocabStatus"><option value="known" selected>已完成詞條</option><option value="all">全部抽字</option><option value="pending">待補詞庫</option></select></label>
+            <label><span>顯示模式</span><select id="autoVocabStatus"><option value="all" selected>全部題庫單字</option><option value="known">完整詞條</option><option value="pending">待補資料</option></select></label>
             <label><span>排序</span><select id="autoVocabSort"><option value="alpha" selected>A-Z</option><option value="frequency">題庫出現次數</option></select></label>
             <label><span>來源 Part</span><select id="autoVocabPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
           </div>

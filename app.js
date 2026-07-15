@@ -357,7 +357,7 @@ function buildAutoVocabEntries(){
 }
 function autoVocabFilteredEntries(){
   const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
-  const status=$("#autoVocabStatus")?.value || "known";
+  const status=$("#autoVocabStatus")?.value || "all";
   const part=$("#autoVocabPart")?.value || "all";
   const sort=$("#autoVocabSort")?.value || "alpha";
   let entries=buildAutoVocabEntries();
@@ -393,7 +393,7 @@ function renderAutoVocab(){
   const all=buildAutoVocabEntries();
   const known=all.filter(x=>x.known).length;
   const pending=all.length-known;
-  const status=$("#autoVocabStatus")?.value || "known";
+  const status=$("#autoVocabStatus")?.value || "all";
   const part=$("#autoVocabPart")?.value || "all";
   const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
   const letterBase=all.filter(x=>
@@ -420,9 +420,9 @@ function renderAutoVocab(){
         <span class="badge">${safe(entry.letter)}</span>
         <span class="badge gray">出現 ${entry.count} 次</span>
         <span class="badge gray">Part ${entry.parts.map(safe).join(" / ")}</span>
-        ${entry.known?`<span class="badge">已完成詞條</span>`:`<span class="badge gray">待補詞庫</span>`}
+        ${entry.known?`<span class="badge">完整詞條</span>`:`<span class="badge amber">題庫候選詞</span>`}
       </div>
-      <h3>${safe(entry.word)} <small>${safe(entry.kk || "KK 待補")}</small></h3>
+      <h3><span>${safe(entry.word)}</span> <small>${safe(entry.kk || "KK 待補")}</small><button class="icon-btn speak-word" data-speak-word="${safe(entry.word)}" aria-label="播放 ${safe(entry.word)} 發音">▶</button></h3>
       <p><b>${safe(entry.pos || "詞性待補")}</b>　${safe(entry.zh || "待補中文解釋")}</p>
       <p class="example"><b>題庫例句：</b>${safe(entry.example || "尚未擷取到完整例句")}</p>
       <div class="sources">來源題號：${safe(entry.questionIds.slice(0,6).join(", "))}${entry.questionIds.length>6?` 等 ${entry.questionIds.length} 題`:""}</div>
@@ -430,6 +430,7 @@ function renderAutoVocab(){
     </article>`).join(""):'<div class="card empty">這個條件下沒有單字。試著切換字母、顯示模式或清空搜尋。</div>';
   $$("[data-auto-letter]").forEach(btn=>btn.onclick=()=>{ state.autoVocabLetter=btn.dataset.autoLetter; renderAutoVocab(); });
   $$("[data-add-auto-vocab]").forEach(btn=>btn.onclick=()=>addAutoVocabToPersonal(btn.dataset.addAutoVocab));
+  $$("[data-speak-word]").forEach(btn=>btn.onclick=()=>speakWord(btn.dataset.speakWord));
 }
 
 function encodeSession(session){
@@ -1021,6 +1022,15 @@ function speak(text){
   const u=new SpeechSynthesisUtterance(text);
   u.lang="en-US";
   u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
+  speechSynthesis.speak(u);
+}
+function speakWord(word){
+  if(!word) return;
+  if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(word);
+  u.lang="en-US";
+  u.rate=0.82;
   speechSynthesis.speak(u);
 }
 function selectChoice(selected){
