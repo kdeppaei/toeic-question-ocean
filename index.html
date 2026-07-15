@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 400 題、中斷復原與弱點分析、錯題本、計時與成績匯出。" />
+  <link rel="icon" href="data:," />
+  <title>TOEIC Question Ocean｜多益題海練習</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">TQ</div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.4</span></strong></div>
+    </div>
+    <nav class="nav">
+      <button class="active" data-nav="homeView">⌂　學習總覽</button>
+      <button data-nav="setupView">▶　開始練習</button>
+      <button data-nav="wrongView">✎　錯題本</button>
+      <button data-nav="historyView">▥　歷史成績</button>
+      <button data-nav="analyticsView">◫　弱點分析</button>
+      <button data-nav="bankView">⇄　題庫管理</button>
+    </nav>
+    <div class="side-note">
+      <strong>純前端・零 API 費用</strong><br>
+      題庫、錯題與成績皆儲存在目前瀏覽器的 localStorage，不會上傳到伺服器。<br><br>本題庫為自製練習內容，非 ETS 官方試題。
+    </div>
+  </aside>
+  <button class="mobile-scrim" id="mobileScrim" aria-label="關閉選單"></button>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div style="display:flex;gap:11px;align-items:center">
+          <button class="icon-btn mobile-menu" id="mobileHome" aria-label="開啟選單" aria-expanded="false">☰</button>
+          <div class="page-title"><small id="todayLabel"></small><h1 id="viewTitle">多益題海學習儀表板</h1></div>
+        </div>
+        <div class="top-actions">
+          <button class="btn" id="quick10">隨機 10 題</button>
+          <button class="icon-btn" id="themeToggle" aria-label="切換深色模式">◐</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <section id="homeView" class="view active">
+        <div class="hero">
+          <small style="font-weight:900;letter-spacing:.08em">NO API · NO LOGIN · LOCAL FIRST</small>
+          <h2>把多益練習，做成真正能每天使用的題海系統。</h2>
+          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、限時練習、錯題追蹤、歷史統計，以及 JSON／CSV／列印報告。</p>
+          <div class="hero-actions">
+            <button class="btn" data-go-setup>設定練習</button>
+            <button class="btn secondary" id="heroQuick">立即隨機 20 題</button>
+          </div>
+        </div>
+
+        <section id="resumeBanner" class="resume-banner">
+          <h3>偵測到尚未完成的練習</h3>
+          <div id="resumeDescription" style="color:var(--muted);line-height:1.65"></div>
+          <div class="resume-actions">
+            <button class="btn primary" id="resumeSession">繼續作答</button>
+            <button class="btn danger" id="discardSession">放棄進度</button>
+          </div>
+        </section>
+
+        <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
+          <div class="badges"><span class="badge">v1.4 更新</span><span class="badge gray">400 題</span><span class="badge gray">中斷復原</span></div>
+          <h3 style="margin:13px 0 7px">新增中斷復原、估分與長期弱點分析</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">每次作答都會儲存目前進度；重新開啟網頁可恢復未完成練習或模考。成績頁新增 Listening／Reading 練習估分，並以長期作答資料分析題型弱點。</p>
+        </article>
+
+        <div class="stats-grid">
+          <article class="card"><div class="stat-label">題庫總量</div><div class="stat-value" id="totalBank">0</div><div class="stat-foot">Part 2–7</div></article>
+          <article class="card"><div class="stat-label">累積作答</div><div class="stat-value" id="totalAnswered">0</div><div class="stat-foot">儲存在本機</div></article>
+          <article class="card"><div class="stat-label">歷史正確率</div><div class="stat-value" id="overallAccuracy">0%</div><div class="stat-foot">所有練習紀錄</div></article>
+          <article class="card"><div class="stat-label">錯題收藏</div><div class="stat-value" id="wrongCount">0</div><div class="stat-foot">可反覆重練</div></article>
+        </div>
+
+        <div class="section-head"><div><h2>依題型進入</h2><p>先選題型，再由系統隨機抽題。</p></div></div>
+        <div class="module-grid" id="moduleGrid"></div>
+
+        <div class="section-head"><div><h2>最近紀錄</h2><p>快速掌握最近三次練習。</p></div></div>
+        <div class="card" id="recentHistory"></div>
+      </section>
+
+      <section id="setupView" class="view">
+        <div class="section-head"><div><h2>建立練習</h2><p>從內建題庫或你匯入的題庫中隨機抽題。</p></div></div>
+        <div class="setup-grid">
+          <article class="card">
+            <div class="form-grid">
+              <label><span>題型</span><select id="partSelect">
+                <option value="all">全部 Part 2–7</option>
+                <option value="2">Part 2 應答</option><option value="3">Part 3 對話</option>
+                <option value="4">Part 4 獨白</option><option value="5">Part 5 單句填空</option>
+                <option value="6">Part 6 短文填空</option><option value="7">Part 7 閱讀</option>
+              </select></label>
+              <label><span>難度</span><select id="difficultySelect">
+                <option value="all">全部難度</option><option value="400">基礎 400+</option>
+                <option value="600">中階 600+</option><option value="800">進階 800+</option>
+              </select></label>
+              <label><span>題目數量</span><select id="countSelect">
+                <option>5</option><option selected>10</option><option>20</option><option>30</option><option>50</option><option>100</option>
+              </select></label>
+              <label><span>每題時間</span><select id="timeSelect">
+                <option value="0">不限時</option><option value="30">30 秒</option><option value="45">45 秒</option>
+                <option value="60">60 秒</option><option value="90">90 秒</option>
+              </select></label>
+              <label><span>聽力播放上限</span><select id="playLimitSelect">
+                <option value="0">不限次數</option><option value="2" selected>最多 2 次</option><option value="1">最多 1 次</option>
+              </select></label>
+            </div>
+            <label class="check-row"><input id="instantFeedback" type="checkbox" checked> 作答後立即顯示答案與解析</label>
+            <label class="check-row"><input id="shuffleChoices" type="checkbox" checked> 隨機排列選項</label>
+            <label class="check-row"><input type="checkbox" checked disabled> Part 3、4、6、7 固定以完整題組抽取，整組完成後才揭曉解析</label>
+            <button class="btn primary" id="startPractice" style="width:100%;margin-top:18px;padding:14px">開始練習</button>
+          </article>
+          <article class="card">
+            <h3 style="margin-top:0">目前可抽題數</h3>
+            <div class="stat-value" id="availableCount">0</div>
+            <p style="color:var(--muted);line-height:1.7">若設定數量超過符合條件的題目，系統會自動改用全部可用題目。題目抽取會避免同一次練習中重複。</p>
+            <div class="mini-list" id="filterBreakdown"></div>
+          </article>
+        </div>
+
+        <article class="card mock-card">
+          <div class="badges"><span class="badge">Mock Exam</span><span class="badge gray">Part 2–7</span><span class="badge gray">自動交卷</span></div>
+          <h2 style="margin:13px 0 6px">Part 2–7 全真節奏模考</h2>
+          <p style="color:var(--muted);line-height:1.75;margin:0">依正式題數比例抽取 Part 2–7，共 194 題。Listening 與 Reading 採獨立倒數；模考期間不顯示答案與解析。</p>
+          <div class="mock-grid">
+            <div class="mock-metric"><strong>94 題</strong><span>Listening・45 分鐘</span></div>
+            <div class="mock-metric"><strong>100 題</strong><span>Reading・75 分鐘</span></div>
+            <div class="mock-metric"><strong>1 次</strong><span>聽力播放上限</span></div>
+          </div>
+          <button class="btn primary" id="startMockExam" style="width:100%;padding:14px">開始 194 題模考</button>
+          <div class="mock-warning">本網站為自製題庫，並非 ETS 官方試題；目前尚未製作 Part 1 照片描述，因此此模式為 Part 2–7 的 194 題模擬。</div>
+        </article>
+      </section>
+
+      <section id="practiceView" class="view">
+        <div class="practice-layout">
+          <article class="card quiz-card">
+            <div class="quiz-meta">
+              <div class="badges" id="quizBadges"></div>
+              <div class="timer" id="timerText">不限時</div>
+            </div>
+            <div class="progress"><div id="quizProgress"></div></div>
+            <div id="questionArea"></div>
+            <div class="quiz-actions">
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn danger" id="quitPractice">結束練習</button>
+                <button class="btn" id="markReview">☆ 標記待檢查</button>
+              </div>
+              <button class="btn primary" id="nextQuestion" disabled>下一題</button>
+            </div>
+          </article>
+          <aside class="side-stack">
+            <article class="card section-clock" id="mockSectionCard" hidden>
+              <span id="mockSectionLabel">Listening Section</span>
+              <strong id="mockSectionTime">45:00</strong>
+              <small id="mockSectionHint">時間到將自動進入 Reading。</small>
+            </article>
+            <article class="card"><h3>本回合</h3><div class="mini-list" id="sessionStats"></div></article>
+            <article class="card">
+              <h3>題號導覽</h3>
+              <div class="nav-legend">
+                <span class="legend-dot"><i></i>未答</span>
+                <span class="legend-dot"><i style="background:var(--primary)"></i>已答</span>
+                <span class="legend-dot"><i style="background:var(--amber)"></i>待檢查</span>
+              </div>
+              <div id="questionNavigator" class="question-nav"></div>
+            </article>
+            <article class="card"><h3>快捷鍵</h3><div class="mini-list">
+              <div class="mini-item">1–4：選擇答案</div><div class="mini-item">Enter：下一題</div>
+              <div class="mini-item">L：播放聽力</div><div class="mini-item">R：標記待檢查</div><div class="mini-item">F：收藏／取消收藏</div>
+            </div></article>
+          </aside>
+        </div>
+      </section>
+
+      <section id="resultView" class="view">
+        <article class="card result-banner">
+          <div class="score-ring" id="scoreRing"><strong id="resultScore">0%</strong></div>
+          <h2 id="resultTitle">練習完成</h2>
+          <p id="resultSummary" style="color:var(--muted)"></p>
+          <div class="estimate-grid" id="estimateGrid"></div>
+          <div class="estimate-note">估分僅依本題庫作答比例做線性換算，並非 ETS 官方換算表或正式成績。</div>
+          <div class="hero-actions no-print" style="justify-content:center">
+            <button class="btn primary" id="retryWrong">重練本回錯題</button>
+            <button class="btn" data-go-setup>建立新練習</button>
+          </div>
+        </article>
+        <div class="section-head"><div><h2>分類成績</h2></div></div>
+        <div class="report-grid" id="categoryReport"></div>
+        <div class="section-head"><div><h2>作答明細</h2></div>
+          <div class="group no-print"><button class="btn" id="exportCsv">CSV</button><button class="btn" id="exportJson">JSON</button><button class="btn" id="printReport">列印 / PDF</button></div>
+        </div>
+        <div class="card" style="overflow:auto"><table><thead><tr><th>#</th><th>題型</th><th>題目</th><th>你的答案</th><th>正解</th><th>結果</th></tr></thead><tbody id="resultRows"></tbody></table></div>
+      </section>
+
+      <section id="wrongView" class="view">
+        <div class="toolbar">
+          <div><h2 style="margin:0">錯題本</h2><p style="color:var(--muted);margin:5px 0 0">答錯題目與手動收藏都會保留。</p></div>
+          <div class="group"><button class="btn primary" id="practiceWrong">練習錯題</button><button class="btn danger" id="clearWrong">清空錯題本</button></div>
+        </div>
+        <div id="wrongList"></div>
+      </section>
+
+      <section id="historyView" class="view">
+        <div class="toolbar"><div><h2 style="margin:0">歷史成績</h2><p style="color:var(--muted);margin:5px 0 0">最多保留最近 50 次。</p></div><button class="btn danger" id="clearHistory">清空紀錄</button></div>
+        <div class="card" style="overflow:auto"><table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>答對</th><th>正確率</th><th>題型</th></tr></thead><tbody id="historyRows"></tbody></table></div>
+      </section>
+
+      <section id="analyticsView" class="view">
+        <div class="toolbar">
+          <div><h2 style="margin:0">長期弱點分析</h2><p style="color:var(--muted);margin:5px 0 0">依所有已完成練習累積，不只看最近一次。</p></div>
+          <button class="btn danger" id="clearAnalytics">清空分析資料</button>
+        </div>
+        <div class="stats-grid">
+          <article class="card"><div class="stat-label">分析題數</div><div class="stat-value" id="analyticsTotal">0</div><div class="stat-foot">完成後才納入</div></article>
+          <article class="card"><div class="stat-label">Listening</div><div class="stat-value" id="analyticsListening">0%</div><div class="stat-foot">Part 2–4</div></article>
+          <article class="card"><div class="stat-label">Reading</div><div class="stat-value" id="analyticsReading">0%</div><div class="stat-foot">Part 5–7</div></article>
+          <article class="card"><div class="stat-label">最弱分類</div><div class="stat-value" id="analyticsWeakest" style="font-size:20px">—</div><div class="stat-foot">至少作答 3 題</div></article>
+        </div>
+        <div class="analytics-grid" style="margin-top:18px">
+          <article class="card"><h3 style="margin-top:0">依 Part 統計</h3><div id="partAnalytics"></div></article>
+          <article class="card"><h3 style="margin-top:0">依考點分類</h3><div id="categoryAnalytics"></div></article>
+        </div>
+        <article class="card" style="margin-top:18px">
+          <h3 style="margin-top:0">系統建議</h3>
+          <div id="analyticsRecommendations" class="mini-list"></div>
+        </article>
+      </section>
+
+      <section id="bankView" class="view">
+        <div class="section-head"><div><h2>題庫管理</h2><p>可匯出內建題庫格式，擴充後再匯入。</p></div></div>
+        <div class="setup-grid">
+          <article class="card">
+            <h3 style="margin-top:0">匯入題庫 JSON</h3>
+            <p style="color:var(--muted);line-height:1.7">匯入的題目會存進 localStorage。相同 id 的題目會覆蓋舊資料。</p>
+            <input type="file" id="importFile" accept=".json,application/json">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:15px">
+              <button class="btn primary" id="importBank">匯入</button><button class="btn" id="exportBank">匯出完整題庫</button>
+              <button class="btn danger" id="resetBank">移除自訂題庫</button>
+            </div>
+          </article>
+          <article class="card">
+            <h3 style="margin-top:0">題庫格式</h3>
+            <pre style="white-space:pre-wrap;background:var(--surface-2);padding:14px;border-radius:12px;border:1px solid var(--line);font-size:12px;overflow:auto">{
+  "id": "CUSTOM-001",
+  "part": "5",
+  "difficulty": "600",
+  "category": "介系詞",
+  "prompt": "Question...",
+  "choices": ["A","B","C","D"],
+  "answer": 0,
+  "explanation": "中文解析",
+  "translation": "中文翻譯",
+  "passage": "",
+  "audioText": ""
+}</pre>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="./question-bank.js"></script>
+<script src="./app.js" defer></script>
+</body>
+</html>

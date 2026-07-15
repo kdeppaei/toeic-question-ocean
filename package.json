@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "check:js": "node --check app.js",
+    "validate:bank": "node scripts/validate-bank.js",
+    "test": "npm run check:js && npm run validate:bank"
+  },
+  "private": true
+}
