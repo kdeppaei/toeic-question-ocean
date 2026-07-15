@@ -56,7 +56,8 @@ const state = {
   autoPlayedAudio: {},
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
-  autoVocabLetter: "all"
+  autoVocabLetter: "all",
+  vocabQuiz: { questions: [], index: 0, answers: [] }
 };
 
 const $ = (s) => document.querySelector(s);
@@ -426,11 +427,185 @@ function renderAutoVocab(){
       <p><b>${safe(entry.pos || "詞性待補")}</b>　${safe(entry.zh || "待補中文解釋")}</p>
       <p class="example"><b>題庫例句：</b>${safe(entry.example || "尚未擷取到完整例句")}</p>
       <div class="sources">來源題號：${safe(entry.questionIds.slice(0,6).join(", "))}${entry.questionIds.length>6?` 等 ${entry.questionIds.length} 題`:""}</div>
-      <div class="vocab-meta"><button class="btn" data-add-auto-vocab="${safe(entry.key)}">加入個人單字本</button></div>
+      <div class="vocab-meta"><button class="btn" data-add-auto-vocab="${safe(entry.key)}">加入個人單字本</button>${entry.known?`<button class="btn" data-review-auto-vocab="${safe(entry.key)}">練這個單字</button>`:""}</div>
     </article>`).join(""):'<div class="card empty">這個條件下沒有單字。試著切換字母、顯示模式或清空搜尋。</div>';
   $$("[data-auto-letter]").forEach(btn=>btn.onclick=()=>{ state.autoVocabLetter=btn.dataset.autoLetter; renderAutoVocab(); });
   $$("[data-add-auto-vocab]").forEach(btn=>btn.onclick=()=>addAutoVocabToPersonal(btn.dataset.addAutoVocab));
+  $$("[data-review-auto-vocab]").forEach(btn=>btn.onclick=()=>startSingleVocabReview(btn.dataset.reviewAutoVocab));
   $$("[data-speak-word]").forEach(btn=>btn.onclick=()=>speakWord(btn.dataset.speakWord));
+}
+
+function vocabReviewPool(){
+  const source=$("#vocabReviewSource")?.value || "known";
+  const part=$("#vocabReviewPart")?.value || "all";
+  if(source==="personal"){
+    return getVocab()
+      .filter(item=>item.word&&item.meaning)
+      .filter(item=>part==="all"||String(item.part)===part)
+      .map(item=>({
+        key:item.key||normalizeWord(item.word).toLowerCase(),
+        word:normalizeWord(item.word),
+        zh:item.meaning,
+        kk:"",
+        pos:"個人單字",
+        example:item.example||"",
+        parts:[String(item.part||"other")],
+        questionIds:item.sourceQuestionId?[item.sourceQuestionId]:[],
+        personal:true
+      }));
+  }
+  return buildAutoVocabEntries()
+    .filter(entry=>entry.known&&entry.zh)
+    .filter(entry=>part==="all"||entry.parts.includes(part));
+}
+function renderVocabReviewSummary(){
+  const known=buildAutoVocabEntries().filter(entry=>entry.known&&entry.zh).length;
+  const personal=getVocab().filter(item=>item.word&&item.meaning).length;
+  const pool=vocabReviewPool();
+  $("#vocabReviewSummary").innerHTML=`
+    <div class="mini-item">題庫完整詞條 <strong style="float:right;color:var(--primary)">${known}</strong></div>
+    <div class="mini-item">個人單字可出題 <strong style="float:right;color:var(--green)">${personal}</strong></div>
+    <div class="mini-item">目前條件可用 <strong style="float:right">${pool.length}</strong></div>
+    <div class="mini-item">題型 <strong style="float:right">${safe($("#vocabReviewMode")?.selectedOptions?.[0]?.textContent||"混合題型")}</strong></div>`;
+}
+function clozeText(example, word){
+  if(!example) return "";
+  const re=new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`,"i");
+  return example.replace(re,"_____");
+}
+function vocabModeFor(entry, preferred){
+  if(preferred==="cloze" && (!entry.example || clozeText(entry.example, entry.word)===entry.example)) return "meaning";
+  if(preferred==="audio" && !("speechSynthesis" in window)) return "meaning";
+  if(preferred!=="mixed") return preferred;
+  const modes=["meaning"];
+  if(entry.example&&clozeText(entry.example, entry.word)!==entry.example) modes.push("cloze");
+  if("speechSynthesis" in window) modes.push("audio");
+  return modes[Math.floor(Math.random()*modes.length)];
+}
+function buildVocabReviewQuestions(){
+  const pool=vocabReviewPool();
+  const count=Math.min(Number($("#vocabReviewCount")?.value||10), pool.length);
+  const preferred=$("#vocabReviewMode")?.value || "mixed";
+  const chosen=shuffle(pool).slice(0,count);
+  return chosen.map(entry=>{
+    const mode=vocabModeFor(entry, preferred);
+    const distractors=shuffle(pool.filter(x=>x.key!==entry.key)).slice(0,3);
+    const choices=shuffle([entry, ...distractors]).map(item=>{
+      if(mode==="meaning") return {label:item.zh, key:item.key};
+      return {label:item.word, key:item.key};
+    });
+    const answer=choices.findIndex(choice=>choice.key===entry.key);
+    const prompt=mode==="meaning"
+      ? `「${entry.word}」的中文意思是？`
+      : mode==="cloze"
+        ? clozeText(entry.example, entry.word)
+        : "請聽發音，選出正確單字。";
+    return {entry, mode, prompt, choices, answer};
+  });
+}
+function startSingleVocabReview(key){
+  const pool=buildAutoVocabEntries().filter(entry=>entry.known&&entry.zh);
+  const target=pool.find(entry=>entry.key===key);
+  if(!target){ showToast("這個單字還沒有完整詞條"); return; }
+  const extras=shuffle(pool.filter(entry=>entry.key!==key)).slice(0,4);
+  $("#vocabReviewSource").value="known";
+  $("#vocabReviewMode").value="mixed";
+  state.vocabQuiz={questions:shuffle([target,...extras]).map(entry=>{
+    const mode=vocabModeFor(entry,"mixed");
+    const distractors=shuffle(pool.filter(x=>x.key!==entry.key)).slice(0,3);
+    const choices=shuffle([entry, ...distractors]).map(item=>mode==="meaning"?{label:item.zh,key:item.key}:{label:item.word,key:item.key});
+    return {
+      entry,
+      mode,
+      prompt:mode==="meaning"?`「${entry.word}」的中文意思是？`:mode==="cloze"?clozeText(entry.example, entry.word):"請聽發音，選出正確單字。",
+      choices,
+      answer:choices.findIndex(choice=>choice.key===entry.key)
+    };
+  }), index:0, answers:[]};
+  showView("vocabReviewView");
+  renderVocabReview();
+}
+function startVocabReview(){
+  const pool=vocabReviewPool();
+  if(pool.length<4){ showToast("目前條件至少需要 4 個可用單字"); return; }
+  state.vocabQuiz={questions:buildVocabReviewQuestions(), index:0, answers:[]};
+  renderVocabReview();
+}
+function resetVocabReview(){
+  state.vocabQuiz={questions:[], index:0, answers:[]};
+  renderVocabReviewSummary();
+  $("#vocabQuizBadges").innerHTML="";
+  $("#vocabQuizScore").textContent="0/0";
+  $("#vocabQuizProgress").style.width="0";
+  $("#vocabQuizArea").innerHTML='<div class="empty">設定題型後按「開始單字複習」。</div>';
+  $("#nextVocabQuestion").disabled=true;
+}
+function renderVocabReview(){
+  renderVocabReviewSummary();
+  const quiz=state.vocabQuiz;
+  const total=quiz.questions.length;
+  if(!total){ resetVocabReview(); return; }
+  const q=quiz.questions[quiz.index];
+  const existing=quiz.answers[quiz.index];
+  const done=quiz.answers.filter(Boolean);
+  const correct=done.filter(x=>x.correct).length;
+  $("#vocabQuizBadges").innerHTML=`<span class="badge">Q${quiz.index+1}/${total}</span><span class="badge gray">${q.mode==="meaning"?"英翻中":q.mode==="cloze"?"例句填空":"聽音辨字"}</span><span class="badge gray">${safe(q.entry.pos||"")}</span>`;
+  $("#vocabQuizScore").textContent=`${correct}/${done.length}`;
+  $("#vocabQuizProgress").style.width=`${Math.round((quiz.index+(existing?1:0))/total*100)}%`;
+  const choices=q.choices.map((choice,i)=>{
+    let cls="";
+    if(existing){
+      if(i===q.answer) cls="correct";
+      else if(i===existing.selected) cls="wrong";
+      else cls="dim";
+    }
+    return `<button class="choice ${cls}" data-vocab-choice="${i}" ${existing?"disabled":""}><span class="choice-letter">${letter(i)}</span><span>${safe(choice.label)}</span></button>`;
+  }).join("");
+  const prompt=q.mode==="audio"
+    ? `<div class="vocab-audio-prompt"><button class="btn primary" id="playVocabPrompt">▶ 播放單字</button><span>聽發音後選出正確單字</span></div>`
+    : `<div class="question">${safe(q.prompt)}</div>`;
+  const feedback=existing?`
+    <div class="feedback">
+      <strong>${existing.correct?"答對了":"再看一次"}</strong>
+      <div style="margin-top:8px"><b>${safe(q.entry.word)}</b> ${q.entry.kk?`<span style="color:var(--primary)">${safe(q.entry.kk)}</span>`:""}　${safe(q.entry.zh)}</div>
+      ${q.entry.example?`<div class="translation-block"><b>題庫例句：</b>${safe(q.entry.example)}</div>`:""}
+    </div>`:"";
+  $("#vocabQuizArea").innerHTML=`
+    <div class="vocab-word-head"><h3>${safe(q.entry.word)}</h3><button class="icon-btn speak-word" id="speakCurrentVocab" aria-label="播放 ${safe(q.entry.word)} 發音">▶</button></div>
+    ${prompt}
+    <div class="choices">${choices}</div>
+    ${feedback}`;
+  $$("[data-vocab-choice]").forEach(btn=>btn.onclick=()=>answerVocabQuestion(Number(btn.dataset.vocabChoice)));
+  $("#speakCurrentVocab").onclick=()=>speakWord(q.entry.word);
+  $("#playVocabPrompt")?.addEventListener("click",()=>speakWord(q.entry.word));
+  if(q.mode==="audio"&&!existing) setTimeout(()=>speakWord(q.entry.word),250);
+  $("#nextVocabQuestion").disabled=!existing;
+  $("#nextVocabQuestion").textContent=quiz.index>=total-1?"完成複習":"下一題";
+}
+function answerVocabQuestion(selected){
+  const quiz=state.vocabQuiz;
+  if(!quiz.questions.length||quiz.answers[quiz.index]) return;
+  const q=quiz.questions[quiz.index];
+  quiz.answers[quiz.index]={selected, correct:selected===q.answer};
+  renderVocabReview();
+}
+function nextVocabQuestion(){
+  const quiz=state.vocabQuiz;
+  if(!quiz.questions.length||!quiz.answers[quiz.index]) return;
+  if(quiz.index>=quiz.questions.length-1){
+    const correct=quiz.answers.filter(x=>x.correct).length;
+    $("#vocabQuizArea").innerHTML=`
+      <div class="result-banner" style="padding:20px">
+        <h2>單字複習完成</h2>
+        <p style="color:var(--muted)">答對 ${correct}/${quiz.questions.length} 題，正確率 ${Math.round(correct/quiz.questions.length*100)}%。</p>
+        <button class="btn primary" id="restartVocabReview">再練一次</button>
+      </div>`;
+    $("#nextVocabQuestion").disabled=true;
+    $("#restartVocabReview").onclick=startVocabReview;
+    return;
+  }
+  quiz.index++;
+  renderVocabReview();
 }
 
 function encodeSession(session){
@@ -496,7 +671,7 @@ function showView(id){
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
   const titles={
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
@@ -504,6 +679,7 @@ function showView(id){
   if(id==="wrongView") renderWrongBook();
   if(id==="vocabView") renderVocab();
   if(id==="autoVocabView") renderAutoVocab();
+  if(id==="vocabReviewView") renderVocabReviewSummary();
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
@@ -1454,6 +1630,13 @@ $("#autoVocabSearch").addEventListener("input",()=>{ state.autoVocabLetter="all"
 $("#autoVocabStatus").onchange=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); };
 $("#autoVocabSort").onchange=renderAutoVocab;
 $("#autoVocabPart").onchange=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); };
+$("#startVocabReview").onclick=startVocabReview;
+$("#resetVocabReview").onclick=resetVocabReview;
+$("#nextVocabQuestion").onclick=nextVocabQuestion;
+$("#vocabReviewMode").onchange=renderVocabReviewSummary;
+$("#vocabReviewCount").onchange=renderVocabReviewSummary;
+$("#vocabReviewPart").onchange=renderVocabReviewSummary;
+$("#vocabReviewSource").onchange=renderVocabReviewSummary;
 $("#importBank").onclick=async()=>{
   const file=$("#importFile").files[0]; if(!file){showToast("請先選擇 JSON 檔");return;}
   try{
@@ -1466,6 +1649,11 @@ $("#importBank").onclick=async()=>{
 };
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape") closeMobileNav();
+  if(state.currentView==="vocabReviewView"){
+    if(["1","2","3","4"].includes(e.key)) answerVocabQuestion(Number(e.key)-1);
+    if(e.key==="Enter") nextVocabQuestion();
+    return;
+  }
   if(state.currentView!=="practiceView")return;
   if(["1","2","3","4"].includes(e.key)) selectChoice(Number(e.key)-1);
   if(e.key==="Enter") nextQuestion();
@@ -1479,4 +1667,4 @@ document.addEventListener("keydown",e=>{
 });
 
 updateVisitCookie();
-renderDashboard(); updateAvailable(); renderResumeBanner();
+renderDashboard(); updateAvailable(); renderResumeBanner(); resetVocabReview();

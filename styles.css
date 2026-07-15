@@ -337,6 +337,17 @@
     .word-card p { margin:0; color:var(--muted); line-height:1.65; }
     .word-card .example { padding:11px 12px; border-radius:11px; background:var(--surface-2); border:1px solid var(--line); }
     .word-card .sources { color:var(--muted); font-size:12px; line-height:1.55; }
+    .vocab-quiz-card { margin-top:18px; }
+    .vocab-quiz-area { margin-top:18px; }
+    .vocab-word-head {
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;
+    }
+    .vocab-word-head h3 { margin:0; font-size:28px; }
+    .vocab-audio-prompt {
+      display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:15px;
+      border:1px dashed var(--primary); border-radius:14px; background:var(--primary-soft);
+      color:var(--primary); font-weight:900; margin:14px 0;
+    }
     .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin-bottom:14px; }
     .toolbar .group { display:flex; flex-wrap:wrap; gap:8px; }
     .empty { color:var(--muted); text-align:center; padding:45px 15px; }

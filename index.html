@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 476 題，支援題庫自動單字庫、個人單字本、間隔複習、三種瀏覽器儲存分工與弱點分析。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 486 題，支援單字複習、題庫自動單字庫、個人單字本、間隔複習與弱點分析。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.8.1</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.9</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -21,6 +21,7 @@
       <button data-nav="wrongView">✎　錯題本</button>
       <button data-nav="vocabView">◇　個人單字本</button>
       <button data-nav="autoVocabView">A-Z　題庫單字庫</button>
+      <button data-nav="vocabReviewView">◆　單字複習</button>
       <button data-nav="historyView">▥　歷史成績</button>
       <button data-nav="analyticsView">◫　弱點分析</button>
       <button data-nav="storageView">▣　儲存中心</button>
@@ -52,7 +53,7 @@
         <div class="hero">
           <small style="font-weight:900;letter-spacing:.08em">NO API · NO LOGIN · LOCAL FIRST</small>
           <h2>把多益練習，做成真正能每天使用的題海系統。</h2>
-          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、題庫自動單字庫、個人單字本、間隔複習，以及 JSON／CSV／列印報告。</p>
+          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、單字複習、題庫自動單字庫、個人單字本，以及 JSON／CSV／列印報告。</p>
           <div class="hero-actions">
             <button class="btn" data-go-setup>設定練習</button>
             <button class="btn secondary" id="heroQuick">立即隨機 20 題</button>
@@ -69,9 +70,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges"><span class="badge">v1.8.1 更新</span><span class="badge gray">476 題</span><span class="badge gray">全量單字</span><span class="badge gray">可播放發音</span></div>
-          <h3 style="margin:13px 0 7px">題庫單字庫改成全貌瀏覽，並加入發音播放</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.75">A-Z 預設顯示全部題庫候選詞，完整詞條與待補資料用標籤和顏色區分；每張單字卡可播放英文讀音。</p>
+          <div class="badges"><span class="badge">v1.9 更新</span><span class="badge gray">486 題</span><span class="badge gray">單字複習</span><span class="badge gray">英翻中 / 填空 / 聽音</span></div>
+          <h3 style="margin:13px 0 7px">把題庫單字庫變成可練習的測驗</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">新增單字複習分頁，可用題庫完整詞條或個人單字本練英翻中、例句填空與聽音辨字；並補充 10 題 Part 5 / Part 7。</p>
         </article>
 
         <div class="stats-grid">
@@ -270,6 +271,46 @@
         <div id="autoVocabList" class="auto-vocab-grid"></div>
       </section>
 
+      <section id="vocabReviewView" class="view">
+        <div class="toolbar">
+          <div>
+            <h2 style="margin:0">單字複習</h2>
+            <p style="color:var(--muted);margin:5px 0 0">用題庫完整詞條練英翻中、例句填空與聽音辨字。</p>
+          </div>
+        </div>
+
+        <div class="setup-grid">
+          <article class="card">
+            <h3 style="margin-top:0">建立單字測驗</h3>
+            <div class="form-grid">
+              <label><span>題型</span><select id="vocabReviewMode"><option value="mixed" selected>混合題型</option><option value="meaning">英翻中</option><option value="cloze">例句填空</option><option value="audio">聽音辨字</option></select></label>
+              <label><span>題數</span><select id="vocabReviewCount"><option>5</option><option selected>10</option><option>20</option><option>30</option></select></label>
+              <label><span>來源 Part</span><select id="vocabReviewPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+              <label><span>出題來源</span><select id="vocabReviewSource"><option value="known" selected>題庫完整詞條</option><option value="personal">個人單字本</option></select></label>
+            </div>
+            <button class="btn primary" id="startVocabReview" style="width:100%;margin-top:18px;padding:14px">開始單字複習</button>
+          </article>
+
+          <article class="card">
+            <h3 style="margin-top:0">可用單字</h3>
+            <div class="mini-list" id="vocabReviewSummary"></div>
+          </article>
+        </div>
+
+        <article class="card vocab-quiz-card" id="vocabQuizCard">
+          <div class="quiz-meta">
+            <div class="badges" id="vocabQuizBadges"></div>
+            <div class="timer" id="vocabQuizScore">0/0</div>
+          </div>
+          <div class="progress"><div id="vocabQuizProgress"></div></div>
+          <div id="vocabQuizArea" class="vocab-quiz-area"></div>
+          <div class="quiz-actions">
+            <button class="btn danger" id="resetVocabReview">重設單字測驗</button>
+            <button class="btn primary" id="nextVocabQuestion" disabled>下一題</button>
+          </div>
+        </article>
+      </section>
+
       <section id="historyView" class="view">
         <div class="toolbar"><div><h2 style="margin:0">歷史成績</h2><p style="color:var(--muted);margin:5px 0 0">最多保留最近 50 次。</p></div><button class="btn danger" id="clearHistory">清空紀錄</button></div>
         <div class="card" style="overflow:auto"><table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>答對</th><th>正確率</th><th>題型</th></tr></thead><tbody id="historyRows"></tbody></table></div>
@@ -376,6 +417,7 @@
 <script src="./question-bank-v16.js"></script>
 <script src="./question-bank-v17.js"></script>
 <script src="./question-bank-v18.js"></script>
+<script src="./question-bank-v19.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./app.js" defer></script>
 </body>
