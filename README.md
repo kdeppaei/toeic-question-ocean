@@ -6,6 +6,13 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.1
+
+- Added detailed answer review cards after completed practice sessions, including selected answer, correct answer, explanations, passages, and listening transcripts.
+- Strategy practice now records the tactic that was practiced and offers a recent-review card from the strategy center.
+- Expanded the built-in bank from 500 to 520 questions with original technology-context TOEIC-style items covering AI cybersecurity, edge computing, cloud migration, data-center planning, and smart manufacturing.
+- Do not scrape or commit unauthorized official TOEIC questions. New items should be original, TOEIC-style practice content inspired by workplace trends rather than copied exam material.
+
 ### v2.0
 
 - Added an answer strategy center that groups similar questions by reusable tactics such as word-form recognition, connector/preposition splits, listening first-word strategy, date/number locating, paraphrase recognition, and double/triple-passage cross-reference.
@@ -62,6 +69,7 @@ Each feature release should include a focused question-bank expansion. Large cha
 - Accent metadata and filters for listening questions.
 - Part 1 image-description support with local image assets.
 - Expand beyond 500 questions with high-difficulty Part 6 full passages and more Part 7 double/triple-passage inference sets.
+- Add a source-note field for trend-inspired original questions so the topic inspiration is visible without storing copyrighted source text.
 
 ## Local Preview
 

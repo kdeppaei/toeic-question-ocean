@@ -204,6 +204,7 @@ const state = {
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
   autoVocabLetter: "all",
+  sessionStrategy: null,
   vocabQuiz: { questions: [], index: 0, answers: [] }
 };
 
@@ -825,6 +826,35 @@ function strategySample(q){
   const prompt=safe(q.prompt.length>118?`${q.prompt.slice(0,118)}...`:q.prompt);
   return `<div class="strategy-sample"><span class="badge gray">Part ${safe(q.part)}</span><span class="badge gray">${safe(q.id)}</span><strong>${prompt}</strong></div>`;
 }
+function strategyById(id){
+  return STRATEGY_DECKS.find(item=>item.id===id);
+}
+function renderStrategyLastReview(){
+  const box=$("#strategyLastReview");
+  if(!box) return;
+  const r=state.lastResult;
+  if(!r||r.mode!=="技巧專練"){
+    box.hidden=true;
+    box.innerHTML="";
+    return;
+  }
+  box.hidden=false;
+  const title=r.strategyTitle||"混合技巧專練";
+  box.innerHTML=`
+    <div class="strategy-review-head">
+      <div>
+        <div class="badges"><span class="badge">最近技巧專練</span><span class="badge gray">${safe(title)}</span><span class="badge gray">${r.total} 題</span></div>
+        <h3>答對 ${r.correct}/${r.total} 題，正確率 ${r.accuracy}%</h3>
+        <p>可以回到成績頁看逐題答案、詳解、文章線索與聽力逐字稿。</p>
+      </div>
+      <div class="group">
+        <button class="btn primary" id="openStrategyReview">看答案與詳解</button>
+        ${r.strategyId&&strategyById(r.strategyId)?`<button class="btn" id="repeatStrategyReview">再練同技巧</button>`:""}
+      </div>
+    </div>`;
+  $("#openStrategyReview").onclick=()=>{ renderResult(); showView("resultView"); setTimeout(()=>$("#answerReviewList")?.scrollIntoView({behavior:"smooth",block:"start"}),80); };
+  $("#repeatStrategyReview")?.addEventListener("click",()=>startStrategyPractice(r.strategyId));
+}
 function renderStrategies(){
   const views=strategyDeckViews();
   const stats=strategyStats();
@@ -832,6 +862,7 @@ function renderStrategies(){
   $("#strategyMapped").textContent=stats.mapped;
   $("#strategyHighYield").textContent=stats.highYield;
   $("#strategyShown").textContent=views.length;
+  renderStrategyLastReview();
   $("#strategyList").innerHTML=views.length?views.map(deck=>`
     <article class="strategy-card">
       <div class="strategy-card-top">
@@ -857,17 +888,17 @@ function renderStrategies(){
   $$("[data-strategy-practice]").forEach(btn=>btn.onclick=()=>startStrategyPractice(btn.dataset.strategyPractice));
 }
 function startStrategyPractice(id){
-  const deck=STRATEGY_DECKS.find(item=>item.id===id);
+  const deck=strategyById(id);
   if(!deck){ showToast("找不到這個技巧分類"); return; }
   const part=$("#strategyPart")?.value||"all";
   const list=getBank().filter(q=>deck.match(q) && (part==="all"||q.part===part));
-  startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy"});
+  startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy",strategyId:deck.id,strategyTitle:deck.title});
 }
 function startStrategyMix(){
   const map=new Map();
   strategyDeckViews().forEach(deck=>deck.questions.forEach(q=>map.set(q.id,q)));
   const list=[...map.values()];
-  startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy"});
+  startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy",strategyTitle:"混合技巧專練"});
 }
 
 function encodeSession(session){
@@ -973,6 +1004,7 @@ function activeSnapshot(){
     questionStartedIndex:state.questionStartedIndex,
     questionEndsAt:state.questionEndsAt,
     options:state.options,
+    sessionStrategy:state.sessionStrategy,
     sessionMode:state.sessionMode,
     mockSection:state.mockSection,
     mockBoundary:state.mockBoundary,
@@ -1001,7 +1033,7 @@ function renderResumeBanner(){
     return;
   }
   const answered=(snapshot.answers||[]).filter(Boolean).length;
-  const mode=snapshot.sessionMode==="mock"?"Part 2–7 模考":"自由練習";
+  const mode=snapshot.sessionMode==="mock"?"Part 2–7 模考":snapshot.sessionMode==="strategy"?"技巧專練":"自由練習";
   const saved=new Date(snapshot.savedAt).toLocaleString("zh-TW");
   $("#resumeDescription").textContent=`${mode}｜已完成 ${answered}/${total} 題｜最後儲存：${saved}`;
   banner.classList.add("show");
@@ -1023,6 +1055,7 @@ function restoreActive(){
     questionStartedIndex:snapshot.questionStartedIndex??null,
     questionEndsAt:snapshot.questionEndsAt||null,
     options:snapshot.options||{instant:true,shuffle:true,seconds:0,playLimit:2},
+    sessionStrategy:snapshot.sessionStrategy||null,
     sessionMode:snapshot.sessionMode||"practice",
     mockSection:snapshot.mockSection||null,
     mockBoundary:snapshot.mockBoundary||0,
@@ -1120,6 +1153,10 @@ function startSession(list, options={}){
     playLimit: Number(options.playLimit ?? $("#playLimitSelect").value)
   };
   state.sessionMode=options.mode || "practice";
+  state.sessionStrategy=options.strategyId||options.strategyTitle?{
+    id:options.strategyId||null,
+    title:options.strategyTitle||"混合技巧專練"
+  }:null;
   const count=Number(options.count ?? $("#countSelect").value);
   state.session=sessionFrom(list,count);
   state.currentIndex=0;
@@ -1599,7 +1636,18 @@ function finishSession(){
   }
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
   const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":"自由練習";
-  const record={id:Date.now(),date:new Date().toISOString(),mode,total,correct,accuracy,parts:partLabel,results};
+  const record={
+    id:Date.now(),
+    date:new Date().toISOString(),
+    mode,
+    total,
+    correct,
+    accuracy,
+    parts:partLabel,
+    strategyId:state.sessionStrategy?.id||null,
+    strategyTitle:state.sessionStrategy?.title||null,
+    results
+  };
   const history=getHistory();
   history.unshift({id:record.id,date:record.date,mode,total,correct,accuracy,parts:partLabel});
   save(KEYS.history,history.slice(0,50));
@@ -1631,7 +1679,71 @@ function renderResult(){
   });
   $("#categoryReport").innerHTML=Object.entries(groups).map(([k,v])=>`<article class="card"><div class="stat-label">${k}</div><div class="stat-value">${Math.round(v.correct/v.total*100)}%</div><div class="stat-foot">${v.correct}/${v.total} 題</div></article>`).join("");
   $("#resultRows").innerHTML=r.results.map((x,i)=>`<tr><td>${i+1}</td><td>Part ${x.question.part}</td><td>${safe(x.question.prompt)}</td><td>${x.selected===null?"逾時":`${letter(x.selected)} ${safe(x.question.choices[x.selected])}`}</td><td>${letter(x.question.answer)} ${safe(x.question.choices[x.question.answer])}</td><td style="color:${x.correct?"var(--green)":"var(--red)"}">${x.correct?"正確":"錯誤"}${x.review?"・待檢查":""}</td></tr>`).join("");
+  renderResultStrategyCard(r);
+  renderAnswerReview(r.results);
   $("#retryWrong").disabled=!r.results.some(x=>!x.correct);
+}
+function renderResultStrategyCard(r){
+  const card=$("#strategyResultCard");
+  if(!card) return;
+  if(r.mode!=="技巧專練"){
+    card.hidden=true;
+    card.innerHTML="";
+    return;
+  }
+  card.hidden=false;
+  const title=r.strategyTitle||"混合技巧專練";
+  card.innerHTML=`
+    <div class="strategy-review-head">
+      <div>
+        <div class="badges"><span class="badge">技巧專練</span><span class="badge gray">${safe(title)}</span></div>
+        <h3 style="margin:10px 0 6px">本回合已產生逐題詳解</h3>
+        <p>往下看每題正解、你的答案、中文解析、文章線索與聽力逐字稿；也可以回技巧專區重練同類題。</p>
+      </div>
+      <div class="group">
+        <button class="btn" id="backToStrategyCenter">回技巧專區</button>
+        ${r.strategyId&&strategyById(r.strategyId)?`<button class="btn primary" id="repeatResultStrategy">再練同技巧</button>`:""}
+      </div>
+    </div>`;
+  $("#backToStrategyCenter").onclick=()=>showView("strategyView");
+  $("#repeatResultStrategy")?.addEventListener("click",()=>startStrategyPractice(r.strategyId));
+}
+function answerChoiceReview(result){
+  const q=result.question;
+  return q.choices.map((choice,index)=>{
+    const isCorrect=index===q.answer;
+    const isSelected=index===result.selected;
+    const cls=[isCorrect?"correct":"",isSelected&&!isCorrect?"selected-wrong":"",isSelected?"selected":""].filter(Boolean).join(" ");
+    const label=isCorrect&&isSelected?"你的答案，也是正解":isCorrect?"正解":isSelected?"你的答案":"";
+    return `<div class="answer-choice ${cls}"><strong>${letter(index)}.</strong><span>${safe(choice)}</span>${label?`<em>${label}</em>`:""}</div>`;
+  }).join("");
+}
+function renderAnswerReview(results){
+  const box=$("#answerReviewList");
+  if(!box) return;
+  box.innerHTML=results.map((result,index)=>{
+    const q=result.question;
+    const selected=Number.isInteger(result.selected)?`${letter(result.selected)} ${safe(q.choices[result.selected])}`:"逾時 / 未作答";
+    const correct=`${letter(q.answer)} ${safe(q.choices[q.answer])}`;
+    return `<article class="answer-review-card ${result.correct?"correct":"wrong"}">
+      <div class="badges">
+        <span class="badge">${result.correct?"答對":"需複習"}</span>
+        <span class="badge gray">Q${index+1}</span>
+        <span class="badge gray">Part ${safe(q.part)}</span>
+        <span class="badge gray">${safe(q.category)}</span>
+      </div>
+      <h3>${safe(q.prompt)}</h3>
+      ${q.passage?`<details class="answer-source"><summary>查看文章 / 題組原文</summary><div class="passage">${safe(q.passage)}</div></details>`:""}
+      ${q.audioText?`<details class="answer-source"><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div>${q.audioTranslation?`<p>${safe(q.audioTranslation)}</p>`:""}</details>`:""}
+      <div class="answer-choice-list">${answerChoiceReview(result)}</div>
+      <div class="answer-review-meta">
+        <div><strong>你的答案</strong><span>${selected}</span></div>
+        <div><strong>正解</strong><span>${correct}</span></div>
+      </div>
+      <p class="answer-explanation"><strong>詳解：</strong>${safe(q.explanation)}</p>
+      ${q.translation?`<p class="answer-translation"><strong>中文：</strong>${safe(q.translation)}</p>`:""}
+    </article>`;
+  }).join("");
 }
 function renderDashboard(){
   renderResumeBanner();
