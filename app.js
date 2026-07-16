@@ -33,6 +33,153 @@ const AUTO_VOCAB_STOP_WORDS = new Set([
   "which","while","whose","with","within","word","would","yesterday","your","yours"
 ]);
 
+const STRATEGY_DECKS = [
+  {
+    id: "part5-word-form",
+    title: "Part 5 詞性快判",
+    parts: ["5"],
+    type: "grammar",
+    level: 1,
+    summary: "先看空格左右，不急著翻完整句；判斷空格需要名詞、形容詞、副詞或分詞。",
+    signal: "選項是同字根變化，或空格旁有冠詞、介系詞、名詞、be 動詞。",
+    steps: ["圈出空格前後各 2-3 個字", "判斷空格在句中扮演的詞性", "再用句意淘汰看似同形但詞性不合的選項"],
+    trap: "同字根選項很像時，不要靠熟悉度選；先讓文法位置決定答案。",
+    match: q => q.part === "5" && (hasTag(q,"word-form","adjective","adverb","noun","participle","quantifier") || hasCategory(q,"詞性","形容詞","副詞","分詞","數量詞"))
+  },
+  {
+    id: "part5-verb-engine",
+    title: "Part 5 動詞型態引擎",
+    parts: ["5"],
+    type: "grammar",
+    level: 2,
+    summary: "把動詞題拆成主詞、時間線、語態與固定接法，不靠中文語感硬猜。",
+    signal: "選項包含時態、被動、動名詞、不定詞、假設語氣或 will / has / be 附近的空格。",
+    steps: ["先找真正主詞與動詞位置", "看時間副詞或助動詞決定時態", "檢查主動被動與後方接名詞、to V 或 V-ing"],
+    trap: "看到熟字先別選；多益常用 will、has、by、before 逼你選正確型態。",
+    match: q => q.part === "5" && (hasTag(q,"tense","verb-form","passive","subjunctive","gerund","to-infinitive","participle-clause","subject-verb","verb","scheduled-to","present-perfect","past-perfect","future-perfect") || hasCategory(q,"時態","動名詞","被動語態","假設語氣","動詞搭配","不定詞","分詞構句"))
+  },
+  {
+    id: "part5-connector-prep",
+    title: "連接詞 / 介系詞分流",
+    parts: ["5"],
+    type: "grammar",
+    level: 2,
+    summary: "先判斷空格後面是名詞片語還是完整子句，再決定用介系詞、連接詞或連接副詞。",
+    signal: "because / because of、although / despite、therefore / meanwhile 這類功能字混在選項中。",
+    steps: ["看空格後方是否有主詞加動詞", "判斷前後語意是因果、讓步、時間或轉折", "確認標點：分號後常接連接副詞"],
+    trap: "because of 後接名詞片語；because 後接完整子句，兩者不能只看中文『因為』。",
+    match: q => q.part === "5" && (hasTag(q,"preposition","conjunction","transition","concession","because-of","despite","unless","during","within","according-to","addition","behalf","contrast") || hasCategory(q,"介系詞","連接詞","連接副詞","片語介系詞","讓步"))
+  },
+  {
+    id: "part5-clause-pattern",
+    title: "關係詞與從句缺口",
+    parts: ["5"],
+    type: "grammar",
+    level: 3,
+    summary: "看先行詞與從句裡缺哪個角色，而不是只背 who / which / where 的中文。",
+    signal: "空格後是一小段從句，選項含 who、which、whose、where、whether、that。",
+    steps: ["找空格前的先行詞或引導詞位置", "檢查從句中缺主詞、受詞、所有格或地點", "確認逗號與介系詞是否改變關係詞選擇"],
+    trap: "where 不等於所有地點名詞都能選；從句若缺受詞，常需要 which / that。",
+    match: q => q.part === "5" && (hasTag(q,"relative-clause","noun-clause","whose","prep-relative","where","inversion","whether","so-that") || hasCategory(q,"關係代名詞","名詞子句","倒裝","子句"))
+  },
+  {
+    id: "part6-context-flow",
+    title: "Part 6 前後文銜接",
+    parts: ["6"],
+    type: "reading",
+    level: 2,
+    summary: "短文填空不要只看單句；先看段落任務，再用前後句決定時態、代名詞與語氣。",
+    signal: "題目來自 email、公告、備忘錄或通知，答案需要靠上一句或下一句判斷。",
+    steps: ["先快速看主旨與收件情境", "回到空格前後各一句找線索", "確認答案是否讓整段邏輯順下去"],
+    trap: "Part 6 常把單句可行但段落不合的選項放進去，別只解空格那一句。",
+    match: q => q.part === "6" || hasTag(q,"text-completion")
+  },
+  {
+    id: "part2-first-word",
+    title: "Part 2 問句開頭戰術",
+    parts: ["2"],
+    type: "listening",
+    level: 1,
+    summary: "抓第一個疑問詞與語氣，比逐字翻譯更快；先預測答案類型。",
+    signal: "Who / When / Where / Why / How、Yes-No 問句、建議句或否定問句。",
+    steps: ["聽第一個關鍵字判斷答案類型", "避開重複題目原字的誘答", "若聽不清，選最自然、最不硬塞關鍵字的回應"],
+    trap: "Part 2 很常用相同或相近發音的字當陷阱，重複原字不一定是答案。",
+    match: q => q.part === "2"
+  },
+  {
+    id: "part34-preview",
+    title: "Part 3 / 4 先讀題定位",
+    parts: ["3","4"],
+    type: "listening",
+    level: 2,
+    summary: "播放前先讀題幹，預測要聽人物、地點、問題、下一步或目的。",
+    signal: "對話與獨白題通常問 speaker、location、problem、next action、purpose。",
+    steps: ["播放前先看三題題幹", "用題幹名詞預測場景", "聽到同義改寫時立即定位，不等逐字重複"],
+    trap: "正解常不是逐字出現，而是把 meeting room 改成 conference space 之類的同義表達。",
+    match: q => q.part === "3" || q.part === "4"
+  },
+  {
+    id: "p7-purpose-main",
+    title: "Part 7 目的 / 主旨題",
+    parts: ["7"],
+    type: "reading",
+    level: 1,
+    summary: "先抓文章種類、標題、主旨句與結尾行動，不必逐句翻譯。",
+    signal: "題幹出現 purpose、mainly、why、what is being announced / advertised。",
+    steps: ["先看文章標題、Subject 或第一段", "確認作者想讓讀者做什麼", "排除只提到細節、但不是整篇目的的選項"],
+    trap: "選項若只引用文章某個小細節，通常不是主旨題答案。",
+    match: q => q.part === "7" && /purpose|mainly|why|announced|advertised|notice|e-mail|email/i.test(questionPromptText(q))
+  },
+  {
+    id: "p7-date-number",
+    title: "日期 / 時間 / 數字定位",
+    parts: ["7"],
+    type: "reading",
+    level: 1,
+    summary: "看到 when、how much、how many、by、before、after，先掃日期與數字附近。",
+    signal: "題目或文章含星期、月份、A.M. / P.M.、價格、百分比、期限或數量。",
+    steps: ["圈題幹中的時間或數量詞", "回文中掃同類格式", "注意 before / after / no later than 會改變答案"],
+    trap: "文章常有多個日期；答案通常在題幹關鍵字附近，不是第一個看到的日期。",
+    match: q => q.part === "7" && /when|how much|how many|deadline|by |before|after|no later than|a\.m\.|p\.m\.|monday|tuesday|wednesday|thursday|friday|january|february|march|april|may|june|july|august|september|october|november|december|\$|\d/i.test(questionContentText(q))
+  },
+  {
+    id: "p7-cross-reference",
+    title: "雙篇 / 三篇交叉比對",
+    parts: ["7"],
+    type: "reading",
+    level: 3,
+    summary: "把每份文件當成不同證人：先找各文件角色，再把資訊接起來推論。",
+    signal: "雙篇、三篇、text message + e-mail，或題幹問 suggested / indicated / most likely。",
+    steps: ["先標出每篇文件的發件人、時間與目的", "題幹若問推論，至少回到兩個文件找證據", "把人物、日期、物品名稱串起來再選"],
+    trap: "交叉題的錯誤選項常只符合其中一篇文件，卻和另一篇矛盾。",
+    match: q => q.part === "7" && (hasTag(q,"double-passage","triple-passage","cross-reference","inference") || /TEXT MESSAGE|INVOICE|FORM|SCHEDULE|ADVERTISEMENT|E-MAIL[\s\S]+TEXT MESSAGE/i.test(questionText(q)))
+  },
+  {
+    id: "vocab-paraphrase",
+    title: "同義改寫與固定搭配",
+    parts: ["5","6","7"],
+    type: "vocabulary",
+    level: 2,
+    summary: "多益常把正解藏在同義改寫裡；用搭配詞與商務情境判斷，而不是只背單字中文。",
+    signal: "題目含 collocation、business vocabulary，或選項是 notify / inform、revise / update 這類商務動詞。",
+    steps: ["看空格前後的固定搭配名詞", "找文章中與題幹同義的說法", "選最符合商務情境且語氣自然的答案"],
+    trap: "中文意思相近不代表搭配正確，例如 make a decision，不說 do a decision。",
+    match: q => hasTag(q,"vocabulary","collocation","business-verb","be-adj-prep") || hasCategory(q,"商務字彙","固定搭配","動詞搭配")
+  },
+  {
+    id: "trap-elimination",
+    title: "高難度陷阱排除",
+    parts: ["5","6","7"],
+    type: "reading",
+    level: 3,
+    summary: "先刪掉語法不合、範圍過大、只符合局部或與原文方向相反的選項。",
+    signal: "800 分難度、推論題、雙篇/三篇題，或選項都看似合理。",
+    steps: ["先排除文法位置不合的選項", "閱讀題排除只符合單一句細節的選項", "留下最能被原文直接支持的答案"],
+    trap: "不要選『聽起來合理』；要選『文章或句構能證明』的答案。",
+    match: q => ["5","6","7"].includes(q.part) && (q.difficulty === "800" || hasTag(q,"inference","triple-passage","double-passage"))
+  }
+];
+
 const state = {
   currentView: "homeView",
   session: [],
@@ -113,6 +260,26 @@ function getBank() {
   const map = new Map(BUILTIN_BANK.map(q => [q.id, q]));
   custom.forEach(q => { if (q && q.id) map.set(q.id, q); });
   return [...map.values()];
+}
+function hasTag(q,...tags){
+  const set=new Set((q.tags||[]).map(t=>String(t).toLowerCase()));
+  return tags.some(tag=>set.has(String(tag).toLowerCase()));
+}
+function hasCategory(q,...patterns){
+  const category=String(q.category||"").toLowerCase();
+  return patterns.some(pattern=>category.includes(String(pattern).toLowerCase()));
+}
+function questionText(q){
+  return [
+    q.category,q.prompt,q.translation,q.passage,q.audioText,q.audioTranslation,q.answerTranslation,
+    ...(q.choices||[]),...(q.tags||[])
+  ].filter(Boolean).join(" ");
+}
+function questionPromptText(q){
+  return [q.category,q.prompt,...(q.tags||[])].filter(Boolean).join(" ");
+}
+function questionContentText(q){
+  return [q.category,q.prompt,q.translation,q.passage,q.audioText,q.audioTranslation,q.answerTranslation,...(q.choices||[]),...(q.tags||[])].filter(Boolean).join(" ");
 }
 function getWrongIds(){ return load(KEYS.wrong, []); }
 function setWrongIds(ids){ save(KEYS.wrong, [...new Set(ids)]); }
@@ -608,6 +775,101 @@ function nextVocabQuestion(){
   renderVocabReview();
 }
 
+function strategyTypeLabel(type){
+  return {grammar:"文法快判",reading:"閱讀定位",listening:"聽力戰術",vocabulary:"字彙搭配"}[type]||"綜合技巧";
+}
+function strategyPartLabel(parts){
+  return parts.length===1?`Part ${parts[0]}`:parts.map(p=>`Part ${p}`).join(" / ");
+}
+function strategyLevelLabel(level){
+  return level===1?"入門高頻":level===2?"中階提速":"高分推論";
+}
+function strategyDeckViews(){
+  const bank=getBank();
+  const selectedPart=$("#strategyPart")?.value||"all";
+  const selectedType=$("#strategyType")?.value||"all";
+  const query=($("#strategySearch")?.value||"").trim().toLowerCase();
+  let views=STRATEGY_DECKS.map(deck=>{
+    const allQuestions=bank.filter(q=>deck.match(q));
+    const questions=selectedPart==="all"?allQuestions:allQuestions.filter(q=>q.part===selectedPart);
+    return {...deck, allQuestions, questions, count:questions.length, allCount:allQuestions.length};
+  }).filter(deck=>deck.count>0);
+  if(selectedType!=="all") views=views.filter(deck=>deck.type===selectedType);
+  if(query){
+    views=views.filter(deck=>{
+      const text=[deck.title,deck.summary,deck.signal,deck.trap,strategyTypeLabel(deck.type),strategyPartLabel(deck.parts),...(deck.steps||[])].join(" ").toLowerCase();
+      return text.includes(query);
+    });
+  }
+  const sort=$("#strategySort")?.value||"yield";
+  if(sort==="part") views.sort((a,b)=>Number(a.parts[0])-Number(b.parts[0])||a.title.localeCompare(b.title,"zh-Hant"));
+  else if(sort==="level") views.sort((a,b)=>a.level-b.level||b.count-a.count);
+  else views.sort((a,b)=>b.count-a.count||a.level-b.level);
+  return views;
+}
+function strategyStats(){
+  const bank=getBank();
+  const mapped=new Set();
+  const counts=STRATEGY_DECKS.map(deck=>{
+    const questions=bank.filter(q=>deck.match(q));
+    questions.forEach(q=>mapped.add(q.id));
+    return questions.length;
+  });
+  return {
+    total:STRATEGY_DECKS.length,
+    mapped:mapped.size,
+    highYield:counts.filter(n=>n>=20).length
+  };
+}
+function strategySample(q){
+  const prompt=safe(q.prompt.length>118?`${q.prompt.slice(0,118)}...`:q.prompt);
+  return `<div class="strategy-sample"><span class="badge gray">Part ${safe(q.part)}</span><span class="badge gray">${safe(q.id)}</span><strong>${prompt}</strong></div>`;
+}
+function renderStrategies(){
+  const views=strategyDeckViews();
+  const stats=strategyStats();
+  $("#strategyTotal").textContent=stats.total;
+  $("#strategyMapped").textContent=stats.mapped;
+  $("#strategyHighYield").textContent=stats.highYield;
+  $("#strategyShown").textContent=views.length;
+  $("#strategyList").innerHTML=views.length?views.map(deck=>`
+    <article class="strategy-card">
+      <div class="strategy-card-top">
+        <div class="badges">
+          <span class="badge">命中 ${deck.count} 題</span>
+          <span class="badge gray">${strategyPartLabel(deck.parts)}</span>
+          <span class="badge gray">${strategyTypeLabel(deck.type)}</span>
+          <span class="badge gray">${strategyLevelLabel(deck.level)}</span>
+        </div>
+        <button class="btn primary" data-strategy-practice="${safe(deck.id)}">練這類題</button>
+      </div>
+      <h3>${safe(deck.title)}</h3>
+      <p>${safe(deck.summary)}</p>
+      <div class="strategy-signal"><strong>判斷訊號</strong><span>${safe(deck.signal)}</span></div>
+      <ol class="strategy-steps">${deck.steps.map(step=>`<li>${safe(step)}</li>`).join("")}</ol>
+      <div class="strategy-trap"><strong>常見陷阱：</strong>${safe(deck.trap)}</div>
+      <details class="strategy-details">
+        <summary>看命中範例</summary>
+        <div class="strategy-samples">${deck.questions.slice(0,3).map(strategySample).join("")}</div>
+      </details>
+    </article>
+  `).join(""):'<div class="empty">目前篩選條件下沒有命中的技巧分類。</div>';
+  $$("[data-strategy-practice]").forEach(btn=>btn.onclick=()=>startStrategyPractice(btn.dataset.strategyPractice));
+}
+function startStrategyPractice(id){
+  const deck=STRATEGY_DECKS.find(item=>item.id===id);
+  if(!deck){ showToast("找不到這個技巧分類"); return; }
+  const part=$("#strategyPart")?.value||"all";
+  const list=getBank().filter(q=>deck.match(q) && (part==="all"||q.part===part));
+  startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy"});
+}
+function startStrategyMix(){
+  const map=new Map();
+  strategyDeckViews().forEach(deck=>deck.questions.forEach(q=>map.set(q.id,q)));
+  const list=[...map.values()];
+  startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy"});
+}
+
 function encodeSession(session){
   return session.map(q=>({
     id:q.id,
@@ -671,7 +933,7 @@ function showView(id){
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
   const titles={
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",strategyView:"答題技巧專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
@@ -680,6 +942,7 @@ function showView(id){
   if(id==="vocabView") renderVocab();
   if(id==="autoVocabView") renderAutoVocab();
   if(id==="vocabReviewView") renderVocabReviewSummary();
+  if(id==="strategyView") renderStrategies();
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
@@ -1335,7 +1598,7 @@ function finishSession(){
     setWrongIds(ids);
   }
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
-  const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":"自由練習";
+  const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":"自由練習";
   const record={id:Date.now(),date:new Date().toISOString(),mode,total,correct,accuracy,parts:partLabel,results};
   const history=getHistory();
   history.unshift({id:record.id,date:record.date,mode,total,correct,accuracy,parts:partLabel});
@@ -1637,6 +1900,11 @@ $("#vocabReviewMode").onchange=renderVocabReviewSummary;
 $("#vocabReviewCount").onchange=renderVocabReviewSummary;
 $("#vocabReviewPart").onchange=renderVocabReviewSummary;
 $("#vocabReviewSource").onchange=renderVocabReviewSummary;
+$("#strategySearch").addEventListener("input",renderStrategies);
+$("#strategyPart").onchange=renderStrategies;
+$("#strategyType").onchange=renderStrategies;
+$("#strategySort").onchange=renderStrategies;
+$("#startStrategyMix").onclick=startStrategyMix;
 $("#importBank").onclick=async()=>{
   const file=$("#importFile").files[0]; if(!file){showToast("請先選擇 JSON 檔");return;}
   try{

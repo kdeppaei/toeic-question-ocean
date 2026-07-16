@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 486 題，支援單字複習、題庫自動單字庫、個人單字本、間隔複習與弱點分析。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 500 題，支援答題技巧專區、單字複習、題庫自動單字庫、個人單字本、間隔複習與弱點分析。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,11 +13,12 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v1.9</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v2.0</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
       <button data-nav="setupView">▶　開始練習</button>
+      <button data-nav="strategyView">⚑　答題技巧</button>
       <button data-nav="wrongView">✎　錯題本</button>
       <button data-nav="vocabView">◇　個人單字本</button>
       <button data-nav="autoVocabView">A-Z　題庫單字庫</button>
@@ -70,9 +71,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges"><span class="badge">v1.9 更新</span><span class="badge gray">486 題</span><span class="badge gray">單字複習</span><span class="badge gray">英翻中 / 填空 / 聽音</span></div>
-          <h3 style="margin:13px 0 7px">把題庫單字庫變成可練習的測驗</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.75">新增單字複習分頁，可用題庫完整詞條或個人單字本練英翻中、例句填空與聽音辨字；並補充 10 題 Part 5 / Part 7。</p>
+          <div class="badges"><span class="badge">v2.0 更新</span><span class="badge gray">500 題</span><span class="badge gray">答題技巧專區</span><span class="badge gray">分類教學 / 同類題練習</span></div>
+          <h3 style="margin:13px 0 7px">把題庫整理成可重複使用的答題戰術</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">新增答題技巧專區，依詞性判斷、定位、同義改寫、雙篇/三篇交叉比對等技巧自動分類題目；並補充 14 題 Part 5 / Part 7，題庫達 500 題。</p>
         </article>
 
         <div class="stats-grid">
@@ -311,6 +312,34 @@
         </article>
       </section>
 
+      <section id="strategyView" class="view">
+        <div class="toolbar">
+          <div>
+            <h2 style="margin:0">答題技巧專區</h2>
+            <p style="color:var(--muted);margin:5px 0 0">把相同解題戰術的題目聚在一起：先學判斷訊號，再練同類題。</p>
+          </div>
+          <div class="group"><button class="btn primary" id="startStrategyMix">隨機技巧 20 題</button></div>
+        </div>
+
+        <div class="stats-grid strategy-stats">
+          <article class="card"><div class="stat-label">技巧分類</div><div class="stat-value" id="strategyTotal">0</div><div class="stat-foot">依題庫自動歸類</div></article>
+          <article class="card"><div class="stat-label">已分類題目</div><div class="stat-value" id="strategyMapped">0</div><div class="stat-foot">可直接開始練習</div></article>
+          <article class="card"><div class="stat-label">高頻戰術</div><div class="stat-value" id="strategyHighYield">0</div><div class="stat-foot">命中 20 題以上</div></article>
+          <article class="card"><div class="stat-label">目前顯示</div><div class="stat-value" id="strategyShown">0</div><div class="stat-foot">受篩選條件影響</div></article>
+        </div>
+
+        <article class="card strategy-panel">
+          <div class="form-grid">
+            <label><span>搜尋技巧</span><input id="strategySearch" type="text" placeholder="詞性 / Part 2 / 雙篇 / 同義改寫"></label>
+            <label><span>來源 Part</span><select id="strategyPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+            <label><span>技巧類型</span><select id="strategyType"><option value="all" selected>全部類型</option><option value="grammar">文法快判</option><option value="reading">閱讀定位</option><option value="listening">聽力戰術</option><option value="vocabulary">字彙搭配</option></select></label>
+            <label><span>排序</span><select id="strategySort"><option value="yield" selected>高命中優先</option><option value="part">Part 順序</option><option value="level">難度階梯</option></select></label>
+          </div>
+        </article>
+
+        <div id="strategyList" class="strategy-grid"></div>
+      </section>
+
       <section id="historyView" class="view">
         <div class="toolbar"><div><h2 style="margin:0">歷史成績</h2><p style="color:var(--muted);margin:5px 0 0">最多保留最近 50 次。</p></div><button class="btn danger" id="clearHistory">清空紀錄</button></div>
         <div class="card" style="overflow:auto"><table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>答對</th><th>正確率</th><th>題型</th></tr></thead><tbody id="historyRows"></tbody></table></div>
@@ -418,6 +447,7 @@
 <script src="./question-bank-v17.js"></script>
 <script src="./question-bank-v18.js"></script>
 <script src="./question-bank-v19.js"></script>
+<script src="./question-bank-v20.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./app.js" defer></script>
 </body>

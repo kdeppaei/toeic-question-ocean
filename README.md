@@ -1,10 +1,17 @@
 # TOEIC Question Ocean
 
-Local-first TOEIC practice site for Parts 2-7. The app runs as a static website and stores practice history, wrong answers, spaced-review schedules, theme preference, and resumable sessions in the browser.
+Local-first TOEIC practice site for Parts 2-7. The app runs as a static website and stores practice history, wrong answers, spaced-review schedules, vocabulary notebooks, strategy practice, theme preference, and resumable sessions in the browser.
 
 ## Version Rhythm
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
+
+### v2.0
+
+- Added an answer strategy center that groups similar questions by reusable tactics such as word-form recognition, connector/preposition splits, listening first-word strategy, date/number locating, paraphrase recognition, and double/triple-passage cross-reference.
+- Strategy cards show judgment signals, step-by-step tactics, common traps, matching examples, and one-click focused practice.
+- Strategy practice uses the existing question engine, so grouped Part 7 sets stay together and future question-bank additions are classified automatically.
+- Expanded the built-in bank from 486 to 500 questions with new Part 5 tactics and a full Part 7 triple-passage set.
 
 ### v1.9
 
@@ -54,7 +61,7 @@ Each feature release should include a focused question-bank expansion. Large cha
 - Question quality dashboard with disabled status, difficulty edits, dispute notes, and per-question accuracy.
 - Accent metadata and filters for listening questions.
 - Part 1 image-description support with local image assets.
-- Expansion to 500 questions, prioritizing high-difficulty Part 5, full Part 6 passages, and Part 7 double/triple passages.
+- Expand beyond 500 questions with high-difficulty Part 6 full passages and more Part 7 double/triple-passage inference sets.
 
 ## Local Preview
 
