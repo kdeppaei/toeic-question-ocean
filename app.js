@@ -9,7 +9,8 @@ const KEYS = {
   active: "toeicOcean.activeSession.v1",
   performance: "toeicOcean.performance.v1",
   reviewSchedule: "toeicOcean.reviewSchedule.v1",
-  vocab: "toeicOcean.vocab.v1"
+  vocab: "toeicOcean.vocab.v1",
+  quality: "toeicOcean.questionQuality.v1"
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
@@ -261,6 +262,21 @@ function getBank() {
   const map = new Map(BUILTIN_BANK.map(q => [q.id, q]));
   custom.forEach(q => { if (q && q.id) map.set(q.id, q); });
   return [...map.values()];
+}
+function getQuestionQuality(){ return load(KEYS.quality, {}); }
+function saveQuestionQuality(data){ save(KEYS.quality, data); }
+function qualityFor(id){ return getQuestionQuality()[id]||{}; }
+function isQuestionDisabled(id){ return !!qualityFor(id).disabled; }
+function getActiveBank(){
+  const quality=getQuestionQuality();
+  return getBank().filter(q=>!quality[q.id]?.disabled);
+}
+function updateQuestionQuality(id, patch){
+  const data=getQuestionQuality();
+  const current=data[id]||{};
+  data[id]={...current,...patch,updatedAt:Date.now()};
+  if(!data[id].disabled&&!data[id].disputed&&!data[id].review&&!data[id].note) delete data[id];
+  saveQuestionQuality(data);
 }
 function hasTag(q,...tags){
   const set=new Set((q.tags||[]).map(t=>String(t).toLowerCase()));
@@ -786,7 +802,7 @@ function strategyLevelLabel(level){
   return level===1?"入門高頻":level===2?"中階提速":"高分推論";
 }
 function strategyDeckViews(){
-  const bank=getBank();
+  const bank=getActiveBank();
   const selectedPart=$("#strategyPart")?.value||"all";
   const selectedType=$("#strategyType")?.value||"all";
   const query=($("#strategySearch")?.value||"").trim().toLowerCase();
@@ -809,7 +825,7 @@ function strategyDeckViews(){
   return views;
 }
 function strategyStats(){
-  const bank=getBank();
+  const bank=getActiveBank();
   const mapped=new Set();
   const counts=STRATEGY_DECKS.map(deck=>{
     const questions=bank.filter(q=>deck.match(q));
@@ -891,7 +907,7 @@ function startStrategyPractice(id){
   const deck=strategyById(id);
   if(!deck){ showToast("找不到這個技巧分類"); return; }
   const part=$("#strategyPart")?.value||"all";
-  const list=getBank().filter(q=>deck.match(q) && (part==="all"||q.part===part));
+  const list=getActiveBank().filter(q=>deck.match(q) && (part==="all"||q.part===part));
   startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy",strategyId:deck.id,strategyTitle:deck.title});
 }
 function startStrategyMix(){
@@ -977,6 +993,7 @@ function showView(id){
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
+  if(id==="bankView") renderQualityDashboard();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function openMobileNav(){
@@ -1075,7 +1092,7 @@ function restoreActive(){
 }
 function filteredBank(){
   const part=$("#partSelect").value, diff=$("#difficultySelect").value;
-  return getBank().filter(q => (part==="all"||q.part===part) && (diff==="all"||q.difficulty===diff));
+  return getActiveBank().filter(q => (part==="all"||q.part===part) && (diff==="all"||q.difficulty===diff));
 }
 function updateAvailable(){
   const list=filteredBank();
@@ -1228,7 +1245,7 @@ function buildMockSession(){
   const distribution={"2":25,"3":39,"4":30,"5":30,"6":16,"7":54};
   const output=[];
   for(const part of ["2","3","4","5","6","7"]){
-    const units=buildUnits(getBank().filter(q=>q.part===part));
+    const units=buildUnits(getActiveBank().filter(q=>q.part===part));
     const selected=selectUnitsExact(units,distribution[part]);
     if(!selected) throw new Error(`Part ${part} 題庫無法組成 ${distribution[part]} 題`);
     output.push(...prepareUnits(shuffle(selected),true));
@@ -1581,8 +1598,28 @@ function renderSessionStats(){
     ${scoreRows}
     <div class="mini-item">待檢查 <strong style="float:right;color:var(--amber)">${state.reviewFlags.filter(Boolean).length}</strong></div>`;
 }
+function normalizePerformanceData(data){
+  return {
+    total:Number(data?.total||0),
+    correct:Number(data?.correct||0),
+    parts:data?.parts&&typeof data.parts==="object"?data.parts:{},
+    categories:data?.categories&&typeof data.categories==="object"?data.categories:{},
+    strategies:data?.strategies&&typeof data.strategies==="object"?data.strategies:{},
+    questions:data?.questions&&typeof data.questions==="object"?data.questions:{}
+  };
+}
 function getPerformance(){
-  return load(KEYS.performance,{total:0,correct:0,parts:{},categories:{}});
+  return normalizePerformanceData(load(KEYS.performance,{total:0,correct:0,parts:{},categories:{},strategies:{},questions:{}}));
+}
+function strategiesForQuestion(q){
+  return STRATEGY_DECKS.filter(deck=>{
+    try { return deck.match(q); }
+    catch { return false; }
+  });
+}
+function bumpStat(collection,key,correct,extra={}){
+  collection[key]=collection[key]||{total:0,correct:0,...extra};
+  collection[key]={...collection[key],...extra,total:(collection[key].total||0)+1,correct:(collection[key].correct||0)+(correct?1:0)};
 }
 function updatePerformance(results){
   const data=getPerformance();
@@ -1592,11 +1629,12 @@ function updatePerformance(results){
     const categoryKey=q.category||"未分類";
     data.total++;
     if(result.correct) data.correct++;
-    for(const [collection,key] of [[data.parts,partKey],[data.categories,categoryKey]]){
-      collection[key]=collection[key]||{total:0,correct:0};
-      collection[key].total++;
-      if(result.correct) collection[key].correct++;
-    }
+    bumpStat(data.parts,partKey,result.correct);
+    bumpStat(data.categories,categoryKey,result.correct);
+    bumpStat(data.questions,q.id,result.correct,{id:q.id,part:q.part,category:q.category||"未分類",difficulty:q.difficulty||"",prompt:q.prompt||""});
+    strategiesForQuestion(q).forEach(deck=>{
+      bumpStat(data.strategies,deck.id,result.correct,{id:deck.id,title:deck.title,type:deck.type,level:deck.level,parts:deck.parts});
+    });
   });
   save(KEYS.performance,data);
 }
@@ -1789,6 +1827,24 @@ function renderSkillRows(container,entries,limit=12){
     </div>`;
   }).join("");
 }
+function renderStrategyMasteryGrid(data){
+  const entries=STRATEGY_DECKS.map(deck=>{
+    const stat=data.strategies[deck.id]||{total:0,correct:0,title:deck.title,type:deck.type};
+    return {deck,stat,accuracy:percent(stat)};
+  });
+  $("#strategyMasteryGrid").innerHTML=entries.map(({deck,stat,accuracy})=>{
+    const trained=stat.total>0;
+    return `<article class="mastery-card ${trained?"":"empty-mastery"}">
+      <div class="mastery-ring" style="--mastery:${trained?accuracy:0}%"><strong>${trained?`${accuracy}%`:"—"}</strong></div>
+      <div>
+        <h3>${safe(deck.title)}</h3>
+        <p>${trained?`${stat.correct}/${stat.total} 題｜${strategyTypeLabel(deck.type)}`:"尚未累積作答紀錄"}</p>
+      </div>
+      <button class="btn" data-mastery-practice="${safe(deck.id)}">練這類題</button>
+    </article>`;
+  }).join("");
+  $$("[data-mastery-practice]").forEach(btn=>btn.onclick=()=>startStrategyPractice(btn.dataset.masteryPractice));
+}
 function renderAnalytics(){
   const data=getPerformance();
   const listeningParts=["Part 2","Part 3","Part 4"].map(k=>data.parts[k]).filter(Boolean);
@@ -1798,17 +1854,30 @@ function renderAnalytics(){
   const categories=Object.entries(data.categories)
     .filter(([,stat])=>stat.total>=3)
     .sort((a,b)=>percent(a[1])-percent(b[1]));
+  const strategies=Object.entries(data.strategies)
+    .filter(([,stat])=>stat.total>=3)
+    .sort((a,b)=>percent(a[1])-percent(b[1]));
+  const trainedStrategies=Object.values(data.strategies).filter(stat=>stat.total>0);
+  const mastery=trainedStrategies.length
+    ? Math.round(trainedStrategies.reduce((sum,stat)=>sum+percent(stat),0)/trainedStrategies.length)
+    : 0;
   $("#analyticsTotal").textContent=data.total;
   $("#analyticsListening").textContent=`${percent(listening)}%`;
   $("#analyticsReading").textContent=`${percent(reading)}%`;
   $("#analyticsWeakest").textContent=categories[0]?.[0]||"—";
+  $("#analyticsWeakestStrategy").textContent=strategies[0]?.[1]?.title||"—";
+  $("#analyticsMastery").textContent=`${mastery}%`;
+  renderStrategyMasteryGrid(data);
   renderSkillRows($("#partAnalytics"),Object.entries(data.parts).sort((a,b)=>a[0].localeCompare(b[0])));
   renderSkillRows($("#categoryAnalytics"),categories,15);
   const recommendations=[];
   categories.slice(0,3).forEach(([name,stat])=>{
     recommendations.push(`${name}：目前 ${percent(stat)}%（${stat.correct}/${stat.total}），建議先做 10～20 題同類型練習並重新整理固定搭配。`);
   });
-  if(!recommendations.length) recommendations.push("累積至少三題同分類作答後，系統才會提供可靠的弱點建議。");
+  strategies.slice(0,3).forEach(([id,stat])=>{
+    recommendations.push(`${stat.title}：技巧掌握度 ${percent(stat)}%（${stat.correct}/${stat.total}），建議進入「答題技巧」重練這類題。`);
+  });
+  if(!recommendations.length) recommendations.push("累積至少三題同分類或同技巧作答後，系統才會提供可靠的弱點建議。");
   $("#analyticsRecommendations").innerHTML=recommendations.map(text=>`<div class="mini-item">${safe(text)}</div>`).join("");
 }
 function updateVisitCookie(){
@@ -1849,6 +1918,7 @@ function localStorageRows(){
     ["個人單字本", `${getVocab().length} 筆`, KEYS.vocab],
     ["間隔複習", `${Object.keys(getReviewSchedule()).length} 題`, KEYS.reviewSchedule],
     ["弱點分析", `${performance.total} 題`, KEYS.performance],
+    ["題目品質標記", `${Object.keys(getQuestionQuality()).length} 筆`, KEYS.quality],
     ["未完成練習", `${snapshotQuestionCount(active)} 題`, KEYS.active]
   ];
 }
@@ -1863,7 +1933,7 @@ function renderLocalStorageSummary(){
 function exportLearningState(){
   const payload={
     exportedAt:new Date().toISOString(),
-    version:"1.6",
+    version:"2.2",
     cookie:{
       dailyGoal:decodeURIComponent(getCookie(COOKIE_KEYS.dailyGoal)||""),
       lastVisit:decodeURIComponent(getCookie(COOKIE_KEYS.lastVisit)||"")
@@ -1874,6 +1944,7 @@ function exportLearningState(){
       customBank:load(KEYS.custom,[]),
       vocab:getVocab(),
       performance:getPerformance(),
+      questionQuality:getQuestionQuality(),
       reviewSchedule:getReviewSchedule(),
       activeSession:load(KEYS.active,null)
     },
@@ -1925,6 +1996,79 @@ function exportResultCsv(){
   const csv="\uFEFF"+rows.map(r=>r.map(csvEscape).join(",")).join("\r\n");
   download(new Blob([csv],{type:"text/csv;charset=utf-8"}),`toeic-result-${Date.now()}.csv`);
 }
+function qualityQuestionRows(){
+  const quality=getQuestionQuality();
+  const performance=getPerformance();
+  const query=($("#qualitySearch")?.value||"").trim().toLowerCase();
+  const status=$("#qualityStatus")?.value||"all";
+  const part=$("#qualityPart")?.value||"all";
+  const sort=$("#qualitySort")?.value||"accuracy";
+  let rows=getBank().map(q=>{
+    const qState=quality[q.id]||{};
+    const stat=performance.questions[q.id]||{total:0,correct:0};
+    return {q,qState,stat,accuracy:stat.total?percent(stat):null};
+  });
+  if(part!=="all") rows=rows.filter(row=>row.q.part===part);
+  if(query){
+    rows=rows.filter(({q})=>[q.id,q.category,q.prompt,q.explanation,q.passage,...(q.tags||[]),...(q.choices||[])]
+      .join(" ").toLowerCase().includes(query));
+  }
+  if(status==="active") rows=rows.filter(row=>!row.qState.disabled);
+  if(status==="disabled") rows=rows.filter(row=>row.qState.disabled);
+  if(status==="disputed") rows=rows.filter(row=>row.qState.disputed);
+  if(status==="review") rows=rows.filter(row=>row.qState.review);
+  if(sort==="attempts") rows.sort((a,b)=>(b.stat.total||0)-(a.stat.total||0)||a.q.id.localeCompare(b.q.id,undefined,{numeric:true}));
+  else if(sort==="id") rows.sort((a,b)=>a.q.id.localeCompare(b.q.id,undefined,{numeric:true}));
+  else rows.sort((a,b)=>(a.accuracy??101)-(b.accuracy??101)||(b.stat.total||0)-(a.stat.total||0)||a.q.id.localeCompare(b.q.id,undefined,{numeric:true}));
+  return rows;
+}
+function renderQualityDashboard(){
+  const quality=getQuestionQuality();
+  const rows=qualityQuestionRows();
+  const all=getBank();
+  const values=Object.values(quality);
+  $("#qualityTotal").textContent=all.length;
+  $("#qualityDisabled").textContent=values.filter(x=>x.disabled).length;
+  $("#qualityDisputed").textContent=values.filter(x=>x.disputed).length;
+  $("#qualityReview").textContent=values.filter(x=>x.review).length;
+  $("#qualityList").innerHTML=rows.length?rows.slice(0,80).map(({q,qState,stat,accuracy})=>{
+    const accLabel=accuracy===null?"尚無紀錄":`${accuracy}%`;
+    return `<article class="quality-item ${qState.disabled?"disabled":""}">
+      <div class="quality-main">
+        <div class="badges">
+          <span class="badge">Part ${safe(q.part)}</span>
+          <span class="badge gray">${safe(q.id)}</span>
+          <span class="badge gray">${safe(q.category)}</span>
+          ${qState.disabled?'<span class="badge gray">已停用</span>':""}
+          ${qState.disputed?'<span class="badge">爭議答案</span>':""}
+          ${qState.review?'<span class="badge">待複查</span>':""}
+        </div>
+        <h3>${safe(q.prompt)}</h3>
+        <p>${safe(q.explanation)}</p>
+        <div class="quality-metrics">
+          <span>答對率 <strong>${accLabel}</strong></span>
+          <span>作答 <strong>${stat.total||0}</strong> 次</span>
+          <span>正解 <strong>${letter(q.answer)} ${safe(q.choices[q.answer])}</strong></span>
+        </div>
+      </div>
+      <div class="quality-actions">
+        <label><input type="checkbox" data-quality-toggle="${safe(q.id)}" data-quality-field="disabled" ${qState.disabled?"checked":""}>停用</label>
+        <label><input type="checkbox" data-quality-toggle="${safe(q.id)}" data-quality-field="disputed" ${qState.disputed?"checked":""}>爭議</label>
+        <label><input type="checkbox" data-quality-toggle="${safe(q.id)}" data-quality-field="review" ${qState.review?"checked":""}>待複查</label>
+        <textarea data-quality-note="${safe(q.id)}" rows="3" placeholder="品質筆記、爭議原因或修題方向">${safe(qState.note||"")}</textarea>
+      </div>
+    </article>`;
+  }).join(""):'<div class="card empty">目前篩選條件下沒有題目。</div>';
+  $$("[data-quality-toggle]").forEach(input=>input.onchange=()=>{
+    updateQuestionQuality(input.dataset.qualityToggle,{[input.dataset.qualityField]:input.checked});
+    renderQualityDashboard();
+    updateAvailable();
+  });
+  $$("[data-quality-note]").forEach(input=>input.onchange=()=>{
+    updateQuestionQuality(input.dataset.qualityNote,{note:input.value.trim()});
+    renderQualityDashboard();
+  });
+}
 function normalizeImportedQuestion(q){
   const validParts=new Set(["2","3","4","5","6","7"]);
   const validDifficulties=new Set(["400","600","800"]);
@@ -1964,7 +2108,7 @@ function validQuestion(q){ return !!normalizeImportedQuestion(q); }
 $("#todayLabel").textContent=nowLabel();
 $("#resumeSession").onclick=restoreActive;
 $("#discardSession").onclick=()=>{ if(confirm("確定放棄未完成進度？")){ clearActive(); showToast("未完成進度已移除"); } };
-$("#clearAnalytics").onclick=()=>{ if(confirm("確定清空所有長期弱點分析資料？")){ save(KEYS.performance,{total:0,correct:0,parts:{},categories:{}}); renderAnalytics(); } };
+$("#clearAnalytics").onclick=()=>{ if(confirm("確定清空所有長期弱點分析資料？")){ save(KEYS.performance,{total:0,correct:0,parts:{},categories:{},strategies:{},questions:{}}); renderAnalytics(); } };
 $("#themeToggle").onclick=()=>{
   const dark=document.documentElement.dataset.theme==="dark";
   document.documentElement.dataset.theme=dark?"":"dark"; storageSet(KEYS.theme,dark?"light":"dark");
@@ -1977,14 +2121,14 @@ $("#mobileScrim").onclick=closeMobileNav;
 $("#partSelect").onchange=updateAvailable; $("#difficultySelect").onchange=updateAvailable;
 $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;
-$("#quick10").onclick=()=>startSession(getBank(),{count:10,seconds:0});
-$("#heroQuick").onclick=()=>startSession(getBank(),{count:20,seconds:0});
+$("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});
+$("#heroQuick").onclick=()=>startSession(getActiveBank(),{count:20,seconds:0});
 $("#nextQuestion").onclick=nextQuestion;
 $("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
 $("#addSelectedVocab").onclick=addSelectedVocab;
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
 $("#practiceDue").onclick=startDueReview;
-$("#practiceWrong").onclick=()=>{ const ids=getWrongIds(),map=new Map(getBank().map(q=>[q.id,q])); startSession(ids.map(id=>map.get(id)).filter(Boolean),{count:ids.length,seconds:0}); };
+$("#practiceWrong").onclick=()=>{ const ids=getWrongIds(),map=new Map(getActiveBank().map(q=>[q.id,q])); const list=ids.map(id=>map.get(id)).filter(Boolean); startSession(list,{count:list.length,seconds:0}); };
 $("#clearWrong").onclick=()=>{ if(confirm("確定清空錯題本？")){removeReviewSchedule(getWrongIds());setWrongIds([]);renderWrongBook();renderDashboard();} };
 $("#clearHistory").onclick=()=>{ if(confirm("確定清空歷史紀錄？")){save(KEYS.history,[]);renderHistory();renderDashboard();} };
 $("#exportJson").onclick=exportResultJson; $("#exportCsv").onclick=exportResultCsv; $("#printReport").onclick=()=>window.print();
@@ -2017,6 +2161,10 @@ $("#strategyPart").onchange=renderStrategies;
 $("#strategyType").onchange=renderStrategies;
 $("#strategySort").onchange=renderStrategies;
 $("#startStrategyMix").onclick=startStrategyMix;
+$("#qualitySearch").addEventListener("input",renderQualityDashboard);
+$("#qualityStatus").onchange=renderQualityDashboard;
+$("#qualityPart").onchange=renderQualityDashboard;
+$("#qualitySort").onchange=renderQualityDashboard;
 $("#importBank").onclick=async()=>{
   const file=$("#importFile").files[0]; if(!file){showToast("請先選擇 JSON 檔");return;}
   try{

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 520 題，支援答題技巧詳解、單字複習、題庫自動單字庫、個人單字本、間隔複習與弱點分析。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 540 題，支援技巧掌握度分析、題目品質後台、答題技巧詳解、單字複習與間隔複習。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v2.1</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span style="font-size:11px;color:var(--primary)">v2.2</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -71,9 +71,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges"><span class="badge">v2.1 更新</span><span class="badge gray">520 題</span><span class="badge gray">技巧詳解回顧</span><span class="badge gray">科技趨勢原創題</span></div>
-          <h3 style="margin:13px 0 7px">答完不只看分數，還能回看每一題怎麼解</h3>
-          <p style="margin:0;color:var(--muted);line-height:1.75">技巧專練完成後可直接查看逐題答案、詳解、文章與逐字稿；並新增 20 題 AI、資安、雲端、智慧製造等科技職場情境題。</p>
+          <div class="badges"><span class="badge">v2.2 更新</span><span class="badge gray">540 題</span><span class="badge gray">技巧掌握度</span><span class="badge gray">題目品質後台</span></div>
+          <h3 style="margin:13px 0 7px">從題庫練習，升級成學習產品儀表板</h3>
+          <p style="margin:0;color:var(--muted);line-height:1.75">弱點分析新增技巧掌握度、學習任務建議與題目品質後台；並補充 20 題高難度 Part 5 / Part 6 / Part 7 原創題。</p>
         </article>
 
         <div class="stats-grid">
@@ -360,7 +360,15 @@
           <article class="card"><div class="stat-label">Listening</div><div class="stat-value" id="analyticsListening">0%</div><div class="stat-foot">Part 2–4</div></article>
           <article class="card"><div class="stat-label">Reading</div><div class="stat-value" id="analyticsReading">0%</div><div class="stat-foot">Part 5–7</div></article>
           <article class="card"><div class="stat-label">最弱分類</div><div class="stat-value" id="analyticsWeakest" style="font-size:20px">—</div><div class="stat-foot">至少作答 3 題</div></article>
+          <article class="card"><div class="stat-label">最弱技巧</div><div class="stat-value" id="analyticsWeakestStrategy" style="font-size:20px">—</div><div class="stat-foot">依答題技巧歸因</div></article>
+          <article class="card"><div class="stat-label">技巧掌握度</div><div class="stat-value" id="analyticsMastery">0%</div><div class="stat-foot">已練技巧平均</div></article>
         </div>
+        <article class="card mastery-panel" style="margin-top:18px">
+          <div class="section-head" style="margin-top:0">
+            <div><h2>技巧掌握度雷達</h2><p>以答題紀錄回推 12 種解題戰術的掌握情況。</p></div>
+          </div>
+          <div id="strategyMasteryGrid" class="mastery-grid"></div>
+        </article>
         <div class="analytics-grid" style="margin-top:18px">
           <article class="card"><h3 style="margin-top:0">依 Part 統計</h3><div id="partAnalytics"></div></article>
           <article class="card"><h3 style="margin-top:0">依考點分類</h3><div id="categoryAnalytics"></div></article>
@@ -440,6 +448,22 @@
 }</pre>
           </article>
         </div>
+        <div class="section-head"><div><h2>題目品質後台</h2><p>標記停用、爭議答案、待複查題目，並查看每題答對率。</p></div></div>
+        <div class="stats-grid quality-stats">
+          <article class="card"><div class="stat-label">題庫總量</div><div class="stat-value" id="qualityTotal">0</div><div class="stat-foot">含自訂題</div></article>
+          <article class="card"><div class="stat-label">已停用</div><div class="stat-value" id="qualityDisabled">0</div><div class="stat-foot">不進一般練習</div></article>
+          <article class="card"><div class="stat-label">爭議答案</div><div class="stat-value" id="qualityDisputed">0</div><div class="stat-foot">需人工確認</div></article>
+          <article class="card"><div class="stat-label">待複查</div><div class="stat-value" id="qualityReview">0</div><div class="stat-foot">品質工作佇列</div></article>
+        </div>
+        <article class="card quality-panel">
+          <div class="form-grid">
+            <label><span>搜尋題目</span><input id="qualitySearch" type="text" placeholder="P5-169 / cybersecurity / 詞性"></label>
+            <label><span>狀態</span><select id="qualityStatus"><option value="all" selected>全部題目</option><option value="active">啟用中</option><option value="disabled">已停用</option><option value="disputed">爭議答案</option><option value="review">待複查</option></select></label>
+            <label><span>來源 Part</span><select id="qualityPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+            <label><span>排序</span><select id="qualitySort"><option value="accuracy" selected>低答對率優先</option><option value="attempts">作答次數優先</option><option value="id">題號 A-Z</option></select></label>
+          </div>
+        </article>
+        <div id="qualityList" class="quality-list"></div>
       </section>
     </div>
   </main>
@@ -454,6 +478,7 @@
 <script src="./question-bank-v19.js"></script>
 <script src="./question-bank-v20.js"></script>
 <script src="./question-bank-v21.js"></script>
+<script src="./question-bank-v22.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./app.js" defer></script>
 </body>

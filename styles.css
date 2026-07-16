@@ -284,7 +284,7 @@
     .estimate-card strong { display:block; margin-top:6px; font-size:31px; color:var(--primary); }
     .estimate-note { padding:12px 14px; border-radius:12px; background:var(--amber-soft); color:var(--amber); line-height:1.65; font-size:13px; }
     @media (max-width:650px){
-      .mock-grid,.analytics-grid,.estimate-grid,.storage-grid,.storage-map,.auto-vocab-grid,.strategy-grid{grid-template-columns:1fr;}
+      .mock-grid,.analytics-grid,.estimate-grid,.storage-grid,.storage-map,.auto-vocab-grid,.strategy-grid,.mastery-grid,.quality-list{grid-template-columns:1fr;}
     }
     .quiz-actions { display:flex; justify-content:space-between; gap:10px; margin-top:20px; }
     .progress { height:10px; background:var(--surface-2); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
@@ -384,6 +384,51 @@
     .strategy-review-head { display:flex; align-items:center; justify-content:space-between; gap:14px; }
     .strategy-review-head h3 { margin:10px 0 6px; }
     .strategy-review-head p { margin:0; color:var(--muted); line-height:1.65; }
+    .mastery-grid {
+      display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;
+    }
+    .mastery-card {
+      border:1px solid var(--line); border-radius:14px; padding:14px;
+      background:var(--surface-2); display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:center;
+    }
+    .mastery-card.empty-mastery { opacity:.72; }
+    .mastery-card h3 { margin:0 0 5px; font-size:15px; line-height:1.35; }
+    .mastery-card p { margin:0; color:var(--muted); font-size:12px; line-height:1.55; }
+    .mastery-card .btn { grid-column:1 / -1; padding:9px 11px; }
+    .mastery-ring {
+      --mastery:0%;
+      width:58px; height:58px; border-radius:50%; display:grid; place-items:center;
+      background:conic-gradient(var(--green) var(--mastery), var(--line) 0);
+      position:relative;
+    }
+    .mastery-ring:after { content:""; position:absolute; inset:7px; border-radius:50%; background:var(--surface); }
+    .mastery-ring strong { position:relative; z-index:1; font-size:13px; color:var(--text); }
+    .quality-panel { margin-top:18px; }
+    .quality-list { display:grid; gap:12px; margin-top:14px; }
+    .quality-item {
+      background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:18px; display:grid; grid-template-columns:minmax(0,1fr) 260px; gap:18px;
+    }
+    .quality-item.disabled {
+      opacity:.72; border-style:dashed; background:color-mix(in srgb,var(--surface) 76%,var(--surface-2));
+    }
+    .quality-main h3 { margin:10px 0 8px; line-height:1.45; }
+    .quality-main p { margin:0; color:var(--muted); line-height:1.65; }
+    .quality-metrics { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .quality-metrics span {
+      padding:8px 10px; border-radius:11px; background:var(--surface-2); border:1px solid var(--line);
+      color:var(--muted); font-size:12px; font-weight:800;
+    }
+    .quality-metrics strong { color:var(--text); }
+    .quality-actions {
+      display:grid; gap:9px; align-content:start; padding:12px; border-radius:14px;
+      background:var(--surface-2); border:1px solid var(--line);
+    }
+    .quality-actions label {
+      display:flex; align-items:center; gap:8px; color:var(--text); font-weight:850; font-size:13px;
+    }
+    .quality-actions input[type="checkbox"] { width:17px; height:17px; accent-color:var(--primary); }
+    .quality-actions textarea { min-height:96px; background:var(--surface); }
     .answer-review-list { display:grid; gap:14px; margin-top:14px; }
     .answer-review-card {
       background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -429,7 +474,7 @@
       .main { margin-left:0; }
       .mobile-menu { display:grid; }
       .stats-grid, .module-grid { grid-template-columns:repeat(2,1fr); }
-      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid, .strategy-grid { grid-template-columns:1fr; }
+      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid, .strategy-grid, .mastery-grid, .quality-item { grid-template-columns:1fr; }
     }
     @media (max-width: 650px) {
       .content, .topbar-inner { padding-left:14px; padding-right:14px; }

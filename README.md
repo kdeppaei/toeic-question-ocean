@@ -6,6 +6,14 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.2
+
+- Added strategy-mastery analytics that track performance by reusable answer tactic and surface weakest tactics as focused follow-up practice.
+- Added a local question-quality management dashboard for disabling questions, marking disputed answers, flagging review needs, and storing review notes in Local Storage.
+- Quality-disabled questions are excluded from normal practice selection while remaining visible in the management dashboard.
+- Learning backup export now includes the quality-management state.
+- Expanded the built-in bank from 520 to 540 questions with original technology-context TOEIC-style items covering AI meeting tools, quantum-safe encryption, digital badges, logistics automation, privacy, and smart operations.
+
 ### v2.1
 
 - Added detailed answer review cards after completed practice sessions, including selected answer, correct answer, explanations, passages, and listening transcripts.
@@ -64,11 +72,13 @@ Each feature release should include a focused question-bank expansion. Large cha
 
 ## Recommended Next Directions
 
-- Better vocabulary scheduling that records per-word review history and weak words.
-- Question quality dashboard with disabled status, difficulty edits, dispute notes, and per-question accuracy.
+- Refactor the static app into route/component modules so the codebase feels like a larger front-end product instead of a single-file app.
+- Build a learner command center with weekly goals, streak recovery, milestone badges, and a richer study calendar.
+- Better vocabulary scheduling that records per-word review history, weak words, and pronunciation attempts.
+- Add question editing for difficulty/category/tags directly inside the quality dashboard.
 - Accent metadata and filters for listening questions.
 - Part 1 image-description support with local image assets.
-- Expand beyond 500 questions with high-difficulty Part 6 full passages and more Part 7 double/triple-passage inference sets.
+- Expand toward 600 questions with high-difficulty Part 6 full passages and more Part 7 double/triple-passage inference sets.
 - Add a source-note field for trend-inspired original questions so the topic inspiration is visible without storing copyrighted source text.
 
 ## Local Preview
