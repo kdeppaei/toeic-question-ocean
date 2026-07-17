@@ -39,6 +39,14 @@ const AUDIO_ACCENTS = [
   { id:"sg", label:"新加坡", lang:"en-SG", hints:["singapore"] },
   { id:"za", label:"南非", lang:"en-ZA", hints:["south africa"] }
 ];
+const MALE_VOICE_HINTS = [
+  "david","mark","george","daniel","alex","fred","tom","oliver","arthur","aaron","albert","bruce","junior","ralph","reed","rocko",
+  "gordon","malcolm","ryan","liam","james","microsoft david","microsoft mark","google us english male","google uk english male"
+];
+const FEMALE_VOICE_HINTS = [
+  "zira","jenny","aria","samantha","victoria","susan","karen","moira","tessa","serena","libby","martha","matilda","olivia",
+  "ava","allison","shelley","sandy","joelle","fiona","microsoft zira","google us english female","google uk english female"
+];
 const AUTO_VOCAB_LETTERS = ["all", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const AUTO_VOCAB_STOP_WORDS = new Set([
   "able","about","above","after","again","against","also","although","always","among","another","answer","any","april","around",
@@ -1645,6 +1653,7 @@ function availableEnglishVoices(){
   return speechSynthesis.getVoices().filter(voice=>/^en[-_]/i.test(voice.lang||""));
 }
 function voiceText(voice){ return `${voice.name||""} ${voice.voiceURI||""} ${voice.lang||""}`.toLowerCase(); }
+function voiceHasHint(voice,hints){ return hints.some(hint=>voiceText(voice).includes(hint)); }
 function voiceMatchesAccent(voice,profile){
   if(profile.id==="auto") return true;
   const lang=String(voice.lang||"").toLowerCase().replace("_","-");
@@ -1654,32 +1663,47 @@ function voiceMatchesAccent(voice,profile){
 function pickVoice(role){
   const voices=availableEnglishVoices();
   if(!voices.length) return null;
-  const maleHints=["david","mark","george","daniel","alex","fred","tom","microsoft david","google us english male"];
-  const femaleHints=["zira","jenny","aria","samantha","victoria","susan","karen","moira","tessa","google us english female"];
   const profile=accentProfile();
   const accentVoices=voices.filter(voice=>voiceMatchesAccent(voice,profile));
   const pool=accentVoices.length?accentVoices:voices;
-  const hints=role==="male"?maleHints:role==="female"?femaleHints:[];
-  const byHint=pool.find(voice=>hints.some(hint=>voiceText(voice).includes(hint)));
-  if(byHint) return byHint;
+  if(role==="male"){
+    return pool.find(voice=>voiceHasHint(voice,MALE_VOICE_HINTS))
+      || voices.find(voice=>voiceHasHint(voice,MALE_VOICE_HINTS))
+      || pool.find(voice=>!voiceHasHint(voice,FEMALE_VOICE_HINTS))
+      || voices.find(voice=>!voiceHasHint(voice,FEMALE_VOICE_HINTS))
+      || pool[0]||voices[0]||null;
+  }
+  if(role==="female"){
+    return pool.find(voice=>voiceHasHint(voice,FEMALE_VOICE_HINTS))
+      || voices.find(voice=>voiceHasHint(voice,FEMALE_VOICE_HINTS))
+      || pool.find(voice=>!voiceHasHint(voice,MALE_VOICE_HINTS))
+      || voices.find(voice=>!voiceHasHint(voice,MALE_VOICE_HINTS))
+      || pool[0]||voices[0]||null;
+  }
   const exactLang=pool.find(voice=>String(voice.lang||"").toLowerCase().replace("_","-")===String(profile.lang||"").toLowerCase());
   if(exactLang) return exactLang;
   return pool.find(voice=>/en-US/i.test(voice.lang))||pool[0]||voices[0]||null;
 }
 function dialogueSegments(text){
-  const lines=String(text||"").split(/\n+/).map(line=>line.trim()).filter(Boolean);
+  const source=String(text||"").replace(/\r/g,"").trim();
+  const markerPattern=/(?:^|\s)(M|Man|Male|W|Woman|Female|Narrator|Speaker)\s*:\s*/gi;
   const segments=[];
-  lines.forEach(line=>{
-    const match=line.match(/^(M|Man|Male|W|Woman|Female)\s*:\s*(.+)$/i);
-    if(match){
-      const role=/^(M|Man|Male)$/i.test(match[1])?"male":"female";
-      segments.push({role,text:match[2]});
-    }else{
-      segments.push({role:"neutral",text:line.replace(/^(Narrator|Speaker)\s*:\s*/i,"")});
-    }
-  });
-  return segments.length?segments:[{role:"neutral",text:String(text||"")}];
+  const markers=[...source.matchAll(markerPattern)];
+  if(markers.length){
+    markers.forEach((match,index)=>{
+      const start=match.index+match[0].length;
+      const end=index<markers.length-1?markers[index+1].index:source.length;
+      const label=match[1];
+      const segmentText=source.slice(start,end).replace(/\s+/g," ").trim();
+      if(!segmentText) return;
+      const role=/^(M|Man|Male)$/i.test(label)?"male":/^(W|Woman|Female)$/i.test(label)?"female":"neutral";
+      segments.push({role,text:segmentText,label});
+    });
+    return segments;
+  }
+  return source?[{role:"neutral",text:source.replace(/^(Narrator|Speaker)\s*:\s*/i,"")}]:[];
 }
+function rolePitch(role){ return role==="male"?0.72:role==="female"?1.08:1; }
 function speakDialogue(text){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   speechSynthesis.cancel();
@@ -1693,6 +1717,7 @@ function speakDialogue(text){
     if(voice) u.voice=voice;
     u.lang=voice?.lang||accentProfile().lang||"en-US";
     u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
+    u.pitch=rolePitch(segment.role);
     u.onend=speakNext;
     speechSynthesis.speak(u);
   };

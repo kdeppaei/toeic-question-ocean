@@ -6,6 +6,12 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.6.1
+
+- Fixed dialogue playback role handling so `M:` and `W:` markers are parsed even when a transcript is stored on one line.
+- Male turns now prefer male browser voices globally before falling back to a non-female voice, and apply a lower pitch as a last-resort distinction when the browser has no male voice installed.
+- Female turns continue to prefer female voices and use a slightly higher pitch for clearer role separation.
+
 ### v2.6
 
 - Changed listening playback rules: focused practice, review, and strategy sessions now play audio immediately; only mock exam mode keeps the 10-second read-the-questions countdown.
