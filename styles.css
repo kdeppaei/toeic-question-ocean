@@ -243,6 +243,31 @@
       background:var(--amber-soft); color:var(--amber); font-weight:850;
       border:1px solid color-mix(in srgb, var(--amber) 35%, var(--line));
     }
+    .group-overview {
+      margin:14px 0 18px; border:1px solid color-mix(in srgb,var(--primary) 34%,var(--line));
+      border-radius:16px; background:color-mix(in srgb,var(--primary-soft) 34%,var(--surface));
+      padding:14px; display:grid; gap:12px;
+    }
+    .group-overview-head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; color:var(--muted); font-size:13px; }
+    .group-overview-head strong { color:var(--primary); font-size:15px; }
+    .group-question {
+      padding:13px; border-radius:13px; background:var(--surface); border:1px solid var(--line);
+    }
+    .group-question.current { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+    .group-question-top { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:9px; color:var(--muted); font-size:12px; font-weight:850; }
+    .group-question-top .btn { padding:6px 9px; }
+    .group-question h3 { margin:0 0 10px; font-size:15px; line-height:1.45; }
+    .group-choice-grid { display:grid; gap:7px; }
+    .group-choice {
+      border:1px solid var(--line); border-radius:11px; padding:9px 10px; background:var(--surface-2);
+      color:var(--text); display:grid; grid-template-columns:auto 1fr; gap:8px; text-align:left; align-items:start;
+    }
+    .group-choice:hover { border-color:var(--primary); background:var(--primary-soft); }
+    .group-choice b { color:var(--primary); }
+    .group-choice.selected, .group-choice.pending { border-color:var(--primary); background:var(--primary-soft); color:var(--primary); }
+    .group-choice.correct { border-color:var(--green); background:var(--green-soft); color:var(--green); }
+    .group-choice.wrong { border-color:var(--red); background:var(--red-soft); color:var(--red); }
+    .group-choice.dim { opacity:.55; }
     .choice.selected {
       border-color:var(--primary); background:var(--primary-soft); color:var(--primary);
     }

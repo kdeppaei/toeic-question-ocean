@@ -205,6 +205,8 @@ const state = {
   restored: false,
   audioPlays: {},
   autoPlayedAudio: {},
+  listeningPrep: null,
+  listeningPrepTimerId: null,
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
   autoVocabLetter: "all",
@@ -1185,6 +1187,7 @@ function startSession(list, options={}){
   state.reviewFlags=Array(state.session.length).fill(false);
   state.audioPlays={};
   state.autoPlayedAudio={};
+  clearListeningPrep();
   state.mockSection=null;
   state.mockBoundary=0;
   state.questionStartedAt=null;
@@ -1379,6 +1382,48 @@ function isGroupComplete(groupKey){
   const indexes=groupIndexes(groupKey);
   return indexes.length>0 && indexes.every(i=>!!state.answers[i]);
 }
+function selectionForIndex(index){
+  const answer=state.answers[index];
+  if(answer&&Number.isInteger(answer.selected)) return answer.selected;
+  const pending=state.pendingSelections[index];
+  return Number.isInteger(pending)?pending:null;
+}
+function renderGroupQuestionOverview(q,revealAnswer){
+  if(!q._groupKey||q._groupSize<=1) return "";
+  const indexes=groupIndexes(q._groupKey);
+  return `<section class="group-overview">
+    <div class="group-overview-head">
+      <strong>題組總覽</strong>
+      <span>${indexes.filter(i=>state.answers[i]).length}/${indexes.length} 題已選，可先把整組題目讀完再聽音檔或讀文章。</span>
+    </div>
+    ${indexes.map(index=>{
+      const item=state.session[index];
+      const answer=state.answers[index];
+      const selected=selectionForIndex(index);
+      return `<article class="group-question ${index===state.currentIndex?"current":""}">
+        <div class="group-question-top">
+          <button class="btn" data-group-jump="${index}">Q${index+1}</button>
+          <span>Part ${safe(item.part)}｜${safe(item.category)}</span>
+          ${state.reviewFlags[index]?'<span class="badge amber">待檢查</span>':""}
+        </div>
+        <h3>${safe(item.prompt)}</h3>
+        <div class="group-choice-grid">
+          ${item.choices.map((choice,choiceIndex)=>{
+            let cls="";
+            if(revealAnswer&&answer){
+              if(choiceIndex===item.answer) cls="correct";
+              else if(choiceIndex===answer.selected) cls="wrong";
+              else cls="dim";
+            }else if(selected===choiceIndex){
+              cls=answer?"selected":"pending";
+            }
+            return `<button class="group-choice ${cls}" data-group-choice="${index}:${choiceIndex}"><b>${letter(choiceIndex)}</b><span>${safe(choice)}</span></button>`;
+          }).join("")}
+        </div>
+      </article>`;
+    }).join("")}
+  </section>`;
+}
 function toggleReview(index=state.currentIndex){
   state.reviewFlags[index]=!state.reviewFlags[index];
   persistActive();
@@ -1396,6 +1441,7 @@ function goToQuestion(index){
     }
   }
   clearInterval(state.timerId);
+  clearListeningPrep();
   state.currentIndex=index;
   startQuestionClock();
   persistActive();
@@ -1408,8 +1454,8 @@ function renderQuestion(){
   ensureQuestionClock();
   const existing=state.answers[state.currentIndex];
   const answered=!!existing;
-  const pending=state.pendingSelections[state.currentIndex];
-  const hasPending=Number.isInteger(pending);
+  const selected=selectionForIndex(state.currentIndex);
+  const hasSelection=Number.isInteger(selected);
   const grouped=!!q._groupKey && q._groupSize>1;
   const groupComplete=grouped?isGroupComplete(q._groupKey):true;
   const revealAnswer=answered && state.options.instant && groupComplete;
@@ -1432,8 +1478,11 @@ function renderQuestion(){
       ? `<span class="badge gray">正式速度 1.0x</span>`
       : `<select id="listenSpeed" aria-label="聽力播放速度"><option value="0.8">0.8x</option><option value="0.92" selected>0.9x</option><option value="1">1.0x</option><option value="1.1">1.1x</option></select>`;
     const countLabel=limit>0?`${used}/${limit}`:`${used}/∞`;
-    stimulus+=`<div class="listen-box"><div><strong>Listening Audio</strong><div style="color:var(--muted);font-size:13px;margin-top:4px">${state.sessionMode==="mock"?"模考將自動播放一次，播放後不可重播。":"先只聽語音作答；作答後再查看逐字稿與翻譯。"}</div></div><div class="listen-controls">${speedControl}<button class="btn primary" id="listenBtn" ${exhausted?"disabled":""}>▶ 播放 ${countLabel}</button></div></div>`;
+    const prepActive=state.listeningPrep?.key===audioKey;
+    const prepLabel=prepActive?`讀題倒數 ${state.listeningPrep.remaining}s`:"10 秒讀題後播放";
+    stimulus+=`<div class="listen-box"><div><strong>Listening Audio</strong><div style="color:var(--muted);font-size:13px;margin-top:4px">${state.sessionMode==="mock"?"先給 10 秒讀題時間，再自動播放一次。":"按播放後先給 10 秒讀題時間，再開始播放。"}</div></div><div class="listen-controls">${speedControl}<span class="badge ${prepActive?"amber":"gray"}">${prepLabel}</span><button class="btn primary" id="listenBtn" ${exhausted||prepActive?"disabled":""}>▶ 播放 ${countLabel}</button></div></div>`;
   }
+  stimulus+=renderGroupQuestionOverview(q,revealAnswer);
   const choices=q.choices.map((c,i)=>{
     let cls="";
     if(revealAnswer){
@@ -1442,10 +1491,10 @@ function renderQuestion(){
       else cls="dim";
     }else if(answered && i===existing.selected){
       cls="selected";
-    }else if(!answered && hasPending && i===pending){
+    }else if(!answered && hasSelection && i===selected){
       cls="pending";
     }
-    return `<button class="choice ${cls}" data-choice="${i}" ${answered?"disabled":""}><span class="choice-letter">${letter(i)}</span><span>${safe(c)}</span></button>`;
+    return `<button class="choice ${cls}" data-choice="${i}"><span class="choice-letter">${letter(i)}</span><span>${safe(c)}</span></button>`;
   }).join("");
   let feedback="";
   if(revealAnswer){
@@ -1462,16 +1511,20 @@ function renderQuestion(){
     feedback=`<div class="feedback"><strong>答案已記錄</strong><div style="margin-top:8px">本回合完成後再統一批改。</div></div>`;
   }
   $("#questionArea").innerHTML=`${stimulus}<div class="question">${safe(q.prompt)}</div><div class="choices">${choices}</div>${feedback}`;
-  $("#nextQuestion").disabled=!answered && !hasPending;
-  $("#nextQuestion").textContent=!answered
-    ? "確認答案"
-    : state.sessionMode==="mock"&&state.currentIndex===state.mockBoundary-1
+  $("#nextQuestion").disabled=!answered && !hasSelection;
+  $("#nextQuestion").textContent=state.sessionMode==="mock"&&state.currentIndex===state.mockBoundary-1
       ?"進入 Reading"
       :state.currentIndex===state.session.length-1?"完成練習":"下一題";
+  $("#prevQuestion").disabled=state.currentIndex<=0 || (state.sessionMode==="mock"&&state.mockSection==="reading"&&state.currentIndex<=state.mockBoundary);
   $("#markReview").textContent=state.reviewFlags[state.currentIndex]?"★ 已標記待檢查":"☆ 標記待檢查";
   $("#markReview").className=state.reviewFlags[state.currentIndex]?"btn primary":"btn";
   $$("[data-choice]").forEach(b=>b.addEventListener("click",()=>selectChoice(Number(b.dataset.choice))));
-  $("#listenBtn")?.addEventListener("click",()=>playQuestionAudio(q));
+  $$("[data-group-choice]").forEach(b=>b.addEventListener("click",()=>{
+    const [index,choice]=b.dataset.groupChoice.split(":").map(Number);
+    selectChoiceForIndex(index,choice);
+  }));
+  $$("[data-group-jump]").forEach(b=>b.addEventListener("click",()=>goToQuestion(Number(b.dataset.groupJump))));
+  $("#listenBtn")?.addEventListener("click",()=>playQuestionAudio(q,{withPrep:true}));
   $("#listenAnswerBtn")?.addEventListener("click",()=>speak(q.choices[q.answer]));
   $("#markReview").onclick=()=>toggleReview();
   renderSessionStats();
@@ -1481,7 +1534,7 @@ function renderQuestion(){
   const autoKey=q._groupKey||q.id;
   if(shouldAutoPlay&&!state.autoPlayedAudio[autoKey]){
     state.autoPlayedAudio[autoKey]=true;
-    setTimeout(()=>playQuestionAudio(q),280);
+    setTimeout(()=>playQuestionAudio(q,{withPrep:true}),280);
   }
 }
 function beginTimer(answered){
@@ -1499,7 +1552,12 @@ function beginTimer(answered){
   if(state.remaining>0) state.timerId=setInterval(tick,1000);
 }
 function updateTimer(){ $("#timerText").textContent=formatClock(state.remaining); }
-function playQuestionAudio(q){
+function clearListeningPrep(){
+  if(state.listeningPrepTimerId) clearInterval(state.listeningPrepTimerId);
+  state.listeningPrepTimerId=null;
+  state.listeningPrep=null;
+}
+function playQuestionAudio(q,options={}){
   if(!q?.audioText) return;
   const key=q._groupKey||q.id;
   const used=state.audioPlays[key]||0;
@@ -1508,15 +1566,79 @@ function playQuestionAudio(q){
     showToast("本題聽力播放次數已用完");
     return;
   }
+  if(options.withPrep){
+    clearListeningPrep();
+    state.listeningPrep={key,remaining:10,q};
+    renderQuestion();
+    state.listeningPrepTimerId=setInterval(()=>{
+      if(!state.listeningPrep||state.listeningPrep.key!==key){ clearListeningPrep(); return; }
+      state.listeningPrep.remaining-=1;
+      if(state.listeningPrep.remaining<=0){
+        clearListeningPrep();
+        playQuestionAudio(q,{skipPrep:true});
+      }else{
+        $("#timerText").textContent=`讀題 ${state.listeningPrep.remaining}s`;
+        const badge=$(".listen-box .badge.amber");
+        if(badge) badge.textContent=`讀題倒數 ${state.listeningPrep.remaining}s`;
+      }
+    },1000);
+    return;
+  }
   state.audioPlays[key]=used+1;
-  speak(q.audioText);
+  speakDialogue(q.audioText);
   renderQuestion();
+}
+function availableEnglishVoices(){
+  if(!("speechSynthesis" in window)) return [];
+  return speechSynthesis.getVoices().filter(voice=>/^en[-_]/i.test(voice.lang||""));
+}
+function pickVoice(role){
+  const voices=availableEnglishVoices();
+  if(!voices.length) return null;
+  const maleHints=["david","mark","george","daniel","alex","fred","tom","microsoft david","google us english male"];
+  const femaleHints=["zira","jenny","aria","samantha","victoria","susan","karen","moira","tessa","google us english female"];
+  const hints=role==="male"?maleHints:role==="female"?femaleHints:[];
+  const byHint=voices.find(voice=>hints.some(hint=>`${voice.name} ${voice.voiceURI}`.toLowerCase().includes(hint)));
+  if(byHint) return byHint;
+  return voices.find(voice=>/en-US/i.test(voice.lang))||voices[0]||null;
+}
+function dialogueSegments(text){
+  const lines=String(text||"").split(/\n+/).map(line=>line.trim()).filter(Boolean);
+  const segments=[];
+  lines.forEach(line=>{
+    const match=line.match(/^(M|Man|Male|W|Woman|Female)\s*:\s*(.+)$/i);
+    if(match){
+      const role=/^(M|Man|Male)$/i.test(match[1])?"male":"female";
+      segments.push({role,text:match[2]});
+    }else{
+      segments.push({role:"neutral",text:line.replace(/^(Narrator|Speaker)\s*:\s*/i,"")});
+    }
+  });
+  return segments.length?segments:[{role:"neutral",text:String(text||"")}];
+}
+function speakDialogue(text){
+  if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
+  speechSynthesis.cancel();
+  const segments=dialogueSegments(text);
+  let index=0;
+  const speakNext=()=>{
+    const segment=segments[index++];
+    if(!segment) return;
+    const u=new SpeechSynthesisUtterance(segment.text);
+    u.lang="en-US";
+    u.voice=segment.role==="neutral"?pickVoice("female"):pickVoice(segment.role);
+    u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
+    u.onend=speakNext;
+    speechSynthesis.speak(u);
+  };
+  speakNext();
 }
 function speak(text){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
   u.lang="en-US";
+  u.voice=pickVoice("female");
   u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
   speechSynthesis.speak(u);
 }
@@ -1530,39 +1652,45 @@ function speakWord(word){
   speechSynthesis.speak(u);
 }
 function selectChoice(selected){
-  if(state.answers[state.currentIndex]) return;
-  state.pendingSelections[state.currentIndex]=selected;
+  selectChoiceForIndex(state.currentIndex,selected);
+}
+function selectChoiceForIndex(index,selected){
+  if(index<0||index>=state.session.length) return;
+  answerQuestionAt(index,selected,false);
+}
+function answerQuestionAt(index,selected,timedOut=false){
+  const q=state.session[index];
+  if(!q) return;
+  const correct=selected===q.answer;
+  const existing=state.answers[index];
+  state.answers[index]={
+    id:q.id,
+    selected,
+    correct,
+    timedOut,
+    elapsed:index===state.currentIndex?elapsedForCurrentQuestion():(existing?.elapsed??null)
+  };
+  state.pendingSelections[index]=undefined;
+  if(index===state.currentIndex) state.questionEndsAt=null;
   persistActive();
   renderQuestion();
 }
 function answerQuestion(selected,timedOut=false){
-  if(state.answers[state.currentIndex]) return;
   clearInterval(state.timerId);
-  const q=currentQ(), correct=selected===q.answer;
-  state.answers[state.currentIndex]={
-    id:q.id,selected,correct,timedOut,elapsed:elapsedForCurrentQuestion()
-  };
-  state.pendingSelections[state.currentIndex]=undefined;
-  state.questionEndsAt=null;
-  updateReviewSchedule(q.id, correct);
-  persistActive();
-  if(!correct&&state.sessionMode!=="mock"){
-    const ids=getWrongIds(); ids.push(q.id); setWrongIds(ids);
-  }
-  renderQuestion();
+  answerQuestionAt(state.currentIndex,selected,timedOut);
 }
 function nextQuestion(){
-  if(!state.answers[state.currentIndex]){
-    const pending=state.pendingSelections[state.currentIndex];
-    if(Number.isInteger(pending)) answerQuestion(pending);
-    return;
-  }
+  if(!state.answers[state.currentIndex]) return;
   if(state.sessionMode==="mock"&&state.mockSection==="listening"&&state.currentIndex===state.mockBoundary-1){
     enterReadingSection();
     return;
   }
   if(state.currentIndex>=state.session.length-1) finishSession();
   else { state.currentIndex++; startQuestionClock(); persistActive(); renderQuestion(); }
+}
+function previousQuestion(){
+  if(state.currentIndex<=0) return;
+  goToQuestion(state.currentIndex-1);
 }
 function renderQuestionNavigator(){
   const container=$("#questionNavigator");
@@ -1662,19 +1790,16 @@ function resultEstimates(results){
 function finishSession(){
   clearInterval(state.timerId);
   clearInterval(state.sectionTimerId);
+  clearListeningPrep();
   const results=state.session.map((q,i)=>{
     const answer=state.answers[i]||{id:q.id,selected:null,correct:false,timedOut:true,elapsed:null};
     return {...answer,review:!!state.reviewFlags[i],question:q};
   });
   const correct=results.filter(r=>r.correct).length, total=results.length, accuracy=total?Math.round(correct/total*100):0;
-  results
-    .filter(r=>r.timedOut&&r.selected===null&&r.elapsed===null)
-    .forEach(r=>updateReviewSchedule(r.question.id,false));
-  if(state.sessionMode==="mock"){
-    const ids=getWrongIds();
-    results.filter(r=>!r.correct).forEach(r=>ids.push(r.question.id));
-    setWrongIds(ids);
-  }
+  results.forEach(r=>updateReviewSchedule(r.question.id,r.correct));
+  const wrongIds=getWrongIds();
+  results.filter(r=>!r.correct).forEach(r=>wrongIds.push(r.question.id));
+  setWrongIds(wrongIds);
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
   const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":"自由練習";
   const record={
@@ -2206,6 +2331,7 @@ $("#startMockExam").onclick=startMockExam;
 $("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});
 $("#heroQuick").onclick=()=>startSession(getActiveBank(),{count:20,seconds:0});
 $("#nextQuestion").onclick=nextQuestion;
+$("#prevQuestion").onclick=previousQuestion;
 $("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
 $("#addSelectedVocab").onclick=addSelectedVocab;
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
@@ -2267,7 +2393,8 @@ document.addEventListener("keydown",e=>{
   if(state.currentView!=="practiceView")return;
   if(["1","2","3","4"].includes(e.key)) selectChoice(Number(e.key)-1);
   if(e.key==="Enter") nextQuestion();
-  if(e.key.toLowerCase()==="l"&&currentQ()?.audioText) playQuestionAudio(currentQ());
+  if(e.key==="ArrowLeft") previousQuestion();
+  if(e.key.toLowerCase()==="l"&&currentQ()?.audioText) playQuestionAudio(currentQ(),{withPrep:true});
   if(e.key.toLowerCase()==="r") toggleReview();
   if(e.key.toLowerCase()==="f"&&currentQ()){
     const ids=getWrongIds(), id=currentQ().id;

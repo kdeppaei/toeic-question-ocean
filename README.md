@@ -6,6 +6,15 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.5
+
+- Added a full group-question overview inside practice sessions so Part 3, Part 4, Part 6, and Part 7 sets can be read and answered together.
+- Changed answer selection to be freely editable: selecting another choice overwrites the previous answer, and learners can return to earlier questions in the same section.
+- Added a previous-question button and ArrowLeft keyboard shortcut.
+- Listening playback now gives a 10-second read-the-questions countdown before audio starts.
+- Dialogue audio strips `M:` / `W:` labels and tries to use separate English male/female browser voices for role-aware playback.
+- Expanded the built-in bank from 590 to 600 questions with original Part 3, Part 4, and Part 5 items.
+
 ### v2.4
 
 - Added a legal practice-source hub in the question-bank management page.

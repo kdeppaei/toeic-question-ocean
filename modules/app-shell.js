@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "2.4",
+  version: "2.5",
   release: {
-    title: "加入合法來源庫，讓題海擴充有出處邊界",
-    summary: "新增合法模擬題來源庫與版權使用規則，並補充 25 題 Part 3 / Part 5 / Part 6 / Part 7 原創題。",
-    badges: ["v2.4 更新", "590 題", "合法來源庫", "原創改寫邊界"]
+    title: "重做題組與聽力考感，讓作答更像正式 TOEIC",
+    summary: "題組可整組預覽與作答、聽力先給 10 秒讀題、M/W 角色語音分流，並補充 10 題原創聽力與文法題。",
+    badges: ["v2.5 更新", "600 題", "題組總覽", "10 秒讀題"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

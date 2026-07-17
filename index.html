@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 590 題，支援合法模擬題來源庫、模組化前端架構、學習任務中心、技巧掌握度分析與題目品質後台。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 600 題，支援題組總覽、聽力 10 秒讀題、M/W 角色語音、返回修改答案、合法模擬題來源庫與題目品質後台。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.4</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.5</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -71,9 +71,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v2.4 更新</span><span class="badge gray">590 題</span><span class="badge gray">合法來源庫</span><span class="badge gray">原創改寫邊界</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">加入合法來源庫，讓題海擴充有出處邊界</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增合法模擬題來源庫與版權使用規則，並補充 25 題 Part 3 / Part 5 / Part 6 / Part 7 原創題。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v2.5 更新</span><span class="badge gray">600 題</span><span class="badge gray">題組總覽</span><span class="badge gray">10 秒讀題</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">重做題組與聽力考感，讓作答更像正式 TOEIC</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">題組可整組預覽與作答、聽力先給 10 秒讀題、M/W 角色語音分流，並補充 10 題原創聽力與文法題。</p>
         </article>
 
         <div class="stats-grid">
@@ -159,6 +159,7 @@
             <div class="quiz-actions">
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn danger" id="quitPractice">結束練習</button>
+                <button class="btn" id="prevQuestion">← 返回上一題</button>
                 <button class="btn" id="addSelectedVocab">＋選取單字</button>
                 <button class="btn" id="markReview">☆ 標記待檢查</button>
               </div>
@@ -496,6 +497,7 @@
 <script src="./question-bank-v22.js"></script>
 <script src="./question-bank-v23.js"></script>
 <script src="./question-bank-v24.js"></script>
+<script src="./question-bank-v25.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/learning-command-center.js"></script>
