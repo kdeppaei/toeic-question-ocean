@@ -523,9 +523,18 @@ function autoLexiconKey(word){
   const candidates=[];
   if(word.endsWith("ies")) candidates.push(`${word.slice(0,-3)}y`);
   if(word.endsWith("ves")) candidates.push(`${word.slice(0,-3)}f`);
-  if(word.endsWith("ing")) candidates.push(word.slice(0,-3), word.slice(0,-3).replace(/(.)\1$/,"$1"));
-  if(word.endsWith("ed")) candidates.push(word.slice(0,-2), word.slice(0,-2).replace(/(.)\1$/,"$1"));
-  if(word.endsWith("es")) candidates.push(word.slice(0,-2));
+  if(word.endsWith("ing")){
+    const stem=word.slice(0,-3);
+    candidates.push(stem, `${stem}e`, stem.replace(/(.)\1$/,"$1"));
+  }
+  if(word.endsWith("ed")){
+    const stem=word.slice(0,-2);
+    candidates.push(stem, `${stem}e`, stem.replace(/(.)\1$/,"$1"));
+  }
+  if(word.endsWith("es")){
+    const stem=word.slice(0,-2);
+    candidates.push(stem, `${stem}e`, word.slice(0,-1));
+  }
   if(word.endsWith("s")) candidates.push(word.slice(0,-1));
   return candidates.find(x=>TOEIC_VOCAB_LEXICON[x]) || word;
 }
@@ -1429,7 +1438,10 @@ function selectionForIndex(index){
   const pending=state.pendingSelections[index];
   return Number.isInteger(pending)?pending:null;
 }
-function renderGroupQuestionOverview(q,revealAnswer){
+function shouldRevealAnswerAt(index){
+  return !!state.answers[index] && !!state.options.instant;
+}
+function renderGroupQuestionOverview(q){
   if(!q._groupKey||q._groupSize<=1) return "";
   const indexes=groupIndexes(q._groupKey);
   return `<section class="group-overview">
@@ -1441,6 +1453,7 @@ function renderGroupQuestionOverview(q,revealAnswer){
       const item=state.session[index];
       const answer=state.answers[index];
       const selected=selectionForIndex(index);
+      const itemReveal=shouldRevealAnswerAt(index);
       return `<article class="group-question ${index===state.currentIndex?"current":""}">
         <div class="group-question-top">
           <button class="btn" data-group-jump="${index}">Q${index+1}</button>
@@ -1451,7 +1464,7 @@ function renderGroupQuestionOverview(q,revealAnswer){
         <div class="group-choice-grid">
           ${item.choices.map((choice,choiceIndex)=>{
             let cls="";
-            if(revealAnswer&&answer){
+            if(itemReveal&&answer){
               if(choiceIndex===item.answer) cls="correct";
               else if(choiceIndex===answer.selected) cls="wrong";
               else cls="dim";
@@ -1499,7 +1512,7 @@ function renderQuestion(){
   const hasSelection=Number.isInteger(selected);
   const grouped=!!q._groupKey && q._groupSize>1;
   const groupComplete=grouped?isGroupComplete(q._groupKey):true;
-  const revealAnswer=answered && state.options.instant && groupComplete;
+  const revealAnswer=answered && state.options.instant;
   const groupStart=grouped?state.currentIndex-q._groupIndex:state.currentIndex;
   const groupEnd=grouped?groupStart+q._groupSize-1:state.currentIndex;
   $("#quizBadges").innerHTML=`<span class="badge">Q${state.currentIndex+1}/${state.session.length}</span><span class="badge gray">Part ${q.part}</span><span class="badge gray">${safe(q.difficulty)}+</span><span class="badge gray">${safe(q.category)}</span>${grouped?`<span class="badge gray">題組 ${q._groupIndex+1}/${q._groupSize}</span>`:""}`;
@@ -1526,7 +1539,7 @@ function renderQuestion(){
     const audioHint=mockAudio?"模考會先給 10 秒讀題時間，再自動播放一次。":"專項練習可點擊立即播放，並自由調整速度與常考口音。";
     stimulus+=`<div class="listen-box"><div><strong>Listening Audio</strong><div style="color:var(--muted);font-size:13px;margin-top:4px">${audioHint}</div></div><div class="listen-controls">${speedControl}${accentControl}<span class="badge ${prepActive?"amber":"gray"}">${prepLabel}</span><button class="btn primary" id="listenBtn" ${exhausted||prepActive?"disabled":""}>▶ 播放 ${countLabel}</button></div></div>`;
   }
-  stimulus+=renderGroupQuestionOverview(q,revealAnswer);
+  stimulus+=renderGroupQuestionOverview(q);
   const choices=q.choices.map((c,i)=>{
     let cls="";
     if(revealAnswer){
@@ -1790,10 +1803,9 @@ function renderQuestionNavigator(){
   if(!container) return;
   container.innerHTML=state.session.map((q,i)=>{
     const answer=state.answers[i];
-    const groupDone=q._groupKey?isGroupComplete(q._groupKey):true;
     let cls="";
     if(answer){
-      if(state.options.instant && groupDone) cls=answer.correct?"correct":"wrong";
+      if(state.options.instant) cls=answer.correct?"correct":"wrong";
       else cls="answered";
     }
     if(i===state.currentIndex) cls+=`${cls?" ":""}current`;

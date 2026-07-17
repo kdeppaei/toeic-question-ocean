@@ -6,6 +6,15 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.7.0
+
+- Practice sessions and the answer-strategy center now reveal grading, translations, explanations, and listening review immediately after each answered question.
+- Grouped Part 3, Part 4, Part 6, and Part 7 sets now grade each sub-question independently instead of waiting for the whole group to be completed.
+- The question navigator marks correct and wrong answers immediately when instant feedback is enabled.
+- Improved automatic vocabulary normalization for forms like `archived`, `updated`, and `requires` so extracted words map back to their dictionary headwords more often.
+- Added 60 high-frequency TOEIC workplace and technology lexicon entries with KK/IPA-style pronunciation, Traditional Chinese definitions, and examples.
+- Expanded the built-in bank from 610 to 620 questions with original Part 5 technology-workplace items.
+
 ### v2.6.1
 
 - Fixed dialogue playback role handling so `M:` and `W:` markers are parsed even when a transcript is stored on one line.
