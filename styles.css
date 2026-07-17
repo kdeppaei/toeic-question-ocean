@@ -132,7 +132,25 @@
     .module-card .pill { display:inline-flex; padding:6px 9px; border-radius:999px; font-size:12px; font-weight:900; background:var(--primary-soft); color:var(--primary); }
     .module-card h3 { margin:14px 0 7px; font-size:19px; }
     .module-card p { color:var(--muted); line-height:1.65; margin:0; font-size:14px; }
+    .module-focus {
+      margin-top:12px; padding:10px 11px; border-radius:11px;
+      background:var(--surface-2); border:1px solid var(--line);
+      color:var(--muted); font-size:12px; line-height:1.55;
+    }
     .module-card strong { display:block; margin-top:16px; color:var(--primary); }
+    .mission-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+    .mission-card {
+      background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:18px; display:flex; flex-direction:column; gap:12px;
+    }
+    .mission-card.urgent { border-color:color-mix(in srgb,var(--red) 34%,var(--line)); }
+    .mission-card.primary { border-color:color-mix(in srgb,var(--primary) 34%,var(--line)); }
+    .mission-card.warning { border-color:color-mix(in srgb,var(--amber) 36%,var(--line)); }
+    .mission-card.admin { border-style:dashed; }
+    .mission-top { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .mission-card h3 { margin:0; font-size:17px; line-height:1.35; }
+    .mission-card p { margin:0; color:var(--muted); line-height:1.65; font-size:13px; }
+    .mission-card .btn { margin-top:auto; }
     .setup-grid { display:grid; grid-template-columns:1.05fr .95fr; gap:18px; }
     .form-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
     label span { display:block; color:var(--muted); font-size:12px; font-weight:850; margin-bottom:7px; }
@@ -474,7 +492,7 @@
       .main { margin-left:0; }
       .mobile-menu { display:grid; }
       .stats-grid, .module-grid { grid-template-columns:repeat(2,1fr); }
-      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid, .strategy-grid, .mastery-grid, .quality-item { grid-template-columns:1fr; }
+      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid, .strategy-grid, .mastery-grid, .quality-item, .mission-grid { grid-template-columns:1fr; }
     }
     @media (max-width: 650px) {
       .content, .topbar-inner { padding-left:14px; padding-right:14px; }

@@ -6,6 +6,13 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.3
+
+- Added a lightweight `modules/` front-end architecture layer so release metadata, view titles, Part module definitions, storage contracts, and learning mission logic no longer have to live directly in `app.js`.
+- Added a learning command center on the home dashboard that prioritizes due review, weak strategies, wrong-answer cleanup, vocabulary building, and quality-management work.
+- Part entry cards now render from the app-shell module and include tactical focus notes for each TOEIC Part.
+- Expanded the built-in bank from 540 to 565 questions with original Part 2, Part 5, Part 6, and Part 7 technology-workplace items.
+
 ### v2.2
 
 - Added strategy-mastery analytics that track performance by reusable answer tactic and surface weakest tactics as focused follow-up practice.
@@ -72,7 +79,7 @@ Each feature release should include a focused question-bank expansion. Large cha
 
 ## Recommended Next Directions
 
-- Refactor the static app into route/component modules so the codebase feels like a larger front-end product instead of a single-file app.
+- Continue extracting large views from `app.js` into view modules, starting with analytics, strategy center, and quality dashboard.
 - Build a learner command center with weekly goals, streak recovery, milestone badges, and a richer study calendar.
 - Better vocabulary scheduling that records per-word review history, weak words, and pronunciation attempts.
 - Add question editing for difficulty/category/tags directly inside the quality dashboard.

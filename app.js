@@ -1,5 +1,7 @@
 const BUILTIN_BANK = window.BUILTIN_BANK || [];
 const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
+const APP_SHELL = window.TOEIC_APP_SHELL || {};
+const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -978,7 +980,7 @@ function showView(id){
   closeMobileNav();
   $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
-  const titles={
+  const titles=APP_SHELL.viewTitles || {
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
     resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",strategyView:"答題技巧專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
@@ -1783,18 +1785,70 @@ function renderAnswerReview(results){
     </article>`;
   }).join("");
 }
+function renderReleaseCard(){
+  const release=APP_SHELL.release;
+  if(!release) return;
+  if($("#brandVersion")) $("#brandVersion").textContent=`v${APP_SHELL.version || "2.3"}`;
+  if($("#releaseBadges")){
+    $("#releaseBadges").innerHTML=(release.badges||[]).map((badge,index)=>`<span class="badge ${index?"gray":""}">${safe(badge)}</span>`).join("");
+  }
+  if($("#releaseTitle")) $("#releaseTitle").textContent=release.title || "";
+  if($("#releaseSummary")) $("#releaseSummary").textContent=release.summary || "";
+}
+function renderStudyCommandCenter(bank,history,wrong){
+  const box=$("#studyMissionList");
+  if(!box) return;
+  const missions=LEARNING_COMMAND_CENTER.buildStudyMissions({
+    bankCount:bank.length,
+    answered:history.reduce((sum,item)=>sum+(item.total||0),0),
+    wrongCount:wrong.length,
+    dueCount:dueReviewIds().length,
+    vocabCount:getVocab().length,
+    qualityCount:Object.keys(getQuestionQuality()).length,
+    performance:getPerformance()
+  });
+  const toneLabel={urgent:"今日優先",primary:"弱點補強",warning:"整理任務",calm:"單字養成",admin:"後台任務",roadmap:"本週節奏"};
+  box.innerHTML=missions.map((mission,index)=>`
+    <article class="mission-card ${safe(mission.tone||"primary")}">
+      <div class="mission-top"><span class="badge">${safe(toneLabel[mission.tone]||"任務")}</span><span class="badge gray">#${index+1}</span></div>
+      <h3>${safe(mission.title)}</h3>
+      <p>${safe(mission.detail)}</p>
+      <button class="btn ${index===0?"primary":""}" data-mission-action="${safe(mission.action)}">${safe(mission.cta)}</button>
+    </article>
+  `).join("");
+  const handlers={
+    dueReview:()=>startDueReview(),
+    analytics:()=>showView("analyticsView"),
+    wrongBook:()=>showView("wrongView"),
+    autoVocab:()=>showView("autoVocabView"),
+    quality:()=>showView("bankView"),
+    practice:()=>showView("setupView"),
+    home:()=>showView("homeView")
+  };
+  $$("[data-mission-action]").forEach(btn=>{
+    btn.onclick=()=>{ (handlers[btn.dataset.missionAction]||handlers.home)(); };
+  });
+}
 function renderDashboard(){
   renderResumeBanner();
+  renderReleaseCard();
   const bank=getBank(), history=getHistory(), wrong=getWrongIds();
   const answered=history.reduce((s,h)=>s+h.total,0), correct=history.reduce((s,h)=>s+h.correct,0);
   $("#heroCount").textContent=bank.length; $("#totalBank").textContent=bank.length; $("#totalAnswered").textContent=answered;
   $("#overallAccuracy").textContent=answered?`${Math.round(correct/answered*100)}%`:"0%"; $("#wrongCount").textContent=wrong.length;
   $("#dueReviewCount").textContent=dueReviewIds().length;
-  const parts=["2","3","4","5","6","7"];
-  const labels={"2":"應答","3":"對話","4":"獨白","5":"單句填空","6":"短文填空","7":"閱讀理解"};
-  $("#moduleGrid").innerHTML=parts.map(p=>{
-    const n=bank.filter(q=>q.part===p).length;
-    return `<article class="module-card" data-part-card="${p}"><span class="pill">Part ${p}</span><h3>${labels[p]}</h3><p>${p==="2"?"疑問詞、提議、否定問句與自然回應。":p==="3"?"職場與生活情境對話，搭配語音朗讀。":p==="4"?"公告、語音留言與公共廣播。":p==="5"?"文法、詞性、介系詞與商務字彙。":p==="6"?"電子郵件、公告與備忘錄克漏字。":"Email、廣告、通知、職缺與雙篇閱讀。"}</p><strong>${n} 題 →</strong></article>`;
+  renderStudyCommandCenter(bank,history,wrong);
+  const modules=APP_SHELL.partModules || [
+    {part:"2",label:"應答",description:"疑問詞、提議、否定問句與自然回應。"},
+    {part:"3",label:"對話",description:"職場與生活情境對話，搭配語音朗讀。"},
+    {part:"4",label:"獨白",description:"公告、語音留言與公共廣播。"},
+    {part:"5",label:"單句填空",description:"文法、詞性、介系詞與商務字彙。"},
+    {part:"6",label:"短文填空",description:"電子郵件、公告與備忘錄克漏字。"},
+    {part:"7",label:"閱讀理解",description:"Email、廣告、通知、職缺與雙篇閱讀。"}
+  ];
+  $("#moduleGrid").innerHTML=modules.map(module=>{
+    const n=bank.filter(q=>q.part===module.part).length;
+    return `<article class="module-card" data-part-card="${safe(module.part)}"><span class="pill">Part ${safe(module.part)}</span><h3>${safe(module.label)}</h3><p>${safe(module.description)}</p>${module.focus?`<div class="module-focus">${safe(module.focus)}</div>`:""}<strong>${n} 題 →</strong></article>`;
   }).join("");
   $$("[data-part-card]").forEach(c=>c.onclick=()=>{ showView("setupView"); $("#partSelect").value=c.dataset.partCard; updateAvailable(); });
   const recent=history.slice(0,3);
