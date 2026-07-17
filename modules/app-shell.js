@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "2.3",
+  version: "2.4",
   release: {
-    title: "從功能堆疊，升級成可維護的前端作品",
-    summary: "新增模組化前端架構與學習任務中心，並補充 25 題 Part 2 / Part 5 / Part 6 / Part 7 原創題。",
-    badges: ["v2.3 更新", "565 題", "模組化架構", "學習任務中心"]
+    title: "加入合法來源庫，讓題海擴充有出處邊界",
+    summary: "新增合法模擬題來源庫與版權使用規則，並補充 25 題 Part 3 / Part 5 / Part 6 / Part 7 原創題。",
+    badges: ["v2.4 更新", "590 題", "合法來源庫", "原創改寫邊界"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

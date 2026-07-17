@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 565 題，支援模組化前端架構、學習任務中心、技巧掌握度分析、題目品質後台與間隔複習。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 590 題，支援合法模擬題來源庫、模組化前端架構、學習任務中心、技巧掌握度分析與題目品質後台。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.3</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.4</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -71,9 +71,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v2.3 更新</span><span class="badge gray">565 題</span><span class="badge gray">模組化架構</span><span class="badge gray">學習任務中心</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">從功能堆疊，升級成可維護的前端作品</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增模組化前端架構與學習任務中心，並補充 25 題 Part 2 / Part 5 / Part 6 / Part 7 原創題。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v2.4 更新</span><span class="badge gray">590 題</span><span class="badge gray">合法來源庫</span><span class="badge gray">原創改寫邊界</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">加入合法來源庫，讓題海擴充有出處邊界</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增合法模擬題來源庫與版權使用規則，並補充 25 題 Part 3 / Part 5 / Part 6 / Part 7 原創題。</p>
         </article>
 
         <div class="stats-grid">
@@ -451,6 +451,18 @@
 }</pre>
           </article>
         </div>
+        <div class="section-head"><div><h2>合法模擬題來源庫</h2><p>收集可外連的官方與免費練習來源；本站只保留連結、授權判定與原創出題靈感，不搬運題文。</p></div></div>
+        <div class="stats-grid source-stats">
+          <article class="card"><div class="stat-label">來源總數</div><div class="stat-value" id="sourceTotal">0</div><div class="stat-foot">外部連結與判定</div></article>
+          <article class="card"><div class="stat-label">官方來源</div><div class="stat-value" id="sourceOfficial">0</div><div class="stat-foot">ETS / 官方委辦</div></article>
+          <article class="card"><div class="stat-label">免費練習</div><div class="stat-value" id="sourceFree">0</div><div class="stat-foot">僅外連不複製</div></article>
+          <article class="card"><div class="stat-label">匯入規則</div><div class="stat-value" style="font-size:20px">Link-only</div><div class="stat-foot">不爬題、不重發</div></article>
+        </div>
+        <article class="card source-policy">
+          <strong>收集原則</strong>
+          <p>合法來源庫只放「去哪裡看／怎麼判斷可用性」。若來源沒有明確允許重製，本站不會複製題目文字、圖片、音檔、答案或解析；新題一律以原創商務情境重新撰寫。</p>
+        </article>
+        <div id="legalSourceList" class="source-grid"></div>
         <div class="section-head"><div><h2>題目品質後台</h2><p>標記停用、爭議答案、待複查題目，並查看每題答對率。</p></div></div>
         <div class="stats-grid quality-stats">
           <article class="card"><div class="stat-label">題庫總量</div><div class="stat-value" id="qualityTotal">0</div><div class="stat-foot">含自訂題</div></article>
@@ -483,9 +495,11 @@
 <script src="./question-bank-v21.js"></script>
 <script src="./question-bank-v22.js"></script>
 <script src="./question-bank-v23.js"></script>
+<script src="./question-bank-v24.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/learning-command-center.js"></script>
+<script src="./modules/legal-practice-sources.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

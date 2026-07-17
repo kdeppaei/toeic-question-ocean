@@ -422,6 +422,22 @@
     .mastery-ring:after { content:""; position:absolute; inset:7px; border-radius:50%; background:var(--surface); }
     .mastery-ring strong { position:relative; z-index:1; font-size:13px; color:var(--text); }
     .quality-panel { margin-top:18px; }
+    .source-policy { margin-top:14px; border-color:color-mix(in srgb,var(--primary) 28%,var(--line)); }
+    .source-policy p { margin:8px 0 0; color:var(--muted); line-height:1.7; }
+    .source-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:14px; }
+    .source-card {
+      background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+      box-shadow:var(--shadow); padding:18px; display:flex; flex-direction:column; gap:12px;
+    }
+    .source-card.official { border-color:color-mix(in srgb,var(--primary) 34%,var(--line)); }
+    .source-card.license { border-color:color-mix(in srgb,var(--amber) 42%,var(--line)); }
+    .source-card h3 { margin:0; line-height:1.35; }
+    .source-card p { margin:0; color:var(--muted); line-height:1.65; font-size:13px; }
+    .source-note {
+      padding:11px 12px; border-radius:12px; background:var(--surface-2);
+      border:1px solid var(--line); color:var(--muted); font-size:12px; line-height:1.6;
+    }
+    .source-card .btn { align-self:flex-start; margin-top:auto; }
     .quality-list { display:grid; gap:12px; margin-top:14px; }
     .quality-item {
       background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -492,7 +508,7 @@
       .main { margin-left:0; }
       .mobile-menu { display:grid; }
       .stats-grid, .module-grid { grid-template-columns:repeat(2,1fr); }
-      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid, .strategy-grid, .mastery-grid, .quality-item, .mission-grid { grid-template-columns:1fr; }
+      .practice-layout, .setup-grid, .storage-grid, .storage-map, .auto-vocab-grid, .strategy-grid, .mastery-grid, .quality-item, .mission-grid, .source-grid { grid-template-columns:1fr; }
     }
     @media (max-width: 650px) {
       .content, .topbar-inner { padding-left:14px; padding-right:14px; }

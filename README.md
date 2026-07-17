@@ -6,6 +6,14 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.4
+
+- Added a legal practice-source hub in the question-bank management page.
+- The source hub records official sample/prep links, free external TOEIC-style practice links, and reuse restrictions so the app can collect source awareness without copying copyrighted questions.
+- Added `modules/legal-practice-sources.js` for curated source metadata and link-only reuse notes.
+- New built-in questions include `sourceNote` fields that mark them as original TOEIC-style items rather than copied web questions.
+- Expanded the built-in bank from 565 to 590 questions with original Part 3, Part 5, Part 6, and Part 7 workplace-technology items.
+
 ### v2.3
 
 - Added a lightweight `modules/` front-end architecture layer so release metadata, view titles, Part module definitions, storage contracts, and learning mission logic no longer have to live directly in `app.js`.
@@ -80,6 +88,7 @@ Each feature release should include a focused question-bank expansion. Large cha
 ## Recommended Next Directions
 
 - Continue extracting large views from `app.js` into view modules, starting with analytics, strategy center, and quality dashboard.
+- Add a source-note filter in the quality dashboard so original trend-inspired items can be audited by topic and source policy.
 - Build a learner command center with weekly goals, streak recovery, milestone badges, and a richer study calendar.
 - Better vocabulary scheduling that records per-word review history, weak words, and pronunciation attempts.
 - Add question editing for difficulty/category/tags directly inside the quality dashboard.

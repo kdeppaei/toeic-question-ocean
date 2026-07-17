@@ -2,6 +2,7 @@ const BUILTIN_BANK = window.BUILTIN_BANK || [];
 const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
 const APP_SHELL = window.TOEIC_APP_SHELL || {};
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
+const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -995,7 +996,7 @@ function showView(id){
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
-  if(id==="bankView") renderQualityDashboard();
+  if(id==="bankView"){ renderLegalSourceHub(); renderQualityDashboard(); }
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function openMobileNav(){
@@ -2049,6 +2050,33 @@ function exportResultCsv(){
   const rows=[["ID","Part","Question","Selected","Correct","Result","Explanation"],...state.lastResult.results.map(x=>[x.id,x.question.part,x.question.prompt,x.selected===null?"":x.question.choices[x.selected],x.question.choices[x.question.answer],x.correct?"Correct":"Wrong",x.question.explanation])];
   const csv="\uFEFF"+rows.map(r=>r.map(csvEscape).join(",")).join("\r\n");
   download(new Blob([csv],{type:"text/csv;charset=utf-8"}),`toeic-result-${Date.now()}.csv`);
+}
+function sourceCategoryLabel(category){
+  return {
+    official:"官方來源",
+    license:"授權政策",
+    "free-practice":"免費練習"
+  }[category]||"外部來源";
+}
+function renderLegalSourceHub(){
+  if(!$("#legalSourceList")) return;
+  const sources=LEGAL_PRACTICE_SOURCES;
+  $("#sourceTotal").textContent=sources.length;
+  $("#sourceOfficial").textContent=sources.filter(source=>source.category==="official").length;
+  $("#sourceFree").textContent=sources.filter(source=>source.category==="free-practice").length;
+  $("#legalSourceList").innerHTML=sources.length?sources.map(source=>`
+    <article class="source-card ${safe(source.category)}">
+      <div class="badges">
+        <span class="badge">${safe(sourceCategoryLabel(source.category))}</span>
+        <span class="badge gray">${safe(source.provider)}</span>
+      </div>
+      <h3>${safe(source.title)}</h3>
+      <p><strong>可用方式：</strong>${safe(source.use)}</p>
+      <p><strong>限制：</strong>${safe(source.limit)}</p>
+      <div class="source-note">${safe(source.note)}</div>
+      <a class="btn" href="${safe(source.url)}" target="_blank" rel="noopener noreferrer">開啟來源</a>
+    </article>
+  `).join(""):'<div class="card empty">尚未收集合法來源。</div>';
 }
 function qualityQuestionRows(){
   const quality=getQuestionQuality();

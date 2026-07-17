@@ -6,6 +6,7 @@ Current contracts:
 
 - `app-shell.js`: version metadata, release copy, view titles, Part card definitions, and storage contract notes.
 - `learning-command-center.js`: pure mission-prioritization logic for the home dashboard.
+- `legal-practice-sources.js`: curated external TOEIC-style practice/source links with reuse limits and copyright notes.
 
 Keep modules side-effect-light. They may attach a single namespace to `window`, but they should avoid direct DOM rendering unless the module is specifically a view module.
 
