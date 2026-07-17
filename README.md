@@ -6,6 +6,13 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.6
+
+- Changed listening playback rules: focused practice, review, and strategy sessions now play audio immediately; only mock exam mode keeps the 10-second read-the-questions countdown.
+- Added a TOEIC accent selector for browser speech synthesis, covering auto, US, UK, Australian, Canadian, New Zealand, Irish, Indian, Singapore, and South African English where the browser provides voices.
+- Added long-term question favorites with a dedicated star button, F shortcut, dashboard count, storage backup entry, and a favorites practice list separate from the wrong-answer book.
+- Expanded the built-in bank from 600 to 610 questions with original Part 2, Part 3, and Part 4 listening items.
+
 ### v2.5
 
 - Added a full group-question overview inside practice sessions so Part 3, Part 4, Part 6, and Part 7 sets can be read and answered together.

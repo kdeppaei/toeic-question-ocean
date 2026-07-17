@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 600 題，支援題組總覽、聽力 10 秒讀題、M/W 角色語音、返回修改答案、合法模擬題來源庫與題目品質後台。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 610 題，支援專項即時聽力、模考 10 秒讀題、多益常考口音選擇、題目收藏、返回修改答案與題目品質後台。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.5</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.6</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -71,16 +71,17 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v2.5 更新</span><span class="badge gray">600 題</span><span class="badge gray">題組總覽</span><span class="badge gray">10 秒讀題</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">重做題組與聽力考感，讓作答更像正式 TOEIC</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">題組可整組預覽與作答、聽力先給 10 秒讀題、M/W 角色語音分流，並補充 10 題原創聽力與文法題。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v2.6 更新</span><span class="badge gray">610 題</span><span class="badge gray">專項即時播放</span><span class="badge gray">口音選擇</span><span class="badge gray">題目收藏</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">把聽力練習調成練習與模考兩種節奏</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">專項練習點擊即播、模考才保留 10 秒讀題；新增美式、英式、澳洲、加拿大等口音選擇與長期題目收藏，並補充 10 題原創聽力題。</p>
         </article>
 
         <div class="stats-grid">
           <article class="card"><div class="stat-label">題庫總量</div><div class="stat-value" id="totalBank">0</div><div class="stat-foot">Part 2–7</div></article>
           <article class="card"><div class="stat-label">累積作答</div><div class="stat-value" id="totalAnswered">0</div><div class="stat-foot">儲存在本機</div></article>
           <article class="card"><div class="stat-label">歷史正確率</div><div class="stat-value" id="overallAccuracy">0%</div><div class="stat-foot">所有練習紀錄</div></article>
-          <article class="card"><div class="stat-label">錯題收藏</div><div class="stat-value" id="wrongCount">0</div><div class="stat-foot">可反覆重練</div></article>
+          <article class="card"><div class="stat-label">錯題本</div><div class="stat-value" id="wrongCount">0</div><div class="stat-foot">間隔複習來源</div></article>
+          <article class="card"><div class="stat-label">題目收藏</div><div class="stat-value" id="favoriteCount">0</div><div class="stat-foot">長期保存</div></article>
           <article class="card"><div class="stat-label">今日複習</div><div class="stat-value" id="dueReviewCount">0</div><div class="stat-foot">依間隔排程</div></article>
         </div>
 
@@ -162,6 +163,7 @@
                 <button class="btn" id="prevQuestion">← 返回上一題</button>
                 <button class="btn" id="addSelectedVocab">＋選取單字</button>
                 <button class="btn" id="markReview">☆ 標記待檢查</button>
+                <button class="btn" id="favoriteQuestion">☆ 收藏題目</button>
               </div>
               <button class="btn primary" id="nextQuestion" disabled>下一題</button>
             </div>
@@ -215,9 +217,12 @@
 
       <section id="wrongView" class="view">
         <div class="toolbar">
-          <div><h2 style="margin:0">錯題本</h2><p style="color:var(--muted);margin:5px 0 0">答錯題目與手動收藏都會保留。</p></div>
+          <div><h2 style="margin:0">錯題與收藏</h2><p style="color:var(--muted);margin:5px 0 0">答錯題目進入間隔複習；星星收藏則長期保存想重看的題目。</p></div>
           <div class="group"><button class="btn primary" id="practiceDue">今日複習</button><button class="btn" id="practiceWrong">練習錯題</button><button class="btn danger" id="clearWrong">清空錯題本</button></div>
         </div>
+        <div class="section-head"><div><h2>題目收藏</h2><p>用「☆ 收藏題目」保存的題目，可獨立重練。</p></div><div class="group"><button class="btn" id="practiceFavorites">練習收藏</button><button class="btn danger" id="clearFavorites">清空收藏</button></div></div>
+        <div id="favoriteList"></div>
+        <div class="section-head"><div><h2>錯題本</h2><p>作答錯誤的題目會排入間隔複習。</p></div></div>
         <div id="wrongList"></div>
       </section>
 
@@ -498,6 +503,7 @@
 <script src="./question-bank-v23.js"></script>
 <script src="./question-bank-v24.js"></script>
 <script src="./question-bank-v25.js"></script>
+<script src="./question-bank-v26.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/learning-command-center.js"></script>

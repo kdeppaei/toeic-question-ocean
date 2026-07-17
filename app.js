@@ -6,6 +6,7 @@ const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
+  favorite: "toeicOcean.favoriteQuestions.v1",
   history: "toeicOcean.history.v1",
   custom: "toeicOcean.customBank.v1",
   theme: "toeicOcean.theme.v1",
@@ -13,7 +14,8 @@ const KEYS = {
   performance: "toeicOcean.performance.v1",
   reviewSchedule: "toeicOcean.reviewSchedule.v1",
   vocab: "toeicOcean.vocab.v1",
-  quality: "toeicOcean.questionQuality.v1"
+  quality: "toeicOcean.questionQuality.v1",
+  audioAccent: "toeicOcean.audioAccent.v1"
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
@@ -25,6 +27,18 @@ const SESSION_KEYS = {
   scratchpad: "toeicOcean.sessionScratchpad",
   scratchUpdatedAt: "toeicOcean.sessionScratchUpdatedAt"
 };
+const AUDIO_ACCENTS = [
+  { id:"auto", label:"自動", lang:"en-US", hints:[] },
+  { id:"us", label:"美式", lang:"en-US", hints:["united states","american","us english","samantha","alex","david","zira","jenny","aria"] },
+  { id:"uk", label:"英式", lang:"en-GB", hints:["united kingdom","british","uk english","daniel","serena","george","libby","martha"] },
+  { id:"au", label:"澳洲", lang:"en-AU", hints:["australia","australian","karen","lee","matilda","olivia"] },
+  { id:"ca", label:"加拿大", lang:"en-CA", hints:["canada","canadian"] },
+  { id:"nz", label:"紐西蘭", lang:"en-NZ", hints:["new zealand","moira"] },
+  { id:"ie", label:"愛爾蘭", lang:"en-IE", hints:["ireland","irish"] },
+  { id:"in", label:"印度", lang:"en-IN", hints:["india","indian","rishi","heera"] },
+  { id:"sg", label:"新加坡", lang:"en-SG", hints:["singapore"] },
+  { id:"za", label:"南非", lang:"en-ZA", hints:["south africa"] }
+];
 const AUTO_VOCAB_LETTERS = ["all", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const AUTO_VOCAB_STOP_WORDS = new Set([
   "able","about","above","after","again","against","also","although","always","among","another","answer","any","april","around",
@@ -207,6 +221,7 @@ const state = {
   autoPlayedAudio: {},
   listeningPrep: null,
   listeningPrepTimerId: null,
+  audioAccent: "auto",
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
   autoVocabLetter: "all",
@@ -232,6 +247,7 @@ function storageSet(k,v){
 const load = (k,d) => { try { return JSON.parse(storageGet(k)) ?? d; } catch { return d; } };
 const save = (k,v) => storageSet(k, JSON.stringify(v));
 const byteSize = (value) => new TextEncoder().encode(String(value ?? "")).length;
+state.audioAccent = AUDIO_ACCENTS.some(accent=>accent.id===storageGet(KEYS.audioAccent)) ? storageGet(KEYS.audioAccent) : "auto";
 
 function cookiePath(){
   return location.pathname.includes("/toeic-question-ocean/") ? "/toeic-question-ocean" : "/";
@@ -305,6 +321,23 @@ function questionContentText(q){
 }
 function getWrongIds(){ return load(KEYS.wrong, []); }
 function setWrongIds(ids){ save(KEYS.wrong, [...new Set(ids)]); }
+function getFavoriteIds(){ return load(KEYS.favorite, []); }
+function setFavoriteIds(ids){ save(KEYS.favorite, [...new Set(ids)].filter(Boolean)); }
+function questionsFromIds(ids){
+  const map=new Map(getBank().map(q=>[q.id,q]));
+  return ids.map(id=>map.get(id)).filter(Boolean);
+}
+function isFavoriteQuestion(id){ return getFavoriteIds().includes(id); }
+function toggleFavoriteQuestion(id=currentQ()?.id){
+  if(!id) return;
+  const ids=getFavoriteIds();
+  const exists=ids.includes(id);
+  setFavoriteIds(exists?ids.filter(x=>x!==id):[id,...ids]);
+  showToast(exists?"已取消題目收藏":"已收藏題目");
+  if(state.currentView==="practiceView") renderQuestion();
+  if(state.currentView==="wrongView") renderWrongBook();
+  renderDashboard();
+}
 function getHistory(){ return load(KEYS.history, []); }
 function getReviewSchedule(){ return load(KEYS.reviewSchedule, {}); }
 function saveReviewSchedule(schedule){ save(KEYS.reviewSchedule, schedule); }
@@ -1474,13 +1507,16 @@ function renderQuestion(){
     const used=state.audioPlays[audioKey]||0;
     const limit=state.options.playLimit;
     const exhausted=limit>0&&used>=limit;
+    const mockAudio=state.sessionMode==="mock";
     const speedControl=state.sessionMode==="mock"
       ? `<span class="badge gray">正式速度 1.0x</span>`
       : `<select id="listenSpeed" aria-label="聽力播放速度"><option value="0.8">0.8x</option><option value="0.92" selected>0.9x</option><option value="1">1.0x</option><option value="1.1">1.1x</option></select>`;
+    const accentControl=`<select id="audioAccent" aria-label="語音口音">${renderAudioAccentOptions()}</select>`;
     const countLabel=limit>0?`${used}/${limit}`:`${used}/∞`;
     const prepActive=state.listeningPrep?.key===audioKey;
-    const prepLabel=prepActive?`讀題倒數 ${state.listeningPrep.remaining}s`:"10 秒讀題後播放";
-    stimulus+=`<div class="listen-box"><div><strong>Listening Audio</strong><div style="color:var(--muted);font-size:13px;margin-top:4px">${state.sessionMode==="mock"?"先給 10 秒讀題時間，再自動播放一次。":"按播放後先給 10 秒讀題時間，再開始播放。"}</div></div><div class="listen-controls">${speedControl}<span class="badge ${prepActive?"amber":"gray"}">${prepLabel}</span><button class="btn primary" id="listenBtn" ${exhausted||prepActive?"disabled":""}>▶ 播放 ${countLabel}</button></div></div>`;
+    const prepLabel=mockAudio?(prepActive?`讀題倒數 ${state.listeningPrep.remaining}s`:"模考 10 秒讀題"):"專項即時播放";
+    const audioHint=mockAudio?"模考會先給 10 秒讀題時間，再自動播放一次。":"專項練習可點擊立即播放，並自由調整速度與常考口音。";
+    stimulus+=`<div class="listen-box"><div><strong>Listening Audio</strong><div style="color:var(--muted);font-size:13px;margin-top:4px">${audioHint}</div></div><div class="listen-controls">${speedControl}${accentControl}<span class="badge ${prepActive?"amber":"gray"}">${prepLabel}</span><button class="btn primary" id="listenBtn" ${exhausted||prepActive?"disabled":""}>▶ 播放 ${countLabel}</button></div></div>`;
   }
   stimulus+=renderGroupQuestionOverview(q,revealAnswer);
   const choices=q.choices.map((c,i)=>{
@@ -1518,15 +1554,19 @@ function renderQuestion(){
   $("#prevQuestion").disabled=state.currentIndex<=0 || (state.sessionMode==="mock"&&state.mockSection==="reading"&&state.currentIndex<=state.mockBoundary);
   $("#markReview").textContent=state.reviewFlags[state.currentIndex]?"★ 已標記待檢查":"☆ 標記待檢查";
   $("#markReview").className=state.reviewFlags[state.currentIndex]?"btn primary":"btn";
+  $("#favoriteQuestion").textContent=isFavoriteQuestion(q.id)?"★ 已收藏題目":"☆ 收藏題目";
+  $("#favoriteQuestion").className=isFavoriteQuestion(q.id)?"btn primary":"btn";
   $$("[data-choice]").forEach(b=>b.addEventListener("click",()=>selectChoice(Number(b.dataset.choice))));
   $$("[data-group-choice]").forEach(b=>b.addEventListener("click",()=>{
     const [index,choice]=b.dataset.groupChoice.split(":").map(Number);
     selectChoiceForIndex(index,choice);
   }));
   $$("[data-group-jump]").forEach(b=>b.addEventListener("click",()=>goToQuestion(Number(b.dataset.groupJump))));
-  $("#listenBtn")?.addEventListener("click",()=>playQuestionAudio(q,{withPrep:true}));
+  $("#audioAccent")?.addEventListener("change",e=>setAudioAccent(e.target.value));
+  $("#listenBtn")?.addEventListener("click",()=>playQuestionAudio(q,{withPrep:state.sessionMode==="mock"}));
   $("#listenAnswerBtn")?.addEventListener("click",()=>speak(q.choices[q.answer]));
   $("#markReview").onclick=()=>toggleReview();
+  $("#favoriteQuestion").onclick=()=>toggleFavoriteQuestion(q.id);
   renderSessionStats();
   renderQuestionNavigator();
   beginTimer(answered);
@@ -1552,6 +1592,18 @@ function beginTimer(answered){
   if(state.remaining>0) state.timerId=setInterval(tick,1000);
 }
 function updateTimer(){ $("#timerText").textContent=formatClock(state.remaining); }
+function accentProfile(id=state.audioAccent){
+  return AUDIO_ACCENTS.find(accent=>accent.id===id)||AUDIO_ACCENTS[0];
+}
+function renderAudioAccentOptions(){
+  return AUDIO_ACCENTS.map(accent=>`<option value="${safe(accent.id)}" ${accent.id===state.audioAccent?"selected":""}>${safe(accent.label)}</option>`).join("");
+}
+function setAudioAccent(value){
+  const profile=accentProfile(value);
+  state.audioAccent=profile.id;
+  storageSet(KEYS.audioAccent,profile.id);
+  showToast(`語音口音：${profile.label}`);
+}
 function clearListeningPrep(){
   if(state.listeningPrepTimerId) clearInterval(state.listeningPrepTimerId);
   state.listeningPrepTimerId=null;
@@ -1592,15 +1644,27 @@ function availableEnglishVoices(){
   if(!("speechSynthesis" in window)) return [];
   return speechSynthesis.getVoices().filter(voice=>/^en[-_]/i.test(voice.lang||""));
 }
+function voiceText(voice){ return `${voice.name||""} ${voice.voiceURI||""} ${voice.lang||""}`.toLowerCase(); }
+function voiceMatchesAccent(voice,profile){
+  if(profile.id==="auto") return true;
+  const lang=String(voice.lang||"").toLowerCase().replace("_","-");
+  const target=String(profile.lang||"").toLowerCase();
+  return lang===target || profile.hints.some(hint=>voiceText(voice).includes(hint));
+}
 function pickVoice(role){
   const voices=availableEnglishVoices();
   if(!voices.length) return null;
   const maleHints=["david","mark","george","daniel","alex","fred","tom","microsoft david","google us english male"];
   const femaleHints=["zira","jenny","aria","samantha","victoria","susan","karen","moira","tessa","google us english female"];
+  const profile=accentProfile();
+  const accentVoices=voices.filter(voice=>voiceMatchesAccent(voice,profile));
+  const pool=accentVoices.length?accentVoices:voices;
   const hints=role==="male"?maleHints:role==="female"?femaleHints:[];
-  const byHint=voices.find(voice=>hints.some(hint=>`${voice.name} ${voice.voiceURI}`.toLowerCase().includes(hint)));
+  const byHint=pool.find(voice=>hints.some(hint=>voiceText(voice).includes(hint)));
   if(byHint) return byHint;
-  return voices.find(voice=>/en-US/i.test(voice.lang))||voices[0]||null;
+  const exactLang=pool.find(voice=>String(voice.lang||"").toLowerCase().replace("_","-")===String(profile.lang||"").toLowerCase());
+  if(exactLang) return exactLang;
+  return pool.find(voice=>/en-US/i.test(voice.lang))||pool[0]||voices[0]||null;
 }
 function dialogueSegments(text){
   const lines=String(text||"").split(/\n+/).map(line=>line.trim()).filter(Boolean);
@@ -1625,8 +1689,9 @@ function speakDialogue(text){
     const segment=segments[index++];
     if(!segment) return;
     const u=new SpeechSynthesisUtterance(segment.text);
-    u.lang="en-US";
-    u.voice=segment.role==="neutral"?pickVoice("female"):pickVoice(segment.role);
+    const voice=segment.role==="neutral"?pickVoice("female"):pickVoice(segment.role);
+    if(voice) u.voice=voice;
+    u.lang=voice?.lang||accentProfile().lang||"en-US";
     u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
     u.onend=speakNext;
     speechSynthesis.speak(u);
@@ -1637,8 +1702,9 @@ function speak(text){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(text);
-  u.lang="en-US";
-  u.voice=pickVoice("female");
+  const voice=pickVoice("female");
+  if(voice) u.voice=voice;
+  u.lang=voice?.lang||accentProfile().lang||"en-US";
   u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
   speechSynthesis.speak(u);
 }
@@ -1647,7 +1713,9 @@ function speakWord(word){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(word);
-  u.lang="en-US";
+  const voice=pickVoice("female");
+  if(voice) u.voice=voice;
+  u.lang=voice?.lang||accentProfile().lang||"en-US";
   u.rate=0.82;
   speechSynthesis.speak(u);
 }
@@ -1958,10 +2026,11 @@ function renderStudyCommandCenter(bank,history,wrong){
 function renderDashboard(){
   renderResumeBanner();
   renderReleaseCard();
-  const bank=getBank(), history=getHistory(), wrong=getWrongIds();
+  const bank=getBank(), history=getHistory(), wrong=getWrongIds(), favorites=getFavoriteIds();
   const answered=history.reduce((s,h)=>s+h.total,0), correct=history.reduce((s,h)=>s+h.correct,0);
   $("#heroCount").textContent=bank.length; $("#totalBank").textContent=bank.length; $("#totalAnswered").textContent=answered;
   $("#overallAccuracy").textContent=answered?`${Math.round(correct/answered*100)}%`:"0%"; $("#wrongCount").textContent=wrong.length;
+  $("#favoriteCount").textContent=favorites.length;
   $("#dueReviewCount").textContent=dueReviewIds().length;
   renderStudyCommandCenter(bank,history,wrong);
   const modules=APP_SHELL.partModules || [
@@ -1980,16 +2049,30 @@ function renderDashboard(){
   const recent=history.slice(0,3);
   $("#recentHistory").innerHTML=recent.length?`<table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>正確率</th><th>題型</th></tr></thead><tbody>${recent.map(h=>`<tr><td>${new Date(h.date).toLocaleString("zh-TW")}</td><td>${safe(h.mode||"自由練習")}</td><td>${h.total}</td><td>${h.accuracy}%</td><td>${safe(h.parts)}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">尚無練習紀錄，先完成第一回合吧。</div>';
 }
-function renderWrongBook(){
-  const ids=getWrongIds(), map=new Map(getBank().map(q=>[q.id,q])), schedule=getReviewSchedule(), now=Date.now();
-  const items=ids.map(id=>map.get(id)).filter(Boolean);
-  $("#practiceDue").disabled=!dueReviewIds().length;
-  $("#wrongList").innerHTML=items.length?items.map(q=>{
+function renderSavedQuestionItems(items,type,schedule={},now=Date.now()){
+  return items.map(q=>{
     const review=schedule[q.id];
     const due=review?.nextReviewAt&&review.nextReviewAt<=now;
-    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${review?`<span class="badge ${due?"":"gray"}">${due?"今日到期":"下次 "+formatReviewDate(review.nextReviewAt)}</span><span class="badge gray">連對 ${review.streak||0}</span>`:"<span class=\"badge gray\">未排程</span>"}</div><h3>${safe(q.prompt)}</h3>${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" data-remove-wrong="${q.id}">移除</button></article>`;
-  }).join(""):'<div class="card empty">目前沒有錯題。</div>';
+    const reviewBadges=type==="wrong"
+      ? review
+        ? `<span class="badge ${due?"":"gray"}">${due?"今日到期":"下次 "+formatReviewDate(review.nextReviewAt)}</span><span class="badge gray">連對 ${review.streak||0}</span>`
+        : "<span class=\"badge gray\">未排程</span>"
+      : `<span class="badge">★ 收藏</span>`;
+    const removeAttr=type==="wrong"?`data-remove-wrong="${safe(q.id)}"`:`data-remove-favorite="${safe(q.id)}"`;
+    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${reviewBadges}</div><h3>${safe(q.prompt)}</h3>${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}${q.audioText?`<details><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" ${removeAttr}>移除</button></article>`;
+  }).join("");
+}
+function renderWrongBook(){
+  const schedule=getReviewSchedule(), now=Date.now();
+  const items=questionsFromIds(getWrongIds());
+  const favorites=questionsFromIds(getFavoriteIds());
+  $("#practiceDue").disabled=!dueReviewIds().length;
+  $("#practiceFavorites").disabled=!favorites.length;
+  $("#clearFavorites").disabled=!favorites.length;
+  $("#favoriteList").innerHTML=favorites.length?renderSavedQuestionItems(favorites,"favorite",schedule,now):'<div class="card empty">目前沒有收藏題目。</div>';
+  $("#wrongList").innerHTML=items.length?renderSavedQuestionItems(items,"wrong",schedule,now):'<div class="card empty">目前沒有錯題。</div>';
   $$("[data-remove-wrong]").forEach(b=>b.onclick=()=>{ const id=b.dataset.removeWrong; setWrongIds(getWrongIds().filter(x=>x!==id)); removeReviewSchedule([id]); renderWrongBook(); renderDashboard(); });
+  $$("[data-remove-favorite]").forEach(b=>b.onclick=()=>{ const id=b.dataset.removeFavorite; setFavoriteIds(getFavoriteIds().filter(x=>x!==id)); renderWrongBook(); renderDashboard(); });
 }
 function percent(stat){
   return stat?.total?Math.round(stat.correct/stat.total*100):0;
@@ -2093,9 +2176,11 @@ function localStorageRows(){
   const performance=getPerformance(), active=load(KEYS.active,null);
   return [
     ["錯題本", `${getWrongIds().length} 題`, KEYS.wrong],
+    ["題目收藏", `${getFavoriteIds().length} 題`, KEYS.favorite],
     ["歷史成績", `${getHistory().length} 筆`, KEYS.history],
     ["自訂題庫", `${load(KEYS.custom,[]).length} 題`, KEYS.custom],
     ["個人單字本", `${getVocab().length} 筆`, KEYS.vocab],
+    ["語音口音偏好", accentProfile().label, KEYS.audioAccent],
     ["間隔複習", `${Object.keys(getReviewSchedule()).length} 題`, KEYS.reviewSchedule],
     ["弱點分析", `${performance.total} 題`, KEYS.performance],
     ["題目品質標記", `${Object.keys(getQuestionQuality()).length} 筆`, KEYS.quality],
@@ -2113,19 +2198,21 @@ function renderLocalStorageSummary(){
 function exportLearningState(){
   const payload={
     exportedAt:new Date().toISOString(),
-    version:"2.2",
+    version:"2.6",
     cookie:{
       dailyGoal:decodeURIComponent(getCookie(COOKIE_KEYS.dailyGoal)||""),
       lastVisit:decodeURIComponent(getCookie(COOKIE_KEYS.lastVisit)||"")
     },
     localStorage:{
       wrong:getWrongIds(),
+      favoriteQuestions:getFavoriteIds(),
       history:getHistory(),
       customBank:load(KEYS.custom,[]),
       vocab:getVocab(),
       performance:getPerformance(),
       questionQuality:getQuestionQuality(),
       reviewSchedule:getReviewSchedule(),
+      audioAccent:state.audioAccent,
       activeSession:load(KEYS.active,null)
     },
     sessionStorage:{
@@ -2337,7 +2424,9 @@ $("#addSelectedVocab").onclick=addSelectedVocab;
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
 $("#practiceDue").onclick=startDueReview;
 $("#practiceWrong").onclick=()=>{ const ids=getWrongIds(),map=new Map(getActiveBank().map(q=>[q.id,q])); const list=ids.map(id=>map.get(id)).filter(Boolean); startSession(list,{count:list.length,seconds:0}); };
+$("#practiceFavorites").onclick=()=>{ const list=questionsFromIds(getFavoriteIds()).filter(q=>!isQuestionDisabled(q.id)); startSession(list,{count:list.length,seconds:0}); };
 $("#clearWrong").onclick=()=>{ if(confirm("確定清空錯題本？")){removeReviewSchedule(getWrongIds());setWrongIds([]);renderWrongBook();renderDashboard();} };
+$("#clearFavorites").onclick=()=>{ if(confirm("確定清空所有題目收藏？")){setFavoriteIds([]);renderWrongBook();renderDashboard();} };
 $("#clearHistory").onclick=()=>{ if(confirm("確定清空歷史紀錄？")){save(KEYS.history,[]);renderHistory();renderDashboard();} };
 $("#exportJson").onclick=exportResultJson; $("#exportCsv").onclick=exportResultCsv; $("#printReport").onclick=()=>window.print();
 $("#exportBank").onclick=()=>download(new Blob([JSON.stringify(getBank(),null,2)],{type:"application/json"}),"toeic-question-bank.json");
@@ -2394,13 +2483,9 @@ document.addEventListener("keydown",e=>{
   if(["1","2","3","4"].includes(e.key)) selectChoice(Number(e.key)-1);
   if(e.key==="Enter") nextQuestion();
   if(e.key==="ArrowLeft") previousQuestion();
-  if(e.key.toLowerCase()==="l"&&currentQ()?.audioText) playQuestionAudio(currentQ(),{withPrep:true});
+  if(e.key.toLowerCase()==="l"&&currentQ()?.audioText) playQuestionAudio(currentQ(),{withPrep:state.sessionMode==="mock"});
   if(e.key.toLowerCase()==="r") toggleReview();
-  if(e.key.toLowerCase()==="f"&&currentQ()){
-    const ids=getWrongIds(), id=currentQ().id;
-    if(ids.includes(id)){setWrongIds(ids.filter(x=>x!==id));showToast("已取消收藏");}
-    else{ids.push(id);setWrongIds(ids);showToast("已收藏到錯題本");}
-  }
+  if(e.key.toLowerCase()==="f"&&currentQ()) toggleFavoriteQuestion(currentQ().id);
 });
 
 updateVisitCookie();
