@@ -6,6 +6,15 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.9.0
+
+- Expanded the built-in bank from 700 to 816 questions with 116 original literacy-heavy TOEIC-style simulation items.
+- Focused the new set on reading-core skills: patient passage reading, condition and exception tracking, cross-paragraph evidence, and double/triple-passage inference.
+- Added 16 long-context Part 5 items that require sentence-level meaning rather than isolated grammar recognition.
+- Added 32 Part 6 questions across eight workplace notices, customer e-mails, project updates, product notices, and research summaries.
+- Added 68 Part 7 questions across single, double, and triple-passage sets, including privacy notices, accessibility cases, policy changes, survey evidence, schedules, invoices, warranties, community programs, and cross-document decisions.
+- All new questions are original simulation content with explanations, Chinese translations, tags, and source notes.
+
 ### v2.8.0
 
 - Expanded the built-in bank from 620 to 700 questions with 80 original TOEIC-style simulation items.
