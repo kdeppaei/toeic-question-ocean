@@ -385,7 +385,7 @@
       passage,
       audioText: "",
       translation: item.translation || "請依據文件中的明確線索選出最佳答案。",
-      tags: ["part7", "reading", "literacy-core", skill, ...tags, ...(item.tags || [])],
+      tags: ["part7", "reading", "literacy-core", "human-reviewed", skill, ...tags, ...(item.tags || [])],
       groupId,
       literacySkill: skill,
       answerAudit: item.choices[item.answer],

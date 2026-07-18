@@ -2,7 +2,14 @@
   "scripts": {
     "check:js": "node --check app.js",
     "validate:bank": "node scripts/validate-bank.js",
-    "test": "npm run check:js && npm run validate:bank"
+    "test:ui": "playwright test",
+    "test:update-snapshots": "playwright test tests/visual.spec.js --update-snapshots",
+    "test": "pnpm run check:js && pnpm run validate:bank && pnpm run test:ui"
   },
-  "private": true
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1"
+  }
 }

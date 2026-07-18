@@ -1,10 +1,21 @@
 # TOEIC Question Ocean
 
-Local-first TOEIC practice site for Parts 2-7. The app runs as a static website and stores practice history, wrong answers, spaced-review schedules, vocabulary notebooks, strategy practice, theme preference, and resumable sessions in the browser.
+Local-first TOEIC practice site for Parts 1-7. The app runs as a static website and stores practice history, wrong answers, spaced-review schedules, vocabulary notebooks, strategy practice, theme preference, and resumable sessions in the browser.
 
 ## Version Rhythm
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
+
+### v3.1.0
+
+- Expanded the built-in bank from 900 to 908 questions with eight original Part 1 image-description items.
+- Added only locally stored photographs verified against the Pexels License. Every item records its creator, source page, license URL, neutral alternative text, and original simulation status in `assets/part1/ATTRIBUTION.md`.
+- Extended the full mock exam to the standard 200-question Parts 1-7 distribution: 100 Listening and 100 Reading questions.
+- Added human-reviewed evidence sentences, locations, literacy skills, and four-option trap notes to 44 existing Part 7 questions. Together with v3.0, 68 questions now have exact evidence annotations.
+- Hardened bank validation to reject missing Part 1 files, unsafe image paths, incomplete license metadata, unspoken choices, missing annotations, and evidence text that does not occur verbatim in the passage.
+- Improved keyboard and screen-reader behavior with a skip link, focus handoff between views and questions, semantic progress updates, current-page navigation state, pressed answer state, and live immediate-feedback announcements.
+- Added Playwright visual regression coverage at 320, 390, 834, and 1440 pixels plus Axe-based serious accessibility checks and keyboard workflow tests.
+- Added a GitHub Pages quality gate so deployment waits for bank, interaction, accessibility, and screenshot tests.
 
 ### v3.0.0
 
@@ -156,15 +167,13 @@ Each feature release should include a focused question-bank expansion. Large cha
 
 ## Recommended Next Directions
 
-- Continue extracting large views from `app.js` into view modules, starting with analytics, strategy center, and quality dashboard.
-- Add a source-note filter in the quality dashboard so original trend-inspired items can be audited by topic and source policy.
-- Build a learner command center with weekly goals, streak recovery, milestone badges, and a richer study calendar.
-- Better vocabulary scheduling that records per-word review history, weak words, and pronunciation attempts.
-- Add question editing for difficulty/category/tags directly inside the quality dashboard.
-- Accent metadata and filters for listening questions.
-- Part 1 image-description support with local image assets.
-- Expand toward 600 questions with high-difficulty Part 6 full passages and more Part 7 double/triple-passage inference sets.
-- Add a source-note field for trend-inspired original questions so the topic inspiration is visible without storing copyrighted source text.
+- Expand Part 1 in small licensed batches only after manually verifying each image, source page, and unambiguous answer. Do not generate placeholder items when a suitable image is unavailable.
+- Continue human annotation for older Part 7 double/triple passages; automation may detect missing metadata but must not invent evidence or trap explanations.
+- Add an authoring-time evidence editor that only permits selecting exact text from the stored passage.
+- Split analytics, strategy, and quality-management views out of `app.js` without changing browser storage schemas.
+- Add manual NVDA and VoiceOver acceptance notes. Axe and keyboard scripts remain first-pass checks, not proof of complete assistive-technology support.
+- Add listening voice-availability diagnostics; browser speech synthesis cannot guarantee that every device has a distinct male voice for every accent.
+- Expand the lexicon in reviewed batches with sourced pronunciation and Traditional Chinese definitions rather than auto-filling uncertain entries.
 
 ## Local Preview
 
@@ -173,6 +182,16 @@ python -m http.server 4173
 ```
 
 Then open http://localhost:4173.
+
+## Quality Checks
+
+```bash
+pnpm install
+pnpm exec playwright install chromium
+pnpm test
+```
+
+Update intentional visual baselines with `pnpm run test:update-snapshots`, then inspect all four images before committing them.
 
 ## Deployment
 

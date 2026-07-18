@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 900 題，支援閱讀素養線索定位、進階文法、單題即時詳解、跨裝置作答、聽力口音、題目收藏與題目品質稽核。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 908 題與 Part 1–7 完整題型，支援閱讀素養線索定位、圖片描述、進階文法、跨裝置作答、聽力口音、題目收藏與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+<a class="skip-link" href="#mainContent">跳到主要內容</a>
 <div class="app">
-  <aside class="sidebar">
+  <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.0.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.1.0</span></strong></div>
     </div>
-    <nav class="nav">
+    <nav class="nav" aria-label="主要導覽">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
       <button data-nav="setupView">▶　開始練習</button>
       <button data-nav="strategyView">⚑　答題技巧</button>
@@ -36,12 +37,12 @@
   </aside>
   <button class="mobile-scrim" id="mobileScrim" aria-label="關閉選單"></button>
 
-  <main class="main">
+  <main class="main" id="mainContent" tabindex="-1">
     <header class="topbar">
       <div class="topbar-inner">
         <div style="display:flex;gap:11px;align-items:center">
           <button class="icon-btn mobile-menu" id="mobileHome" aria-label="開啟選單" aria-expanded="false">☰</button>
-          <div class="page-title"><small id="todayLabel"></small><h1 id="viewTitle">多益題海學習儀表板</h1></div>
+          <div class="page-title"><small id="todayLabel"></small><h1 id="viewTitle" tabindex="-1">多益題海學習儀表板</h1></div>
         </div>
         <div class="top-actions">
           <button class="btn" id="quick10">隨機 10 題</button>
@@ -73,13 +74,13 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v3.0.0 Product UI</span><span class="badge gray">900 題</span><span class="badge gray">新增 60 題</span><span class="badge gray">人工閱讀線索</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">閱讀證據、題庫稽核與跨裝置介面一次到位</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增 36 題進階文法與 24 題人工標註閱讀題；答題後可直接看證據句與選項陷阱。題庫後台加入結構稽核，介面同步重整手機、平板與桌面操作。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v3.1.0 Quality</span><span class="badge gray">908 題</span><span class="badge gray">Part 1–7</span><span class="badge gray">68 題人工線索</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">圖片描述、閱讀證據與可測試介面</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增 8 題合法授權 Part 1 圖片題，並人工補標 44 題既有 Part 7；四種 viewport 視覺回歸與鍵盤、ARIA 稽核同步加入發布流程。</p>
         </article>
 
         <div class="stats-grid">
-          <article class="card"><div class="stat-label">題庫總量</div><div class="stat-value" id="totalBank">0</div><div class="stat-foot">Part 2–7</div></article>
+          <article class="card"><div class="stat-label">題庫總量</div><div class="stat-value" id="totalBank">0</div><div class="stat-foot">Part 1–7</div></article>
           <article class="card"><div class="stat-label">累積作答</div><div class="stat-value" id="totalAnswered">0</div><div class="stat-foot">儲存在本機</div></article>
           <article class="card"><div class="stat-label">歷史正確率</div><div class="stat-value" id="overallAccuracy">0%</div><div class="stat-foot">所有練習紀錄</div></article>
           <article class="card"><div class="stat-label">錯題本</div><div class="stat-value" id="wrongCount">0</div><div class="stat-foot">間隔複習來源</div></article>
@@ -103,7 +104,8 @@
           <article class="card">
             <div class="form-grid">
               <label><span>題型</span><select id="partSelect">
-                <option value="all">全部 Part 2–7</option>
+                <option value="all">全部 Part 1–7</option>
+                <option value="1">Part 1 圖片描述</option>
                 <option value="2">Part 2 應答</option><option value="3">Part 3 對話</option>
                 <option value="4">Part 4 獨白</option><option value="5">Part 5 單句填空</option>
                 <option value="6">Part 6 短文填空</option><option value="7">Part 7 閱讀</option>
@@ -137,16 +139,16 @@
         </div>
 
         <article class="card mock-card">
-          <div class="badges"><span class="badge">Mock Exam</span><span class="badge gray">Part 2–7</span><span class="badge gray">自動交卷</span></div>
-          <h2 style="margin:13px 0 6px">Part 2–7 全真節奏模考</h2>
-          <p style="color:var(--muted);line-height:1.75;margin:0">依正式題數比例抽取 Part 2–7，共 194 題。Listening 與 Reading 採獨立倒數；模考期間不顯示答案與解析。</p>
+          <div class="badges"><span class="badge">Mock Exam</span><span class="badge gray">Part 1–7</span><span class="badge gray">自動交卷</span></div>
+          <h2 style="margin:13px 0 6px">Part 1–7 完整 200 題模考</h2>
+          <p style="color:var(--muted);line-height:1.75;margin:0">依正式題數比例抽取 Part 1–7，共 200 題。Listening 與 Reading 採獨立倒數；模考期間不顯示答案與解析。</p>
           <div class="mock-grid">
-            <div class="mock-metric"><strong>94 題</strong><span>Listening・45 分鐘</span></div>
+            <div class="mock-metric"><strong>100 題</strong><span>Listening・45 分鐘</span></div>
             <div class="mock-metric"><strong>100 題</strong><span>Reading・75 分鐘</span></div>
             <div class="mock-metric"><strong>1 次</strong><span>聽力播放上限</span></div>
           </div>
-          <button class="btn primary" id="startMockExam" style="width:100%;padding:14px">開始 194 題模考</button>
-          <div class="mock-warning">本網站為自製題庫，並非 ETS 官方試題；目前尚未製作 Part 1 照片描述，因此此模式為 Part 2–7 的 194 題模擬。</div>
+          <button class="btn primary" id="startMockExam" style="width:100%;padding:14px">開始 200 題模考</button>
+          <div class="mock-warning">本網站為自製題庫，並非 ETS 官方試題。Part 1 使用本地化的 Pexels 授權照片與原創敘述；模考時選項文字不顯示，請依音訊選擇 A–D。</div>
         </article>
       </section>
 
@@ -157,8 +159,8 @@
               <div class="badges" id="quizBadges"></div>
               <div class="timer" id="timerText">不限時</div>
             </div>
-            <div class="progress"><div id="quizProgress"></div></div>
-            <div id="questionArea"></div>
+            <div class="progress" id="quizProgressTrack" role="progressbar" aria-label="作答進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="quizProgress"></div></div>
+            <div id="questionArea" role="region" aria-label="目前題目"></div>
             <div class="quiz-actions">
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn danger" id="quitPractice">結束練習</button>
@@ -275,7 +277,7 @@
             <label><span>搜尋單字</span><input id="autoVocabSearch" type="text" placeholder="warranty / 採購 / /ˈvɛndɚ/"></label>
             <label><span>顯示模式</span><select id="autoVocabStatus"><option value="all" selected>全部題庫單字</option><option value="known">完整詞條</option><option value="pending">待補資料</option></select></label>
             <label><span>排序</span><select id="autoVocabSort"><option value="alpha" selected>A-Z</option><option value="frequency">題庫出現次數</option></select></label>
-            <label><span>來源 Part</span><select id="autoVocabPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+            <label><span>來源 Part</span><select id="autoVocabPart"><option value="all" selected>全部 Part</option><option value="1">Part 1</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
           </div>
           <div class="az-strip" id="autoVocabLetters"></div>
         </article>
@@ -300,7 +302,7 @@
             <div class="form-grid">
               <label><span>題型</span><select id="vocabReviewMode"><option value="mixed" selected>混合題型</option><option value="meaning">英翻中</option><option value="cloze">例句填空</option><option value="audio">聽音辨字</option></select></label>
               <label><span>題數</span><select id="vocabReviewCount"><option>5</option><option selected>10</option><option>20</option><option>30</option></select></label>
-              <label><span>來源 Part</span><select id="vocabReviewPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+              <label><span>來源 Part</span><select id="vocabReviewPart"><option value="all" selected>全部 Part</option><option value="1">Part 1</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
               <label><span>出題來源</span><select id="vocabReviewSource"><option value="known" selected>題庫完整詞條</option><option value="personal">個人單字本</option></select></label>
             </div>
             <button class="btn primary" id="startVocabReview" style="width:100%;margin-top:18px;padding:14px">開始單字複習</button>
@@ -345,7 +347,7 @@
         <article class="card strategy-panel">
           <div class="form-grid">
             <label><span>搜尋技巧</span><input id="strategySearch" type="text" placeholder="詞性 / Part 2 / 雙篇 / 同義改寫"></label>
-            <label><span>來源 Part</span><select id="strategyPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+            <label><span>來源 Part</span><select id="strategyPart"><option value="all" selected>全部 Part</option><option value="1">Part 1</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
             <label><span>技巧類型</span><select id="strategyType"><option value="all" selected>全部類型</option><option value="grammar">文法快判</option><option value="reading">閱讀定位</option><option value="listening">聽力戰術</option><option value="vocabulary">字彙搭配</option></select></label>
             <label><span>排序</span><select id="strategySort"><option value="yield" selected>高命中優先</option><option value="part">Part 順序</option><option value="level">難度階梯</option></select></label>
           </div>
@@ -404,7 +406,7 @@
         </div>
         <div class="stats-grid">
           <article class="card"><div class="stat-label">分析題數</div><div class="stat-value" id="analyticsTotal">0</div><div class="stat-foot">完成後才納入</div></article>
-          <article class="card"><div class="stat-label">Listening</div><div class="stat-value" id="analyticsListening">0%</div><div class="stat-foot">Part 2–4</div></article>
+          <article class="card"><div class="stat-label">Listening</div><div class="stat-value" id="analyticsListening">0%</div><div class="stat-foot">Part 1–4</div></article>
           <article class="card"><div class="stat-label">Reading</div><div class="stat-value" id="analyticsReading">0%</div><div class="stat-foot">Part 5–7</div></article>
           <article class="card"><div class="stat-label">最弱分類</div><div class="stat-value" id="analyticsWeakest" style="font-size:20px">—</div><div class="stat-foot">至少作答 3 題</div></article>
           <article class="card"><div class="stat-label">最弱技巧</div><div class="stat-value" id="analyticsWeakestStrategy" style="font-size:20px">—</div><div class="stat-foot">依答題技巧歸因</div></article>
@@ -520,7 +522,7 @@
           <div class="form-grid">
             <label><span>搜尋題目</span><input id="qualitySearch" type="text" placeholder="P5-169 / cybersecurity / 詞性"></label>
             <label><span>狀態</span><select id="qualityStatus"><option value="all" selected>全部題目</option><option value="active">啟用中</option><option value="disabled">已停用</option><option value="disputed">爭議答案</option><option value="review">待複查</option><option value="audit">自動稽核警示</option></select></label>
-            <label><span>來源 Part</span><select id="qualityPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+            <label><span>來源 Part</span><select id="qualityPart"><option value="all" selected>全部 Part</option><option value="1">Part 1</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
             <label><span>排序</span><select id="qualitySort"><option value="accuracy" selected>低答對率優先</option><option value="attempts">作答次數優先</option><option value="id">題號 A-Z</option></select></label>
           </div>
         </article>
@@ -536,7 +538,7 @@
   <button data-mobile-nav="wrongView"><span>✎</span><small>複習</small></button>
   <button id="mobileMore"><span>☰</span><small>更多</small></button>
 </nav>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="./question-bank.js"></script>
 <script src="./question-bank-v15.js"></script>
@@ -556,6 +558,8 @@
 <script src="./question-bank-v29.js"></script>
 <script src="./question-bank-v210.js"></script>
 <script src="./question-bank-v30.js"></script>
+<script src="./question-bank-v31.js"></script>
+<script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/learning-command-center.js"></script>

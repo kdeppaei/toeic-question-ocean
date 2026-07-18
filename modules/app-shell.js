@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.0.0",
+  version: "3.1.0",
   release: {
-    title: "閱讀證據、題庫稽核與跨裝置介面一次到位",
-    summary: "新增 36 題進階文法與 24 題人工標註閱讀題；答題後可直接看證據句與選項陷阱。題庫後台加入結構稽核，介面同步重整手機、平板與桌面操作。",
-    badges: ["v3.0.0 Product UI", "900 題", "新增 60 題", "人工閱讀線索"]
+    title: "圖片描述、閱讀證據與可測試介面",
+    summary: "新增 8 題合法授權 Part 1 圖片題，並人工補標 44 題既有 Part 7；四種 viewport 視覺回歸與鍵盤、ARIA 稽核同步加入發布流程。",
+    badges: ["v3.1.0 Quality", "908 題", "Part 1–7", "68 題人工線索"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
@@ -22,6 +22,12 @@ window.TOEIC_APP_SHELL = {
     bankView: "題庫管理"
   },
   partModules: [
+    {
+      part: "1",
+      label: "圖片描述",
+      description: "觀察人物動作、物品位置與場景狀態，搭配語音敘述。",
+      focus: "先看主體正在做什麼，再排除照片中不存在的物件與動作。"
+    },
     {
       part: "2",
       label: "應答",

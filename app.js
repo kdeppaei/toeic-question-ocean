@@ -267,6 +267,19 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+function renderQuestionImage(question, context="practice"){
+  const image=String(question?.image||"");
+  if(!/^assets\/part1\/[a-z0-9-]+\.jpg$/i.test(image)) return "";
+  const credit=String(question.imageCredit||"Pexels contributor");
+  const source=String(question.imageSource||"");
+  const sourceLink=/^https:\/\/www\.pexels\.com\/photo\//i.test(source)
+    ? `<a href="${safe(source)}" target="_blank" rel="noopener noreferrer">${safe(credit)} / Pexels</a>`
+    : `${safe(credit)} / Pexels`;
+  return `<figure class="part1-figure ${context==="compact"?"compact":""}">
+    <div class="part1-image-frame"><img src="${safe(image)}" alt="${safe(question.imageAlt||"Part 1 question photograph.")}" ${context==="practice"?'loading="eager"':'loading="lazy"'}></div>
+    <figcaption>Photo: ${sourceLink} · ${safe(question.imageLicense||"Pexels License")}</figcaption>
+  </figure>`;
+}
 function renderPassageText(question, revealEvidence=false){
   const passage=String(question?.passage||"");
   const evidence=String(question?.evidence||"");
@@ -1113,8 +1126,18 @@ function showView(id){
   state.currentView=id;
   closeMobileNav();
   $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
-  $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
-  $$("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===id));
+  $$(".nav button").forEach(b=>{
+    const active=b.dataset.nav===id;
+    b.classList.toggle("active",active);
+    if(active) b.setAttribute("aria-current","page");
+    else b.removeAttribute("aria-current");
+  });
+  $$("[data-mobile-nav]").forEach(b=>{
+    const active=b.dataset.mobileNav===id;
+    b.classList.toggle("active",active);
+    if(active) b.setAttribute("aria-current","page");
+    else b.removeAttribute("aria-current");
+  });
   const titles=APP_SHELL.viewTitles || {
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
     resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
@@ -1133,6 +1156,10 @@ function showView(id){
   if(id==="storageView") renderStorageCenter();
   if(id==="bankView"){ renderLegalSourceHub(); renderQualityDashboard(); }
   window.scrollTo({top:0,behavior:"smooth"});
+}
+function showViewAndFocus(id){
+  showView(id);
+  requestAnimationFrame(()=>$("#viewTitle")?.focus({preventScroll:true}));
 }
 function openMobileNav(){
   $(".sidebar")?.classList.add("mobile-open");
@@ -1188,7 +1215,7 @@ function renderResumeBanner(){
     return;
   }
   const answered=(snapshot.answers||[]).filter(Boolean).length;
-  const mode=snapshot.sessionMode==="mock"?"Part 2–7 模考":snapshot.sessionMode==="strategy"?"技巧專練":snapshot.sessionMode==="literacy"?"閱讀素養":"自由練習";
+  const mode=snapshot.sessionMode==="mock"?"Part 1–7 模考":snapshot.sessionMode==="strategy"?"技巧專練":snapshot.sessionMode==="literacy"?"閱讀素養":"自由練習";
   const saved=new Date(snapshot.savedAt).toLocaleString("zh-TW");
   $("#resumeDescription").textContent=`${mode}｜已完成 ${answered}/${total} 題｜最後儲存：${saved}`;
   banner.classList.add("show");
@@ -1383,9 +1410,9 @@ function prepareUnits(units,shuffleChoices=true){
   return output;
 }
 function buildMockSession(){
-  const distribution={"2":25,"3":39,"4":30,"5":30,"6":16,"7":54};
+  const distribution={"1":6,"2":25,"3":39,"4":30,"5":30,"6":16,"7":54};
   const output=[];
-  for(const part of ["2","3","4","5","6","7"]){
+  for(const part of ["1","2","3","4","5","6","7"]){
     const units=buildUnits(getActiveBank().filter(q=>q.part===part));
     const selected=selectUnitsExact(units,distribution[part]);
     if(!selected) throw new Error(`Part ${part} 題庫無法組成 ${distribution[part]} 題`);
@@ -1556,7 +1583,7 @@ function renderGroupQuestionOverview(q){
             }else if(selected===choiceIndex){
               cls=answer?"selected":"pending";
             }
-            return `<button class="group-choice ${cls}" data-group-choice="${index}:${choiceIndex}"><b>${letter(choiceIndex)}</b><span>${safe(choice)}</span></button>`;
+            return `<button class="group-choice ${cls}" data-group-choice="${index}:${choiceIndex}" aria-pressed="${selected===choiceIndex}"><b>${letter(choiceIndex)}</b><span>${safe(choice)}</span></button>`;
           }).join("")}
         </div>
       </article>`;
@@ -1585,6 +1612,7 @@ function goToQuestion(index){
   startQuestionClock();
   persistActive();
   renderQuestion();
+  requestAnimationFrame(()=>$("#currentQuestionPrompt")?.focus({preventScroll:true}));
 }
 
 function renderQuestion(){
@@ -1601,12 +1629,16 @@ function renderQuestion(){
   const groupStart=grouped?state.currentIndex-q._groupIndex:state.currentIndex;
   const groupEnd=grouped?groupStart+q._groupSize-1:state.currentIndex;
   $("#quizBadges").innerHTML=`<span class="badge">Q${state.currentIndex+1}/${state.session.length}</span><span class="badge gray">Part ${q.part}</span><span class="badge gray">${safe(q.difficulty)}+</span><span class="badge gray">${safe(q.category)}</span>${grouped?`<span class="badge gray">題組 ${q._groupIndex+1}/${q._groupSize}</span>`:""}`;
-  $("#quizProgress").style.width=`${(state.currentIndex/state.session.length)*100}%`;
+  const progress=Math.round(((state.currentIndex+1)/state.session.length)*100);
+  $("#quizProgress").style.width=`${progress}%`;
+  $("#quizProgressTrack")?.setAttribute("aria-valuenow",String(progress));
+  $("#quizProgressTrack")?.setAttribute("aria-valuetext",`第 ${state.currentIndex+1} 題，共 ${state.session.length} 題`);
   let stimulus="";
   if(grouped){
     const groupType=q.part==="3"?"conversation":q.part==="4"?"talk":q.part==="6"?"text":"passage";
     stimulus+=`<div class="group-banner">Questions ${groupStart+1}–${groupEnd+1} refer to the same ${groupType}。完成整個題組前不揭曉正解或內容解析。</div>`;
   }
+  stimulus+=renderQuestionImage(q);
   if(q.passage) stimulus+=`<div class="passage ${revealAnswer&&q.evidence?"has-evidence":""}">${renderPassageText(q,revealAnswer)}</div>`;
   if(q.audioText){
     const audioKey=q._groupKey||q.id;
@@ -1636,24 +1668,25 @@ function renderQuestion(){
     }else if(!answered && hasSelection && i===selected){
       cls="pending";
     }
-    return `<button class="choice ${cls}" data-choice="${i}"><span class="choice-letter">${letter(i)}</span><span>${safe(c)}</span></button>`;
+    const mockPart1=state.sessionMode==="mock"&&q.part==="1";
+    return `<button class="choice ${cls} ${mockPart1?"audio-only-choice":""}" data-choice="${i}" aria-pressed="${selected===i}" ${mockPart1?`aria-label="選項 ${letter(i)}"`:""}><span class="choice-letter">${letter(i)}</span><span>${mockPart1?"聆聽語音後選擇":safe(c)}</span></button>`;
   }).join("");
   let feedback="";
   if(revealAnswer){
-    feedback=`<div class="feedback"><strong>${existing.correct?"答對了":"答錯了，正解是 "+letter(q.answer)}</strong>
+    feedback=`<div class="feedback" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"><strong>${existing.correct?"答對了":"答錯了，正解是 "+letter(q.answer)}</strong>
       ${q.translation?`<div class="translation-block"><b>題目中文翻譯：</b>${safe(q.translation)}</div>`:""}
       ${q.answerTranslation?`<div class="translation-block"><b>正確回應中文：</b>${safe(q.answerTranslation)}</div>`:""}
       <div style="margin-top:10px"><b>考點解析：</b>${safe(q.explanation)}</div>
       ${renderLiteracyFeedback(q,existing.selected)}
-      ${q.audioText?`<details class="listening-review"><summary>聽力複習：逐字稿與翻譯</summary><div class="review-grid"><div class="review-section"><b>ENGLISH TRANSCRIPT｜英文逐字稿</b><p>${safe(q.audioText)}</p></div>${(q.audioTranslation||q.translation)?`<div class="review-section"><b>TRADITIONAL CHINESE｜中文翻譯</b><p>${safe(q.audioTranslation||q.translation)}</p></div>`:""}${q.part==="2"?`<div><button class="btn" id="listenAnswerBtn">▶ 播放正確回應</button></div>`:""}</div></details>`:""}
+      ${q.audioText?`<details class="listening-review"><summary>聽力複習：逐字稿與翻譯</summary><div class="review-grid"><div class="review-section"><b>ENGLISH TRANSCRIPT｜英文逐字稿</b><p>${safe(q.audioText)}</p></div>${(q.audioTranslation||q.translation)?`<div class="review-section"><b>TRADITIONAL CHINESE｜中文翻譯</b><p>${safe(q.audioTranslation||q.translation)}</p></div>`:""}${["1","2"].includes(q.part)?`<div><button class="btn" id="listenAnswerBtn">▶ 播放正確${q.part==="1"?"敘述":"回應"}</button></div>`:""}</div></details>`:""}
     </div>`;
   }else if(answered && grouped && !groupComplete){
     const remaining=groupIndexes(q._groupKey).filter(i=>!state.answers[i]).length;
-    feedback=`<div class="feedback"><strong>答案已記錄</strong><div style="margin-top:8px">完成本題組剩餘 ${remaining} 題後，才會顯示正解、逐字稿與中文翻譯。</div></div>`;
+    feedback=`<div class="feedback" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"><strong>答案已記錄</strong><div style="margin-top:8px">完成本題組剩餘 ${remaining} 題後，才會顯示正解、逐字稿與中文翻譯。</div></div>`;
   }else if(answered && !state.options.instant){
-    feedback=`<div class="feedback"><strong>答案已記錄</strong><div style="margin-top:8px">本回合完成後再統一批改。</div></div>`;
+    feedback=`<div class="feedback" role="status" aria-live="polite" aria-atomic="true" tabindex="-1"><strong>答案已記錄</strong><div style="margin-top:8px">本回合完成後再統一批改。</div></div>`;
   }
-  $("#questionArea").innerHTML=`${stimulus}<div class="question">${safe(q.prompt)}</div><div class="choices">${choices}</div>${feedback}`;
+  $("#questionArea").innerHTML=`${stimulus}<div class="question" id="currentQuestionPrompt" tabindex="-1">${safe(q.prompt)}</div><div class="choices" role="group" aria-labelledby="currentQuestionPrompt">${choices}</div>${feedback}`;
   $("#nextQuestion").disabled=!answered && !hasSelection;
   $("#nextQuestion").textContent=state.sessionMode==="mock"&&state.currentIndex===state.mockBoundary-1
       ?"進入 Reading"
@@ -1866,6 +1899,13 @@ function answerQuestionAt(index,selected,timedOut=false){
   if(index===state.currentIndex) state.questionEndsAt=null;
   persistActive();
   renderQuestion();
+  if(index===state.currentIndex){
+    requestAnimationFrame(()=>{
+      const feedback=$("#questionArea .feedback");
+      if(state.options.instant&&feedback) feedback.focus({preventScroll:true});
+      else $(`[data-choice="${selected}"]`)?.focus({preventScroll:true});
+    });
+  }
 }
 function answerQuestion(selected,timedOut=false){
   clearInterval(state.timerId);
@@ -1878,7 +1918,13 @@ function nextQuestion(){
     return;
   }
   if(state.currentIndex>=state.session.length-1) finishSession();
-  else { state.currentIndex++; startQuestionClock(); persistActive(); renderQuestion(); }
+  else {
+    state.currentIndex++;
+    startQuestionClock();
+    persistActive();
+    renderQuestion();
+    requestAnimationFrame(()=>$("#currentQuestionPrompt")?.focus({preventScroll:true}));
+  }
 }
 function previousQuestion(){
   if(state.currentIndex<=0) return;
@@ -1992,7 +2038,7 @@ function finishSession(){
   results.filter(r=>!r.correct).forEach(r=>wrongIds.push(r.question.id));
   setWrongIds(wrongIds);
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
-  const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":state.sessionMode==="literacy"?"閱讀素養":"自由練習";
+  const mode=state.sessionMode==="mock"?"Part 1–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":state.sessionMode==="literacy"?"閱讀素養":"自由練習";
   const record={
     id:Date.now(),
     date:new Date().toISOString(),
@@ -2090,6 +2136,7 @@ function renderAnswerReview(results){
         <span class="badge gray">${safe(q.category)}</span>
       </div>
       <h3>${safe(q.prompt)}</h3>
+      ${renderQuestionImage(q,"compact")}
       ${q.passage?`<details class="answer-source" ${q.evidence?"open":""}><summary>查看文章 / 題組原文${q.evidence?"（已標示線索）":""}</summary><div class="passage ${q.evidence?"has-evidence":""}">${renderPassageText(q,!!q.evidence)}</div></details>`:""}
       ${q.audioText?`<details class="answer-source"><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div>${q.audioTranslation?`<p>${safe(q.audioTranslation)}</p>`:""}</details>`:""}
       <div class="answer-choice-list">${answerChoiceReview(result)}</div>
@@ -2167,9 +2214,9 @@ function renderDashboard(){
   ];
   $("#moduleGrid").innerHTML=modules.map(module=>{
     const n=bank.filter(q=>q.part===module.part).length;
-    return `<article class="module-card" data-part-card="${safe(module.part)}"><span class="pill">Part ${safe(module.part)}</span><h3>${safe(module.label)}</h3><p>${safe(module.description)}</p>${module.focus?`<div class="module-focus">${safe(module.focus)}</div>`:""}<strong>${n} 題 →</strong></article>`;
+    return `<button type="button" class="module-card" data-part-card="${safe(module.part)}"><span class="pill">Part ${safe(module.part)}</span><span class="module-card-title">${safe(module.label)}</span><span class="module-card-copy">${safe(module.description)}</span>${module.focus?`<span class="module-focus">${safe(module.focus)}</span>`:""}<strong>${n} 題 →</strong></button>`;
   }).join("");
-  $$("[data-part-card]").forEach(c=>c.onclick=()=>{ showView("setupView"); $("#partSelect").value=c.dataset.partCard; updateAvailable(); });
+  $$("[data-part-card]").forEach(c=>c.onclick=()=>{ showViewAndFocus("setupView"); $("#partSelect").value=c.dataset.partCard; updateAvailable(); });
   const recent=history.slice(0,3);
   $("#recentHistory").innerHTML=recent.length?`<table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>正確率</th><th>題型</th></tr></thead><tbody>${recent.map(h=>`<tr><td>${new Date(h.date).toLocaleString("zh-TW")}</td><td>${safe(h.mode||"自由練習")}</td><td>${h.total}</td><td>${h.accuracy}%</td><td>${safe(h.parts)}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">尚無練習紀錄，先完成第一回合吧。</div>';
 }
@@ -2183,7 +2230,7 @@ function renderSavedQuestionItems(items,type,schedule={},now=Date.now()){
         : "<span class=\"badge gray\">未排程</span>"
       : `<span class="badge">★ 收藏</span>`;
     const removeAttr=type==="wrong"?`data-remove-wrong="${safe(q.id)}"`:`data-remove-favorite="${safe(q.id)}"`;
-    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${reviewBadges}</div><h3>${safe(q.prompt)}</h3>${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}${q.audioText?`<details><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" ${removeAttr}>移除</button></article>`;
+    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${reviewBadges}</div><h3>${safe(q.prompt)}</h3>${renderQuestionImage(q,"compact")}${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}${q.audioText?`<details><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" ${removeAttr}>移除</button></article>`;
   }).join("");
 }
 function renderWrongBook(){
@@ -2234,7 +2281,7 @@ function renderStrategyMasteryGrid(data){
 }
 function renderAnalytics(){
   const data=getPerformance();
-  const listeningParts=["Part 2","Part 3","Part 4"].map(k=>data.parts[k]).filter(Boolean);
+  const listeningParts=["Part 1","Part 2","Part 3","Part 4"].map(k=>data.parts[k]).filter(Boolean);
   const readingParts=["Part 5","Part 6","Part 7"].map(k=>data.parts[k]).filter(Boolean);
   const combine=items=>items.reduce((acc,item)=>({total:acc.total+item.total,correct:acc.correct+item.correct}),{total:0,correct:0});
   const listening=combine(listeningParts),reading=combine(readingParts);
@@ -2496,7 +2543,7 @@ function renderQualityDashboard(){
   });
 }
 function normalizeImportedQuestion(q){
-  const validParts=new Set(["2","3","4","5","6","7"]);
+  const validParts=new Set(["1","2","3","4","5","6","7"]);
   const validDifficulties=new Set(["400","600","800"]);
   if(!q||typeof q!=="object") return null;
   const id=String(q.id??"").trim();
@@ -2509,6 +2556,8 @@ function normalizeImportedQuestion(q){
   const prompt=String(q.prompt??"").trim();
   const explanation=String(q.explanation??"").trim();
   if(!prompt||!explanation||prompt.length>2500||explanation.length>2500) return null;
+  const image=String(q.image??"").trim();
+  if(part==="1"&&!/^assets\/part1\/[a-z0-9-]+\.jpg$/i.test(image)) return null;
   const item={
     id,
     part,
@@ -2525,6 +2574,14 @@ function normalizeImportedQuestion(q){
     answerTranslation:String(q.answerTranslation??"").trim(),
     tags:Array.isArray(q.tags)?q.tags.map(tag=>String(tag??"").trim()).filter(Boolean).slice(0,12):[]
   };
+  if(image){
+    item.image=image;
+    item.imageAlt=String(q.imageAlt??"Part 1 question photograph.").trim().slice(0,200);
+    item.imageCredit=String(q.imageCredit??"").trim().slice(0,160);
+    item.imageSource=String(q.imageSource??"").trim().slice(0,500);
+    item.imageLicense=String(q.imageLicense??"").trim().slice(0,120);
+    item.imageLicenseUrl=String(q.imageLicenseUrl??"").trim().slice(0,500);
+  }
   const groupId=String(q.groupId??"").trim();
   if(groupId) item.groupId=groupId.slice(0,80);
   const evidence=String(q.evidence??"").trim();
@@ -2551,9 +2608,9 @@ $("#themeToggle").onclick=()=>{
   document.documentElement.dataset.theme=dark?"":"dark"; storageSet(KEYS.theme,dark?"light":"dark");
 };
 if(storageGet(KEYS.theme)==="dark") document.documentElement.dataset.theme="dark";
-$$("[data-nav]").forEach(b=>b.onclick=()=>showView(b.dataset.nav));
-$$("[data-mobile-nav]").forEach(b=>b.onclick=()=>showView(b.dataset.mobileNav));
-$$("[data-go-setup]").forEach(b=>b.onclick=()=>showView("setupView"));
+$$("[data-nav]").forEach(b=>b.onclick=()=>showViewAndFocus(b.dataset.nav));
+$$("[data-mobile-nav]").forEach(b=>b.onclick=()=>showViewAndFocus(b.dataset.mobileNav));
+$$("[data-go-setup]").forEach(b=>b.onclick=()=>showViewAndFocus("setupView"));
 $("#mobileHome").onclick=openMobileNav;
 $("#mobileMore").onclick=openMobileNav;
 $("#mobileScrim").onclick=closeMobileNav;
@@ -2562,7 +2619,7 @@ $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;
 $("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});
 $("#heroQuick").onclick=()=>startSession(getActiveBank(),{count:20,seconds:0});
-$("#heroLiteracy").onclick=()=>showView("readingView");
+$("#heroLiteracy").onclick=()=>showViewAndFocus("readingView");
 $("#nextQuestion").onclick=nextQuestion;
 $("#prevQuestion").onclick=previousQuestion;
 $("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
