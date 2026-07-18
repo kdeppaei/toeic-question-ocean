@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 840 題，支援耐心閱讀型素養題、進階倒裝專練、單題即時詳解、專項即時聽力、模考 10 秒讀題、多益常考口音選擇、題目收藏與題目品質後台。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 900 題，支援閱讀素養線索定位、進階文法、單題即時詳解、跨裝置作答、聽力口音、題目收藏與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,12 +13,13 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.10.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.0.0</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
       <button data-nav="setupView">▶　開始練習</button>
       <button data-nav="strategyView">⚑　答題技巧</button>
+      <button data-nav="readingView">▤　閱讀素養</button>
       <button data-nav="wrongView">✎　錯題本</button>
       <button data-nav="vocabView">◇　個人單字本</button>
       <button data-nav="autoVocabView">A-Z　題庫單字庫</button>
@@ -51,13 +52,14 @@
 
     <div class="content">
       <section id="homeView" class="view active">
-        <div class="hero">
-          <small style="font-weight:900;letter-spacing:.08em">NO API · NO LOGIN · LOCAL FIRST</small>
-          <h2>把多益練習，做成真正能每天使用的題海系統。</h2>
-          <p>內建 <strong id="heroCount"></strong> 題，涵蓋 Part 2–7。支援聽力朗讀、分類抽題、單字複習、題庫自動單字庫、個人單字本，以及 JSON／CSV／列印報告。</p>
+        <div class="hero workspace-banner">
+          <small>今日學習工作台</small>
+          <h2>選一個明確任務，開始今天的練習。</h2>
+          <p><strong id="heroCount"></strong> 題已就緒。優先處理到期複習、閱讀素養或弱點題型。</p>
           <div class="hero-actions">
-            <button class="btn" data-go-setup>設定練習</button>
-            <button class="btn secondary" id="heroQuick">立即隨機 20 題</button>
+            <button class="btn primary" data-go-setup>建立練習</button>
+            <button class="btn" id="heroLiteracy">閱讀素養</button>
+            <button class="btn" id="heroQuick">隨機 20 題</button>
           </div>
         </div>
 
@@ -71,9 +73,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v2.10.0 倒裝專練</span><span class="badge gray">840 題</span><span class="badge gray">新增 24 題</span><span class="badge gray">修正 P5-073</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">修正倒裝題，建立 900+ 否定與限制語專項</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">本版修正 P5-073 的雙主詞答案錯誤，重新整理 8 題既有倒裝詳解，並新增 24 題原創進階題，完整涵蓋 be 動詞、助動詞、do-support、否定置首、限制語置首與條件倒裝。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v3.0.0 Product UI</span><span class="badge gray">900 題</span><span class="badge gray">新增 60 題</span><span class="badge gray">人工閱讀線索</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">閱讀證據、題庫稽核與跨裝置介面一次到位</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增 36 題進階文法與 24 題人工標註閱讀題；答題後可直接看證據句與選項陷阱。題庫後台加入結構稽核，介面同步重整手機、平板與桌面操作。</p>
         </article>
 
         <div class="stats-grid">
@@ -354,6 +356,42 @@
         <div id="strategyList" class="strategy-grid"></div>
       </section>
 
+      <section id="readingView" class="view">
+        <div class="toolbar literacy-toolbar">
+          <div>
+            <h2 style="margin:0">閱讀素養專區</h2>
+            <p style="color:var(--muted);margin:5px 0 0">每題都有人工核對的證據句與選項診斷，不使用自動生成線索。</p>
+          </div>
+          <button class="btn primary" id="startLiteracyMix">開始精選題組</button>
+        </div>
+
+        <div class="stats-grid literacy-stats">
+          <article class="card"><div class="stat-label">精選題目</div><div class="stat-value" id="literacyQuestionCount">0</div><div class="stat-foot">完整題組抽取</div></article>
+          <article class="card"><div class="stat-label">閱讀能力</div><div class="stat-value" id="literacySkillCount">0</div><div class="stat-foot">可分項訓練</div></article>
+          <article class="card"><div class="stat-label">人工標註</div><div class="stat-value" id="literacyAnnotatedCount">0</div><div class="stat-foot">證據句與選項診斷</div></article>
+          <article class="card"><div class="stat-label">目前篩選</div><div class="stat-value" id="literacyCurrentCount">0</div><div class="stat-foot">符合能力條件</div></article>
+        </div>
+
+        <section class="literacy-workflow" aria-label="閱讀判斷流程">
+          <div><span>1</span><strong>先讀題幹</strong><small>確認問的是規則、順序、數據或立場</small></div>
+          <div><span>2</span><strong>回文定位</strong><small>找限制詞、轉折詞與跨文件時間</small></div>
+          <div><span>3</span><strong>證據作答</strong><small>選能被原文明確支持的答案</small></div>
+        </section>
+
+        <article class="card literacy-filter">
+          <label><span>訓練能力</span><select id="readingSkillSelect">
+            <option value="all" selected>全部能力</option>
+            <option value="條件例外">條件與例外</option>
+            <option value="流程順序">流程與順序</option>
+            <option value="跨文件推論">跨文件推論</option>
+            <option value="數據判讀">數據判讀</option>
+            <option value="目的意圖">目的與意圖</option>
+            <option value="語氣立場">語氣與立場</option>
+          </select></label>
+        </article>
+        <div id="literacySkillGrid" class="literacy-skill-grid"></div>
+      </section>
+
       <section id="historyView" class="view">
         <div class="toolbar"><div><h2 style="margin:0">歷史成績</h2><p style="color:var(--muted);margin:5px 0 0">最多保留最近 50 次。</p></div><button class="btn danger" id="clearHistory">清空紀錄</button></div>
         <div class="card" style="overflow:auto"><table><thead><tr><th>日期</th><th>模式</th><th>題數</th><th>答對</th><th>正確率</th><th>題型</th></tr></thead><tbody id="historyRows"></tbody></table></div>
@@ -475,11 +513,13 @@
           <article class="card"><div class="stat-label">已停用</div><div class="stat-value" id="qualityDisabled">0</div><div class="stat-foot">不進一般練習</div></article>
           <article class="card"><div class="stat-label">爭議答案</div><div class="stat-value" id="qualityDisputed">0</div><div class="stat-foot">需人工確認</div></article>
           <article class="card"><div class="stat-label">待複查</div><div class="stat-value" id="qualityReview">0</div><div class="stat-foot">品質工作佇列</div></article>
+          <article class="card"><div class="stat-label">自動稽核</div><div class="stat-value" id="qualityAutoIssues">0</div><div class="stat-foot">結構錯誤與提醒</div></article>
         </div>
+        <div class="quality-audit-hint" id="qualityAuditHint"></div>
         <article class="card quality-panel">
           <div class="form-grid">
             <label><span>搜尋題目</span><input id="qualitySearch" type="text" placeholder="P5-169 / cybersecurity / 詞性"></label>
-            <label><span>狀態</span><select id="qualityStatus"><option value="all" selected>全部題目</option><option value="active">啟用中</option><option value="disabled">已停用</option><option value="disputed">爭議答案</option><option value="review">待複查</option></select></label>
+            <label><span>狀態</span><select id="qualityStatus"><option value="all" selected>全部題目</option><option value="active">啟用中</option><option value="disabled">已停用</option><option value="disputed">爭議答案</option><option value="review">待複查</option><option value="audit">自動稽核警示</option></select></label>
             <label><span>來源 Part</span><select id="qualityPart"><option value="all" selected>全部 Part</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
             <label><span>排序</span><select id="qualitySort"><option value="accuracy" selected>低答對率優先</option><option value="attempts">作答次數優先</option><option value="id">題號 A-Z</option></select></label>
           </div>
@@ -489,6 +529,13 @@
     </div>
   </main>
 </div>
+<nav class="mobile-dock" aria-label="手機主要導覽">
+  <button class="active" data-mobile-nav="homeView"><span>⌂</span><small>總覽</small></button>
+  <button data-mobile-nav="setupView"><span>▶</span><small>練習</small></button>
+  <button data-mobile-nav="readingView"><span>▤</span><small>閱讀</small></button>
+  <button data-mobile-nav="wrongView"><span>✎</span><small>複習</small></button>
+  <button id="mobileMore"><span>☰</span><small>更多</small></button>
+</nav>
 <div class="toast" id="toast"></div>
 
 <script src="./question-bank.js"></script>
@@ -508,10 +555,12 @@
 <script src="./question-bank-v28.js"></script>
 <script src="./question-bank-v29.js"></script>
 <script src="./question-bank-v210.js"></script>
+<script src="./question-bank-v30.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/learning-command-center.js"></script>
 <script src="./modules/legal-practice-sources.js"></script>
+<script src="./modules/question-quality-audit.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

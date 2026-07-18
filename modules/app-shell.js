@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "2.10.0",
+  version: "3.0.0",
   release: {
-    title: "修正倒裝題，建立 900+ 否定與限制語專項",
-    summary: "本版修正 P5-073 的雙主詞答案錯誤，重新整理 8 題既有倒裝詳解，並新增 24 題原創進階題，完整涵蓋 be 動詞、助動詞、do-support、否定置首、限制語置首與條件倒裝。",
-    badges: ["v2.10.0 倒裝專練", "840 題", "新增 24 題", "修正 P5-073"]
+    title: "閱讀證據、題庫稽核與跨裝置介面一次到位",
+    summary: "新增 36 題進階文法與 24 題人工標註閱讀題；答題後可直接看證據句與選項陷阱。題庫後台加入結構稽核，介面同步重整手機、平板與桌面操作。",
+    badges: ["v3.0.0 Product UI", "900 題", "新增 60 題", "人工閱讀線索"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
@@ -15,6 +15,7 @@ window.TOEIC_APP_SHELL = {
     autoVocabView: "題庫單字庫",
     vocabReviewView: "單字複習",
     strategyView: "答題技巧專區",
+    readingView: "閱讀素養專區",
     historyView: "歷史成績",
     analyticsView: "弱點分析",
     storageView: "儲存中心",

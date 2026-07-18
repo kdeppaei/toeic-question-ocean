@@ -1,5 +1,6 @@
 const fs = require("fs");
 const vm = require("vm");
+const { auditBank } = require("../modules/question-quality-audit.js");
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);
@@ -40,6 +41,12 @@ if (!correctedInversion) {
   const correctChoice = correctedInversion.choices?.[correctedInversion.answer];
   if (correctChoice !== "was") errors.push(`P5-073: expected correct choice "was", received "${correctChoice}"`);
   if (!correctedInversion.explanation.includes("雙主詞")) errors.push("P5-073: explanation must identify the double-subject trap");
+}
+
+if (Array.isArray(bank)) {
+  const audit = auditBank(bank);
+  audit.errors.forEach((entry) => errors.push(`${entry.id}: ${entry.code} - ${entry.message}`));
+  audit.warnings.forEach((entry) => console.warn(`Warning ${entry.id}: ${entry.code} - ${entry.message}`));
 }
 
 if (errors.length) {

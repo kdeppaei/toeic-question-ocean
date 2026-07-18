@@ -3,6 +3,7 @@ const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
 const APP_SHELL = window.TOEIC_APP_SHELL || {};
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
+const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId:{}, issues:[], errors:[], warnings:[], checked:0 }) };
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -218,6 +219,16 @@ const STRATEGY_DECKS = [
   }
 ];
 
+const READING_LITERACY_SKILLS = [
+  { id:"all", label:"全部能力", description:"混合條件、流程、跨文件、數據、目的與立場判讀。" },
+  { id:"條件例外", label:"條件與例外", description:"追蹤 only、unless、however 與規則中的適用邊界。" },
+  { id:"流程順序", label:"流程與順序", description:"依 before、next、then、after 排出動作先後。" },
+  { id:"跨文件推論", label:"跨文件推論", description:"連接兩份文件中的時間、人物、限制與後續行動。" },
+  { id:"數據判讀", label:"數據判讀", description:"比較表格欄位，再用文字說明判斷數字背後的原因。" },
+  { id:"目的意圖", label:"目的與意圖", description:"辨識作者為何寫、希望讀者知道或採取什麼行動。" },
+  { id:"語氣立場", label:"語氣與立場", description:"區分支持、反對、保留與附帶條件的態度。" }
+];
+
 const state = {
   currentView: "homeView",
   session: [],
@@ -245,6 +256,7 @@ const state = {
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
   autoVocabLetter: "all",
+  readingSkill: "all",
   sessionStrategy: null,
   vocabQuiz: { questions: [], index: 0, answers: [] }
 };
@@ -255,6 +267,30 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+function renderPassageText(question, revealEvidence=false){
+  const passage=String(question?.passage||"");
+  const evidence=String(question?.evidence||"");
+  if(!revealEvidence||!evidence) return safe(passage);
+  const index=passage.indexOf(evidence);
+  if(index<0) return safe(passage);
+  return `${safe(passage.slice(0,index))}<mark class="evidence-mark">${safe(evidence)}</mark>${safe(passage.slice(index+evidence.length))}`;
+}
+function renderLiteracyFeedback(question, selected){
+  if(!(question?.tags||[]).includes("literacy-core")||!question.evidence) return "";
+  const selectedNote=Number.isInteger(selected)?question.choiceNotes?.[selected]:"未作答，因此沒有可診斷的選項。";
+  const choiceNotes=Array.isArray(question.choiceNotes)?question.choiceNotes:[];
+  return `<section class="literacy-feedback" aria-label="閱讀線索與選項診斷">
+    <div class="evidence-callout">
+      <span>線索定位 · ${safe(question.evidenceLocation||"人工標註")}</span>
+      <blockquote>${safe(question.evidence)}</blockquote>
+    </div>
+    <div class="choice-diagnosis">
+      <span>本次選項診斷</span>
+      <p>${safe(selectedNote||"請依據線索句重新比對選項。")}</p>
+    </div>
+    ${choiceNotes.length?`<details class="choice-notes"><summary>查看全部選項陷阱</summary>${choiceNotes.map((note,index)=>`<div><strong>${letter(index)}</strong><span>${safe(note)}</span></div>`).join("")}</details>`:""}
+  </section>`;
+}
 const memoryStore = {};
 function storageGet(k){
   try { return window.localStorage.getItem(k); }
@@ -983,11 +1019,43 @@ function startStrategyMix(){
   const list=[...map.values()];
   startSession(list,{count:Math.min(20,list.length),seconds:0,shuffle:true,instant:true,mode:"strategy",strategyTitle:"混合技巧專練"});
 }
+function readingLiteracyQuestions(skill="all"){
+  return getActiveBank().filter(q=>(q.tags||[]).includes("literacy-core")&&(skill==="all"||q.literacySkill===skill));
+}
+function renderReadingLiteracy(){
+  const all=readingLiteracyQuestions();
+  const selected=$("#readingSkillSelect")?.value||state.readingSkill||"all";
+  state.readingSkill=selected;
+  const filtered=readingLiteracyQuestions(selected);
+  const annotated=all.filter(q=>q.evidence&&q.evidenceLocation&&Array.isArray(q.choiceNotes)).length;
+  $("#literacyQuestionCount").textContent=all.length;
+  $("#literacySkillCount").textContent=READING_LITERACY_SKILLS.length-1;
+  $("#literacyAnnotatedCount").textContent=annotated;
+  $("#literacyCurrentCount").textContent=filtered.length;
+  $("#literacySkillGrid").innerHTML=READING_LITERACY_SKILLS.slice(1).map(skill=>{
+    const questions=readingLiteracyQuestions(skill.id);
+    const groups=new Set(questions.map(q=>q.groupId||q.id)).size;
+    const active=selected===skill.id;
+    return `<article class="literacy-skill-card ${active?"active":""}"${active?' aria-current="true"':""}>
+      <div class="literacy-skill-top"><span>${safe(skill.label)}</span><strong>${questions.length} 題</strong></div>
+      <p>${safe(skill.description)}</p>
+      <div class="literacy-skill-meta">${groups} 組文件 · 全數人工線索標註</div>
+      <button class="btn ${active?"primary":""}" data-literacy-skill="${safe(skill.id)}">${active?"開始目前能力":"練這項能力"}</button>
+    </article>`;
+  }).join("");
+  $$("[data-literacy-skill]").forEach(button=>button.onclick=()=>startReadingLiteracy(button.dataset.literacySkill));
+}
+function startReadingLiteracy(skill=state.readingSkill||"all"){
+  const list=readingLiteracyQuestions(skill);
+  const count=skill==="all"?Math.min(12,list.length):list.length;
+  startSession(list,{count,seconds:0,shuffle:true,instant:true,mode:"literacy"});
+}
 
 function encodeSession(session){
   return session.map(q=>({
     id:q.id,
     choices:q.choices,
+    choiceNotes:q.choiceNotes,
     answer:q.answer,
     _groupKey:q._groupKey||null,
     _groupIndex:q._groupIndex||0,
@@ -1002,6 +1070,7 @@ function decodeSnapshotSession(snapshot){
       if(!source) return null;
       const item=clone(source);
       if(Array.isArray(ref.choices)&&ref.choices.length) item.choices=ref.choices;
+      if(Array.isArray(ref.choiceNotes)&&ref.choiceNotes.length===ref.choices?.length) item.choiceNotes=ref.choiceNotes;
       if(Number.isInteger(ref.answer)) item.answer=ref.answer;
       item._groupKey=ref._groupKey||null;
       item._groupIndex=ref._groupIndex||0;
@@ -1045,9 +1114,10 @@ function showView(id){
   closeMobileNav();
   $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
   $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.nav===id));
+  $$("[data-mobile-nav]").forEach(b=>b.classList.toggle("active",b.dataset.mobileNav===id));
   const titles=APP_SHELL.viewTitles || {
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",strategyView:"答題技巧專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
@@ -1057,6 +1127,7 @@ function showView(id){
   if(id==="autoVocabView") renderAutoVocab();
   if(id==="vocabReviewView") renderVocabReviewSummary();
   if(id==="strategyView") renderStrategies();
+  if(id==="readingView") renderReadingLiteracy();
   if(id==="historyView") renderHistory();
   if(id==="analyticsView") renderAnalytics();
   if(id==="storageView") renderStorageCenter();
@@ -1117,7 +1188,7 @@ function renderResumeBanner(){
     return;
   }
   const answered=(snapshot.answers||[]).filter(Boolean).length;
-  const mode=snapshot.sessionMode==="mock"?"Part 2–7 模考":snapshot.sessionMode==="strategy"?"技巧專練":"自由練習";
+  const mode=snapshot.sessionMode==="mock"?"Part 2–7 模考":snapshot.sessionMode==="strategy"?"技巧專練":snapshot.sessionMode==="literacy"?"閱讀素養":"自由練習";
   const saved=new Date(snapshot.savedAt).toLocaleString("zh-TW");
   $("#resumeDescription").textContent=`${mode}｜已完成 ${answered}/${total} 題｜最後儲存：${saved}`;
   banner.classList.add("show");
@@ -1217,9 +1288,10 @@ function sessionFrom(list,count){
       item._groupIndex=index;
       item._groupSize=unit.questions.length;
       if(state.options.shuffle){
-        const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer}));
+        const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer,note:item.choiceNotes?.[i]}));
         const sp=shuffle(pairs);
         item.choices=sp.map(x=>x.text);
+        if(Array.isArray(item.choiceNotes)) item.choiceNotes=sp.map(x=>x.note);
         item.answer=sp.findIndex(x=>x.correct);
       }
       output.push(item);
@@ -1299,9 +1371,10 @@ function prepareUnits(units,shuffleChoices=true){
       item._groupIndex=index;
       item._groupSize=unit.questions.length;
       if(shuffleChoices){
-        const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer}));
+        const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer,note:item.choiceNotes?.[i]}));
         const mixed=shuffle(pairs);
         item.choices=mixed.map(x=>x.text);
+        if(Array.isArray(item.choiceNotes)) item.choiceNotes=mixed.map(x=>x.note);
         item.answer=mixed.findIndex(x=>x.correct);
       }
       output.push(item);
@@ -1534,7 +1607,7 @@ function renderQuestion(){
     const groupType=q.part==="3"?"conversation":q.part==="4"?"talk":q.part==="6"?"text":"passage";
     stimulus+=`<div class="group-banner">Questions ${groupStart+1}–${groupEnd+1} refer to the same ${groupType}。完成整個題組前不揭曉正解或內容解析。</div>`;
   }
-  if(q.passage) stimulus+=`<div class="passage">${safe(q.passage)}</div>`;
+  if(q.passage) stimulus+=`<div class="passage ${revealAnswer&&q.evidence?"has-evidence":""}">${renderPassageText(q,revealAnswer)}</div>`;
   if(q.audioText){
     const audioKey=q._groupKey||q.id;
     const used=state.audioPlays[audioKey]||0;
@@ -1571,6 +1644,7 @@ function renderQuestion(){
       ${q.translation?`<div class="translation-block"><b>題目中文翻譯：</b>${safe(q.translation)}</div>`:""}
       ${q.answerTranslation?`<div class="translation-block"><b>正確回應中文：</b>${safe(q.answerTranslation)}</div>`:""}
       <div style="margin-top:10px"><b>考點解析：</b>${safe(q.explanation)}</div>
+      ${renderLiteracyFeedback(q,existing.selected)}
       ${q.audioText?`<details class="listening-review"><summary>聽力複習：逐字稿與翻譯</summary><div class="review-grid"><div class="review-section"><b>ENGLISH TRANSCRIPT｜英文逐字稿</b><p>${safe(q.audioText)}</p></div>${(q.audioTranslation||q.translation)?`<div class="review-section"><b>TRADITIONAL CHINESE｜中文翻譯</b><p>${safe(q.audioTranslation||q.translation)}</p></div>`:""}${q.part==="2"?`<div><button class="btn" id="listenAnswerBtn">▶ 播放正確回應</button></div>`:""}</div></details>`:""}
     </div>`;
   }else if(answered && grouped && !groupComplete){
@@ -1918,7 +1992,7 @@ function finishSession(){
   results.filter(r=>!r.correct).forEach(r=>wrongIds.push(r.question.id));
   setWrongIds(wrongIds);
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
-  const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":"自由練習";
+  const mode=state.sessionMode==="mock"?"Part 2–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":state.sessionMode==="literacy"?"閱讀素養":"自由練習";
   const record={
     id:Date.now(),
     date:new Date().toISOString(),
@@ -2016,7 +2090,7 @@ function renderAnswerReview(results){
         <span class="badge gray">${safe(q.category)}</span>
       </div>
       <h3>${safe(q.prompt)}</h3>
-      ${q.passage?`<details class="answer-source"><summary>查看文章 / 題組原文</summary><div class="passage">${safe(q.passage)}</div></details>`:""}
+      ${q.passage?`<details class="answer-source" ${q.evidence?"open":""}><summary>查看文章 / 題組原文${q.evidence?"（已標示線索）":""}</summary><div class="passage ${q.evidence?"has-evidence":""}">${renderPassageText(q,!!q.evidence)}</div></details>`:""}
       ${q.audioText?`<details class="answer-source"><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div>${q.audioTranslation?`<p>${safe(q.audioTranslation)}</p>`:""}</details>`:""}
       <div class="answer-choice-list">${answerChoiceReview(result)}</div>
       <div class="answer-review-meta">
@@ -2025,6 +2099,7 @@ function renderAnswerReview(results){
       </div>
       <p class="answer-explanation"><strong>詳解：</strong>${safe(q.explanation)}</p>
       ${q.translation?`<p class="answer-translation"><strong>中文：</strong>${safe(q.translation)}</p>`:""}
+      ${renderLiteracyFeedback(q,result.selected)}
     </article>`;
   }).join("");
 }
@@ -2339,7 +2414,7 @@ function renderLegalSourceHub(){
     </article>
   `).join(""):'<div class="card empty">尚未收集合法來源。</div>';
 }
-function qualityQuestionRows(){
+function qualityQuestionRows(auditResult=QUESTION_AUDIT.auditBank(getBank())){
   const quality=getQuestionQuality();
   const performance=getPerformance();
   const query=($("#qualitySearch")?.value||"").trim().toLowerCase();
@@ -2349,7 +2424,7 @@ function qualityQuestionRows(){
   let rows=getBank().map(q=>{
     const qState=quality[q.id]||{};
     const stat=performance.questions[q.id]||{total:0,correct:0};
-    return {q,qState,stat,accuracy:stat.total?percent(stat):null};
+    return {q,qState,stat,accuracy:stat.total?percent(stat):null,audit:auditResult.byId[q.id]||[]};
   });
   if(part!=="all") rows=rows.filter(row=>row.q.part===part);
   if(query){
@@ -2360,6 +2435,7 @@ function qualityQuestionRows(){
   if(status==="disabled") rows=rows.filter(row=>row.qState.disabled);
   if(status==="disputed") rows=rows.filter(row=>row.qState.disputed);
   if(status==="review") rows=rows.filter(row=>row.qState.review);
+  if(status==="audit") rows=rows.filter(row=>row.audit.length);
   if(sort==="attempts") rows.sort((a,b)=>(b.stat.total||0)-(a.stat.total||0)||a.q.id.localeCompare(b.q.id,undefined,{numeric:true}));
   else if(sort==="id") rows.sort((a,b)=>a.q.id.localeCompare(b.q.id,undefined,{numeric:true}));
   else rows.sort((a,b)=>(a.accuracy??101)-(b.accuracy??101)||(b.stat.total||0)-(a.stat.total||0)||a.q.id.localeCompare(b.q.id,undefined,{numeric:true}));
@@ -2367,14 +2443,19 @@ function qualityQuestionRows(){
 }
 function renderQualityDashboard(){
   const quality=getQuestionQuality();
-  const rows=qualityQuestionRows();
   const all=getBank();
+  const auditResult=QUESTION_AUDIT.auditBank(all);
+  const rows=qualityQuestionRows(auditResult);
   const values=Object.values(quality);
   $("#qualityTotal").textContent=all.length;
   $("#qualityDisabled").textContent=values.filter(x=>x.disabled).length;
   $("#qualityDisputed").textContent=values.filter(x=>x.disputed).length;
   $("#qualityReview").textContent=values.filter(x=>x.review).length;
-  $("#qualityList").innerHTML=rows.length?rows.slice(0,80).map(({q,qState,stat,accuracy})=>{
+  $("#qualityAutoIssues").textContent=auditResult.issues.length;
+  $("#qualityAuditHint").textContent=auditResult.issues.length
+    ? `${auditResult.errors.length} 個錯誤、${auditResult.warnings.length} 個提醒；請人工確認後再修題。`
+    : `已檢查 ${auditResult.checked} 題，未發現可機械判定的結構問題。`;
+  $("#qualityList").innerHTML=rows.length?rows.slice(0,80).map(({q,qState,stat,accuracy,audit})=>{
     const accLabel=accuracy===null?"尚無紀錄":`${accuracy}%`;
     return `<article class="quality-item ${qState.disabled?"disabled":""}">
       <div class="quality-main">
@@ -2385,9 +2466,11 @@ function renderQualityDashboard(){
           ${qState.disabled?'<span class="badge gray">已停用</span>':""}
           ${qState.disputed?'<span class="badge">爭議答案</span>':""}
           ${qState.review?'<span class="badge">待複查</span>':""}
+          ${audit.length?`<span class="badge amber">自動稽核 ${audit.length}</span>`:""}
         </div>
         <h3>${safe(q.prompt)}</h3>
         <p>${safe(q.explanation)}</p>
+        ${audit.length?`<div class="audit-issues">${audit.map(entry=>`<div class="${entry.severity}"><strong>${entry.severity==="error"?"錯誤":"提醒"}</strong><span>${safe(entry.message)}</span></div>`).join("")}</div>`:""}
         <div class="quality-metrics">
           <span>答對率 <strong>${accLabel}</strong></span>
           <span>作答 <strong>${stat.total||0}</strong> 次</span>
@@ -2444,6 +2527,17 @@ function normalizeImportedQuestion(q){
   };
   const groupId=String(q.groupId??"").trim();
   if(groupId) item.groupId=groupId.slice(0,80);
+  const evidence=String(q.evidence??"").trim();
+  const evidenceLocation=String(q.evidenceLocation??"").trim();
+  const literacySkill=String(q.literacySkill??"").trim();
+  const answerAudit=String(q.answerAudit??"").trim();
+  if(evidence) item.evidence=evidence.slice(0,2500);
+  if(evidenceLocation) item.evidenceLocation=evidenceLocation.slice(0,160);
+  if(literacySkill) item.literacySkill=literacySkill.slice(0,80);
+  if(answerAudit) item.answerAudit=answerAudit.slice(0,500);
+  if(Array.isArray(q.choiceNotes)&&q.choiceNotes.length===choices.length){
+    item.choiceNotes=q.choiceNotes.map(note=>String(note??"").trim().slice(0,1000));
+  }
   return item;
 }
 function validQuestion(q){ return !!normalizeImportedQuestion(q); }
@@ -2458,14 +2552,17 @@ $("#themeToggle").onclick=()=>{
 };
 if(storageGet(KEYS.theme)==="dark") document.documentElement.dataset.theme="dark";
 $$("[data-nav]").forEach(b=>b.onclick=()=>showView(b.dataset.nav));
+$$("[data-mobile-nav]").forEach(b=>b.onclick=()=>showView(b.dataset.mobileNav));
 $$("[data-go-setup]").forEach(b=>b.onclick=()=>showView("setupView"));
 $("#mobileHome").onclick=openMobileNav;
+$("#mobileMore").onclick=openMobileNav;
 $("#mobileScrim").onclick=closeMobileNav;
 $("#partSelect").onchange=updateAvailable; $("#difficultySelect").onchange=updateAvailable;
 $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;
 $("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});
 $("#heroQuick").onclick=()=>startSession(getActiveBank(),{count:20,seconds:0});
+$("#heroLiteracy").onclick=()=>showView("readingView");
 $("#nextQuestion").onclick=nextQuestion;
 $("#prevQuestion").onclick=previousQuestion;
 $("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
@@ -2507,6 +2604,8 @@ $("#strategyPart").onchange=renderStrategies;
 $("#strategyType").onchange=renderStrategies;
 $("#strategySort").onchange=renderStrategies;
 $("#startStrategyMix").onclick=startStrategyMix;
+$("#readingSkillSelect").onchange=renderReadingLiteracy;
+$("#startLiteracyMix").onclick=()=>startReadingLiteracy($("#readingSkillSelect").value);
 $("#qualitySearch").addEventListener("input",renderQualityDashboard);
 $("#qualityStatus").onchange=renderQualityDashboard;
 $("#qualityPart").onchange=renderQualityDashboard;

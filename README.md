@@ -6,6 +6,17 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v3.0.0
+
+- Expanded the built-in bank from 840 to 900 questions.
+- Added 36 advanced Part 5 questions covering reduced clauses, mandative subjunctives, participle clauses, and parallel structures.
+- Added 24 Part 7 reading-literacy questions across six document sets. Every item includes a human-verified evidence sentence, evidence location, and notes for all answer choices.
+- Added a Reading Literacy center with six skill filters: conditions and exceptions, sequence, cross-document inference, data interpretation, purpose, and stance.
+- Practice feedback and final review now highlight the supporting sentence and diagnose the selected option for curated literacy questions.
+- Added a shared question-quality audit used by both the validation script and the in-app quality dashboard. It checks duplicate choices, duplicate Part 5 prompts, explicit answer/explanation conflicts, probable double subjects, and literacy metadata integrity.
+- Reworked the interface into a quieter product workspace with compact navigation, an adaptive tablet layout, a mobile bottom dock, larger touch targets, sticky mobile quiz actions, and evidence-focused feedback.
+- Kept the automation boundary explicit: only curated questions display evidence highlighting; unannotated legacy questions continue to use their authored explanations.
+
 ### v2.10.0
 
 - Corrected `P5-073`: the prompt already contains the subject `the building`, so the correct completion is `was`, producing `Not until the final inspection was the building open to the public`.
