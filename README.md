@@ -6,6 +6,16 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.8.0
+
+- Expanded the built-in bank from 620 to 700 questions with 80 original TOEIC-style simulation items.
+- Added Part 2 direct-response listening questions covering requests, time, location, reasons, suggestions, status, and confirmation traps.
+- Added Part 3 and Part 4 listening sets with workplace technology, facility, vendor, service, announcement, voicemail, and workshop contexts.
+- Added Part 5 grammar and vocabulary items focused on adverbs, connectors, verb patterns, tense, relative clauses, collocations, and formal business structures.
+- Added Part 6 e-mail, notice, HR, and event-invitation cloze sets, including sentence-insertion questions.
+- Added Part 7 single, double, and triple-passage reading sets with cross-document inference and detail questions.
+- All new items are original simulation content and include Chinese translations, explanations, tags, and source notes rather than copied real exam questions.
+
 ### v2.7.0
 
 - Practice sessions and the answer-strategy center now reveal grading, translations, explanations, and listening review immediately after each answered question.
