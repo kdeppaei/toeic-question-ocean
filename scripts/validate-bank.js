@@ -33,6 +33,15 @@ if (!Array.isArray(bank)) {
   });
 }
 
+const correctedInversion = Array.isArray(bank) ? bank.find((question) => question.id === "P5-073") : null;
+if (!correctedInversion) {
+  errors.push("P5-073: corrected inversion regression question is missing");
+} else {
+  const correctChoice = correctedInversion.choices?.[correctedInversion.answer];
+  if (correctChoice !== "was") errors.push(`P5-073: expected correct choice "was", received "${correctChoice}"`);
+  if (!correctedInversion.explanation.includes("雙主詞")) errors.push("P5-073: explanation must identify the double-subject trap");
+}
+
 if (errors.length) {
   console.error(errors.join("\n"));
   process.exit(1);

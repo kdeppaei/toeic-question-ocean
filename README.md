@@ -6,6 +6,14 @@ Local-first TOEIC practice site for Parts 2-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v2.10.0
+
+- Corrected `P5-073`: the prompt already contains the subject `the building`, so the correct completion is `was`, producing `Not until the final inspection was the building open to the public`.
+- Reworked all eight existing inversion-question explanations to show the normal word order, the inversion trigger, and whether the sentence moves `be`/an auxiliary or requires `do`/`does`/`did`.
+- Added 24 original advanced Part 5 inversion questions covering negative and restrictive fronting, `be` inversion, auxiliary inversion, do-support, `Hardly...when`, `No sooner...than`, emphatic inversion, and conditional inversion.
+- Added a dedicated answer-strategy deck for negative and restrictive fronting, including the double-subject trap highlighted by the corrected question.
+- Expanded the built-in bank from 816 to 840 questions.
+
 ### v2.9.0
 
 - Expanded the built-in bank from 700 to 816 questions with 116 original literacy-heavy TOEIC-style simulation items.

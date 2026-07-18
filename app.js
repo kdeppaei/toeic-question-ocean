@@ -97,6 +97,18 @@ const STRATEGY_DECKS = [
     match: q => q.part === "5" && (hasTag(q,"preposition","conjunction","transition","concession","because-of","despite","unless","during","within","according-to","addition","behalf","contrast") || hasCategory(q,"介系詞","連接詞","連接副詞","片語介系詞","讓步"))
   },
   {
+    id: "part5-inversion",
+    title: "否定／限制語置首倒裝",
+    parts: ["5"],
+    type: "grammar",
+    level: 3,
+    summary: "先還原正常語序，再判斷主句是 be 動詞、已有助動詞，還是一般動詞；這一步會直接決定倒裝形式。",
+    signal: "Never、Rarely、Seldom、Not until、Only after、Only when、Hardly、No sooner、Little、Under no circumstances 置於句首。",
+    steps: ["先找空格後是否已有主詞，避免補出雙主詞", "還原正常語序並找真正的主要動詞", "有 be／助動詞就搬到主詞前；一般動詞才補 do、does 或 did"],
+    trap: "看到過去語意就選 did 並不可靠。若原句是 was open，倒裝應為 was + 主詞 + open；空格後已有主詞時也不能再填 was it。",
+    match: q => q.part === "5" && (hasTag(q,"inversion","negative-fronting","restrictive-fronting","conditional-inversion") || hasCategory(q,"倒裝"))
+  },
+  {
     id: "part5-clause-pattern",
     title: "關係詞與從句缺口",
     parts: ["5"],
@@ -106,7 +118,7 @@ const STRATEGY_DECKS = [
     signal: "空格後是一小段從句，選項含 who、which、whose、where、whether、that。",
     steps: ["找空格前的先行詞或引導詞位置", "檢查從句中缺主詞、受詞、所有格或地點", "確認逗號與介系詞是否改變關係詞選擇"],
     trap: "where 不等於所有地點名詞都能選；從句若缺受詞，常需要 which / that。",
-    match: q => q.part === "5" && (hasTag(q,"relative-clause","noun-clause","whose","prep-relative","where","inversion","whether","so-that") || hasCategory(q,"關係代名詞","名詞子句","倒裝","子句"))
+    match: q => q.part === "5" && (hasTag(q,"relative-clause","noun-clause","whose","prep-relative","where","whether","so-that") || hasCategory(q,"關係代名詞","名詞子句","子句"))
   },
   {
     id: "part6-context-flow",

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 816 題，支援耐心閱讀型素養題、長文核心理解、單題即時詳解、專項即時聽力、模考 10 秒讀題、多益常考口音選擇、題目收藏與題目品質後台。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 840 題，支援耐心閱讀型素養題、進階倒裝專練、單題即時詳解、專項即時聽力、模考 10 秒讀題、多益常考口音選擇、題目收藏與題目品質後台。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -13,7 +13,7 @@
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.9.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v2.10.0</span></strong></div>
     </div>
     <nav class="nav">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -71,9 +71,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v2.9.0 素養閱讀</span><span class="badge gray">816 題</span><span class="badge gray">新增 116 題</span><span class="badge gray">Part 5/6/7 長文核心</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">新增耐心閱讀型素養題，強化長文核心理解</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">本版新增 116 題原創模擬題，主攻 Part 6 與 Part 7 的長文理解、條件例外、跨段落定位、雙篇／三篇比對與推論；另外加入長語境 Part 5，訓練在完整句意中判斷文法與字彙。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v2.10.0 倒裝專練</span><span class="badge gray">840 題</span><span class="badge gray">新增 24 題</span><span class="badge gray">修正 P5-073</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">修正倒裝題，建立 900+ 否定與限制語專項</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">本版修正 P5-073 的雙主詞答案錯誤，重新整理 8 題既有倒裝詳解，並新增 24 題原創進階題，完整涵蓋 be 動詞、助動詞、do-support、否定置首、限制語置首與條件倒裝。</p>
         </article>
 
         <div class="stats-grid">
@@ -507,6 +507,7 @@
 <script src="./question-bank-v27.js"></script>
 <script src="./question-bank-v28.js"></script>
 <script src="./question-bank-v29.js"></script>
+<script src="./question-bank-v210.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/learning-command-center.js"></script>
