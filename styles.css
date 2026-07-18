@@ -249,15 +249,15 @@
     }
     .part1-figure { margin:0 0 18px; }
     .part1-image-frame {
-      width:100%; height:clamp(300px,56vh,560px); display:grid; place-items:center;
+      width:100%; aspect-ratio:3 / 2; display:grid; place-items:center;
       overflow:hidden; border:1px solid var(--line); border-radius:8px; background:#17191d;
     }
-    .part1-image-frame img { width:100%; height:100%; object-fit:contain; display:block; }
+    .part1-image-frame img { width:100%; height:100%; object-fit:contain; object-position:center; display:block; }
     .part1-figure figcaption {
       margin-top:7px; color:var(--muted); font-size:11px; line-height:1.45; text-align:right;
     }
     .part1-figure figcaption a { color:inherit; }
-    .part1-figure.compact .part1-image-frame { height:min(360px,48vh); }
+    .part1-figure.compact { max-width:720px; }
     .audio-only-choice { min-height:58px; align-items:center; }
     .audio-only-choice > span:last-child { color:var(--muted); font-size:13px; font-weight:750; }
     .group-overview {
@@ -644,8 +644,6 @@
       .top-actions .btn { display:none; }
       .strategy-card-top { flex-direction:column; }
       .strategy-card-top .btn { width:100%; }
-      .part1-image-frame { height:360px; }
-      .part1-figure.compact .part1-image-frame { height:300px; }
       .strategy-review-head { align-items:stretch; flex-direction:column; }
       .strategy-review-head .group, .strategy-review-head .btn { width:100%; }
       .answer-review-meta { grid-template-columns:1fr; }

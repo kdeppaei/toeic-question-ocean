@@ -15,7 +15,7 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.1.0");
+  await page.goto("/?v=3.1.1");
   await expect(page.locator("#totalBank")).toHaveText("908");
 });
 
@@ -42,7 +42,7 @@ test("skip link, navigation, and module cards work from the keyboard", async ({ 
   await expect(page.locator("#viewTitle")).toBeFocused();
 });
 
-test("Part 1 practice renders a licensed image and announces immediate feedback", async ({ page }) => {
+test("Part 1 practice keeps image, displayed choices, and spoken order aligned", async ({ page }) => {
   await page.locator('[data-nav="setupView"]').click();
   await page.locator("#partSelect").selectOption("1");
   await page.locator("#countSelect").selectOption("5");
@@ -51,20 +51,52 @@ test("Part 1 practice renders a licensed image and announces immediate feedback"
   const image = page.locator(".part1-image-frame img");
   await expect(image).toBeVisible();
   expect(await image.evaluate((element) => element.naturalWidth)).toBeGreaterThan(0);
-  await expect(page.locator(".part1-figure figcaption a")).toHaveAttribute("href", /pexels\.com\/photo\//);
+  await expect(page.locator(".part1-figure figcaption")).toContainText(/Pexels|AI 生成情境圖/);
   await expect(page.locator("#quizProgressTrack")).toHaveAttribute("aria-valuetext", "第 1 題，共 5 題");
 
+  const displayedChoices = await page.locator(".choice > span:last-child").allTextContents();
   const firstChoice = page.locator('[data-choice="0"]');
   await firstChoice.click();
   await expect(page.locator(".feedback")).toBeVisible();
   await expect(page.locator(".feedback")).toBeFocused();
   await expect(firstChoice).toHaveAttribute("aria-pressed", "true");
+  const transcript = await page.locator(".listening-review .review-section p").first().textContent();
+  expect(transcript.trim()).toBe(displayedChoices.map((choice, index) =>
+    `${String.fromCharCode(65 + index)}. ${choice.trim()}`
+  ).join(" "));
 
   const secondChoice = page.locator('[data-choice="1"]');
   await secondChoice.click();
   await expect(secondChoice).toHaveAttribute("aria-pressed", "true");
   await expect(firstChoice).toHaveAttribute("aria-pressed", "false");
   await expectNoSeriousA11yViolations(page);
+});
+
+test("every Part 1 source image is landscape and large enough to judge", async ({ page }) => {
+  const imageMetrics = await page.evaluate(async () => {
+    const sources = [...new Set(window.BUILTIN_BANK
+      .filter((question) => String(question.part) === "1")
+      .map((question) => question.image))];
+    return Promise.all(sources.map((source) => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve({
+        source,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        ratio: image.naturalWidth / image.naturalHeight
+      });
+      image.onerror = () => reject(new Error(`Could not load ${source}`));
+      image.src = source;
+    })));
+  });
+
+  expect(imageMetrics).toHaveLength(8);
+  imageMetrics.forEach(({ source, width, height, ratio }) => {
+    expect(width, `${source} should be at least 1200px wide`).toBeGreaterThanOrEqual(1200);
+    expect(height, `${source} should be at least 700px high`).toBeGreaterThanOrEqual(700);
+    expect(ratio, `${source} should use a landscape composition`).toBeGreaterThanOrEqual(1.45);
+    expect(ratio, `${source} should not be excessively panoramic`).toBeLessThanOrEqual(1.8);
+  });
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {

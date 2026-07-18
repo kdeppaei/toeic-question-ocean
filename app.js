@@ -265,19 +265,24 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
+const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 function renderQuestionImage(question, context="practice"){
   const image=String(question?.image||"");
-  if(!/^assets\/part1\/[a-z0-9-]+\.jpg$/i.test(image)) return "";
+  if(!/^assets\/part1\/[a-z0-9-]+\.(?:jpg|png|webp)$/i.test(image)) return "";
+  const isGenerated=question.imageOrigin==="ai-generated";
   const credit=String(question.imageCredit||"Pexels contributor");
   const source=String(question.imageSource||"");
   const sourceLink=/^https:\/\/www\.pexels\.com\/photo\//i.test(source)
     ? `<a href="${safe(source)}" target="_blank" rel="noopener noreferrer">${safe(credit)} / Pexels</a>`
     : `${safe(credit)} / Pexels`;
+  const provenance=isGenerated
+    ? `AI 生成情境圖 · ${safe(question.imageLicense||"本專案原創模擬素材")}`
+    : `Photo: ${sourceLink} · ${safe(question.imageLicense||"Pexels License")}`;
   return `<figure class="part1-figure ${context==="compact"?"compact":""}">
     <div class="part1-image-frame"><img src="${safe(image)}" alt="${safe(question.imageAlt||"Part 1 question photograph.")}" ${context==="practice"?'loading="eager"':'loading="lazy"'}></div>
-    <figcaption>Photo: ${sourceLink} · ${safe(question.imageLicense||"Pexels License")}</figcaption>
+    <figcaption>${provenance}</figcaption>
   </figure>`;
 }
 function renderPassageText(question, revealEvidence=false){
@@ -1266,6 +1271,21 @@ function updateAvailable(){
   list.forEach(q=>counts[`Part ${q.part}`]=(counts[`Part ${q.part}`]||0)+1);
   $("#filterBreakdown").innerHTML=Object.entries(counts).map(([k,v])=>`<div class="mini-item"><strong>${k}</strong><span style="float:right">${v} 題</span></div>`).join("")||'<div class="empty">沒有符合條件的題目</div>';
 }
+function prepareSessionQuestion(source,unit,index,shuffleChoices){
+  const item=clone(source);
+  item._groupKey=unit.questions.length>1?unit.key:null;
+  item._groupIndex=index;
+  item._groupSize=unit.questions.length;
+  if(shuffleChoices){
+    const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer,note:item.choiceNotes?.[i]}));
+    const mixed=shuffle(pairs);
+    item.choices=mixed.map(x=>x.text);
+    if(Array.isArray(item.choiceNotes)) item.choiceNotes=mixed.map(x=>x.note);
+    item.answer=mixed.findIndex(x=>x.correct);
+  }
+  if(item.part==="1") item.audioText=buildPart1AudioText(item.choices);
+  return item;
+}
 function sessionFrom(list,count){
   const groupMap=new Map();
   const units=[];
@@ -1310,18 +1330,7 @@ function sessionFrom(list,count){
   const output=[];
   selected.forEach(unit=>{
     unit.questions.forEach((source,index)=>{
-      const item=clone(source);
-      item._groupKey=unit.questions.length>1?unit.key:null;
-      item._groupIndex=index;
-      item._groupSize=unit.questions.length;
-      if(state.options.shuffle){
-        const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer,note:item.choiceNotes?.[i]}));
-        const sp=shuffle(pairs);
-        item.choices=sp.map(x=>x.text);
-        if(Array.isArray(item.choiceNotes)) item.choiceNotes=sp.map(x=>x.note);
-        item.answer=sp.findIndex(x=>x.correct);
-      }
-      output.push(item);
+      output.push(prepareSessionQuestion(source,unit,index,state.options.shuffle));
     });
   });
   return output;
@@ -1393,18 +1402,7 @@ function prepareUnits(units,shuffleChoices=true){
   const output=[];
   units.forEach(unit=>{
     unit.questions.forEach((source,index)=>{
-      const item=clone(source);
-      item._groupKey=unit.questions.length>1?unit.key:null;
-      item._groupIndex=index;
-      item._groupSize=unit.questions.length;
-      if(shuffleChoices){
-        const pairs=item.choices.map((text,i)=>({text,correct:i===item.answer,note:item.choiceNotes?.[i]}));
-        const mixed=shuffle(pairs);
-        item.choices=mixed.map(x=>x.text);
-        if(Array.isArray(item.choiceNotes)) item.choiceNotes=mixed.map(x=>x.note);
-        item.answer=mixed.findIndex(x=>x.correct);
-      }
-      output.push(item);
+      output.push(prepareSessionQuestion(source,unit,index,shuffleChoices));
     });
   });
   return output;
@@ -2557,7 +2555,7 @@ function normalizeImportedQuestion(q){
   const explanation=String(q.explanation??"").trim();
   if(!prompt||!explanation||prompt.length>2500||explanation.length>2500) return null;
   const image=String(q.image??"").trim();
-  if(part==="1"&&!/^assets\/part1\/[a-z0-9-]+\.jpg$/i.test(image)) return null;
+  if(part==="1"&&!/^assets\/part1\/[a-z0-9-]+\.(?:jpg|png|webp)$/i.test(image)) return null;
   const item={
     id,
     part,
@@ -2581,7 +2579,10 @@ function normalizeImportedQuestion(q){
     item.imageSource=String(q.imageSource??"").trim().slice(0,500);
     item.imageLicense=String(q.imageLicense??"").trim().slice(0,120);
     item.imageLicenseUrl=String(q.imageLicenseUrl??"").trim().slice(0,500);
+    item.imageOrigin=String(q.imageOrigin??"").trim().slice(0,80);
+    item.imageGenerator=String(q.imageGenerator??"").trim().slice(0,120);
   }
+  if(part==="1") item.audioText=buildPart1AudioText(choices);
   const groupId=String(q.groupId??"").trim();
   if(groupId) item.groupId=groupId.slice(0,80);
   const evidence=String(q.evidence??"").trim();

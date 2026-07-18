@@ -41,11 +41,18 @@ if (!Array.isArray(bank)) {
     if (String(question.part) === "1") {
       const image = String(question.image || "");
       const imagePath = path.resolve(root, image);
-      if (!/^assets\/part1\/[a-z0-9-]+\.jpg$/i.test(image)) errors.push(`${label}: Part 1 image must use a safe local JPG path`);
-      if (!imagePath.startsWith(path.resolve(root, "assets", "part1")) || !fs.existsSync(imagePath)) errors.push(`${label}: Part 1 image file is missing`);
-      if (!/^https:\/\/www\.pexels\.com\/photo\//i.test(String(question.imageSource || ""))) errors.push(`${label}: Part 1 image source must be a Pexels photo page`);
-      if (question.imageLicense !== "Pexels License" || question.imageLicenseUrl !== "https://www.pexels.com/legal-pages/license/") errors.push(`${label}: Part 1 license metadata is incomplete`);
-      if (!question.choices.every((choice, choiceIndex) => String(question.audioText || "").includes(`${String.fromCharCode(65 + choiceIndex)}. ${choice}`))) errors.push(`${label}: Part 1 audio must include every lettered choice`);
+      const part1Root = path.resolve(root, "assets", "part1");
+      if (!/^assets\/part1\/[a-z0-9-]+\.(?:jpg|png|webp)$/i.test(image)) errors.push(`${label}: Part 1 image must use a safe local image path`);
+      if (!imagePath.startsWith(`${part1Root}${path.sep}`)) errors.push(`${label}: Part 1 image must stay inside assets/part1`);
+      if (!fs.existsSync(imagePath)) errors.push(`${label}: Part 1 image file is missing`);
+      if (question.imageOrigin === "ai-generated") {
+        if (question.imageGenerator !== "OpenAI" || question.imageLicense !== "本專案原創模擬素材") errors.push(`${label}: AI image provenance metadata is incomplete`);
+      } else {
+        if (!/^https:\/\/www\.pexels\.com\/photo\//i.test(String(question.imageSource || ""))) errors.push(`${label}: Part 1 image source must be a Pexels photo page`);
+        if (question.imageLicense !== "Pexels License" || question.imageLicenseUrl !== "https://www.pexels.com/legal-pages/license/") errors.push(`${label}: Part 1 license metadata is incomplete`);
+      }
+      const expectedAudio = question.choices.map((choice, choiceIndex) => `${String.fromCharCode(65 + choiceIndex)}. ${choice}`).join(" ");
+      if (String(question.audioText || "").trim() !== expectedAudio) errors.push(`${label}: Part 1 audio order must exactly match the displayed A-D choices`);
     }
   });
 }

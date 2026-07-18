@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.1.0",
+  version: "3.1.1",
   release: {
-    title: "圖片描述、閱讀證據與可測試介面",
-    summary: "新增 8 題合法授權 Part 1 圖片題，並人工補標 44 題既有 Part 7；四種 viewport 視覺回歸與鍵盤、ARIA 稽核同步加入發布流程。",
-    badges: ["v3.1.0 Quality", "908 題", "Part 1–7", "68 題人工線索"]
+    title: "圖片題排序與判讀品質修正",
+    summary: "修正 Part 1 隨機重排後語音順序不一致，替換三張直式或近距離照片，並以寬幅、完整入鏡與自動比例稽核降低判讀歧義。",
+    badges: ["v3.1.1 Fix", "908 題", "Part 1 圖片稽核", "跨裝置無裁切"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

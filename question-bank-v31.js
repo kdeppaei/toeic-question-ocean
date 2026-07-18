@@ -1,12 +1,13 @@
 (() => {
-  const sourceNote = "Original Part 1 simulation item written for a locally stored Pexels-licensed photograph.";
+  const pexelsSourceNote = "Original Part 1 simulation item written for a locally stored Pexels-licensed photograph.";
+  const generatedSourceNote = "Original Part 1 simulation item written for an AI-generated workplace image created for this project.";
   const items = [
     {
       id: "P1-001",
-      image: "assets/part1/meeting.jpg",
+      image: "assets/part1/meeting-ai-v2.jpg",
       imageAlt: "Part 1 question photograph.",
-      imageCredit: "Ketut Subiyanto",
-      imageSource: "https://www.pexels.com/photo/people-at-a-meeting-in-the-office-4623489/",
+      imageOrigin: "ai-generated",
+      imageGenerator: "OpenAI",
       choices: [
         "A woman is writing on a whiteboard.",
         "Several people are gathered around a conference table.",
@@ -71,10 +72,10 @@
     },
     {
       id: "P1-005",
-      image: "assets/part1/restaurant.jpg",
+      image: "assets/part1/restaurant-ai-v2.jpg",
       imageAlt: "Part 1 question photograph.",
-      imageCredit: "Marcus Queiroga Silva",
-      imageSource: "https://www.pexels.com/photo/waiter-standing-by-table-in-restaurant-19595138/",
+      imageOrigin: "ai-generated",
+      imageGenerator: "OpenAI",
       choices: [
         "The dining room is being swept.",
         "A server is carrying a tray of food.",
@@ -88,19 +89,19 @@
     },
     {
       id: "P1-006",
-      image: "assets/part1/printer.jpg",
+      image: "assets/part1/printer-ai-v2.jpg",
       imageAlt: "Part 1 question photograph.",
-      imageCredit: "cottonbro studio",
-      imageSource: "https://www.pexels.com/photo/man-using-a-printer-3201783/",
+      imageOrigin: "ai-generated",
+      imageGenerator: "OpenAI",
       choices: [
-        "A man is looking at an office printer.",
+        "A man is operating an office printer.",
         "A man is carrying a stack of folders.",
         "The printer is being moved through a doorway.",
         "Some documents are being posted on a wall."
       ],
       answer: 0,
-      explanation: "男子站在影印機／印表機旁，低頭查看機器；他沒有搬文件或移動機器。",
-      answerTranslation: "一名男子正查看辦公室印表機。",
+      explanation: "男子站在完整入鏡的辦公室影印機旁，手指正操作控制面板；他沒有搬文件或移動機器。",
+      answerTranslation: "一名男子正在操作辦公室印表機。",
       difficulty: "400"
     },
     {
@@ -139,18 +140,21 @@
     }
   ];
 
-  window.BUILTIN_BANK.push(...items.map((item) => ({
-    ...item,
-    part: "1",
-    category: "圖片描述",
-    prompt: "Look at the picture and select the sentence that best describes it.",
-    translation: "請看圖片，選出最符合畫面的敘述。",
-    passage: "",
-    audioText: item.choices.map((choice, index) => `${String.fromCharCode(65 + index)}. ${choice}`).join(" "),
-    audioTranslation: item.answerTranslation,
-    imageLicense: "Pexels License",
-    imageLicenseUrl: "https://www.pexels.com/legal-pages/license/",
-    tags: ["part1", "photo-description", "listening", "pexels-license"],
-    sourceNote
-  })));
+  window.BUILTIN_BANK.push(...items.map((item) => {
+    const isGenerated = item.imageOrigin === "ai-generated";
+    return {
+      ...item,
+      part: "1",
+      category: "圖片描述",
+      prompt: "Look at the picture and select the sentence that best describes it.",
+      translation: "請看圖片，選出最符合畫面的敘述。",
+      passage: "",
+      audioText: item.choices.map((choice, index) => `${String.fromCharCode(65 + index)}. ${choice}`).join(" "),
+      audioTranslation: item.answerTranslation,
+      imageLicense: isGenerated ? "本專案原創模擬素材" : "Pexels License",
+      imageLicenseUrl: isGenerated ? "" : "https://www.pexels.com/legal-pages/license/",
+      tags: ["part1", "photo-description", "listening", isGenerated ? "ai-generated" : "pexels-license"],
+      sourceNote: isGenerated ? generatedSourceNote : pexelsSourceNote
+    };
+  }));
 })();

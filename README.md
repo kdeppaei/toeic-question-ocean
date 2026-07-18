@@ -6,6 +6,13 @@ Local-first TOEIC practice site for Parts 1-7. The app runs as a static website 
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
 
+### v3.1.1
+
+- Fixed Part 1 choice shuffling so the spoken A-D sequence is rebuilt from the same reordered choices shown on screen.
+- Replaced three portrait or close-range photographs with selectively generated 3:2 workplace scenes for meetings, restaurant service, and printer operation.
+- Standardized Part 1 presentation on a responsive 3:2 frame with `object-fit: contain`, keeping the complete image visible on phones, tablets, and desktops.
+- Added strict provenance checks, exact audio-order validation, and browser tests that reject portrait, undersized, missing, or excessively panoramic Part 1 assets.
+
 ### v3.1.0
 
 - Expanded the built-in bank from 900 to 908 questions with eight original Part 1 image-description items.
