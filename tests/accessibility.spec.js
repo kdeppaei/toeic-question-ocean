@@ -15,7 +15,7 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.4.0");
+  await page.goto("/?v=3.5.0");
   await expect(page.locator("#totalBank")).toHaveText("925");
 });
 
@@ -184,4 +184,27 @@ test("home and setup views have no serious automated accessibility violations", 
   await expectNoSeriousA11yViolations(page);
   await page.locator('[data-nav="setupView"]').click();
   await expectNoSeriousA11yViolations(page);
+});
+
+test("vocabulary entries require Chinese, KK, and part of speech", async ({ page }) => {
+  const lexiconAudit = await page.evaluate(() => {
+    const entries = Object.entries(window.TOEIC_VOCAB_LEXICON || {});
+    return {
+      total: entries.length,
+      incomplete: entries
+        .filter(([, entry]) => !entry?.zh || !entry?.kk || !entry?.pos)
+        .map(([word]) => word)
+    };
+  });
+  expect(lexiconAudit.total).toBe(388);
+  expect(lexiconAudit.incomplete).toEqual([]);
+
+  await page.locator('[data-nav="autoVocabView"]').click();
+  await expect(page.locator("#autoVocabKnown")).toHaveText("384");
+  await page.locator("#autoVocabSearch").fill("team");
+  const card = page.locator("#autoVocabList .word-card").first();
+  await expect(card.locator("h3")).toContainText("team");
+  await expect(card.locator("h3 small")).toHaveText("/tim/");
+  await expect(card).toContainText("團隊");
+  await expect(card).toContainText("The design team is preparing a revised proposal.");
 });

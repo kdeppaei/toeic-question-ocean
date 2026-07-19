@@ -616,9 +616,19 @@ function normalizeAutoWord(raw){
     .replace(/[^a-z-]/g,"")
     .replace(/^-+|-+$/g,"");
 }
+function isCompleteAutoVocabInfo(info){
+  return !!(info?.pos && info?.kk && info?.zh);
+}
+const AUTO_VOCAB_IRREGULAR_KEYS={
+  held:"hold",
+  sent:"send",
+  women:"woman"
+};
 function autoLexiconKey(word){
   const direct=TOEIC_VOCAB_LEXICON[word]?word:null;
   if(direct) return direct;
+  const irregular=AUTO_VOCAB_IRREGULAR_KEYS[word];
+  if(irregular && TOEIC_VOCAB_LEXICON[irregular]) return irregular;
   const candidates=[];
   if(word.endsWith("ies")) candidates.push(`${word.slice(0,-3)}y`);
   if(word.endsWith("ves")) candidates.push(`${word.slice(0,-3)}f`);
@@ -674,7 +684,7 @@ function buildAutoVocabEntries(){
         parts:new Set(),
         questionIds:new Set(),
         example:"",
-        known:!!info,
+        known:isCompleteAutoVocabInfo(info),
         pos:info?.pos || "",
         kk:info?.kk || "",
         zh:info?.zh || "",
@@ -705,7 +715,7 @@ function autoVocabFilteredEntries(){
   if(part!=="all") entries=entries.filter(x=>x.parts.includes(part));
   if(query){
     entries=entries.filter(x=>[
-      x.word,x.zh,x.kk,x.pos,x.example,...x.questionIds
+      x.word,x.zh,x.kk,x.pos
     ].some(value=>String(value||"").toLowerCase().includes(query)));
   }
   if(state.autoVocabLetter && state.autoVocabLetter!=="all") entries=entries.filter(x=>x.letter===state.autoVocabLetter);
@@ -738,7 +748,7 @@ function renderAutoVocab(){
   const letterBase=all.filter(x=>
     (status==="all" || (status==="known" ? x.known : !x.known)) &&
     (part==="all" || x.parts.includes(part)) &&
-    (!query || [x.word,x.zh,x.kk,x.pos,x.example,...x.questionIds].some(value=>String(value||"").toLowerCase().includes(query)))
+    (!query || [x.word,x.zh,x.kk,x.pos].some(value=>String(value||"").toLowerCase().includes(query)))
   );
   const letterCounts=new Map();
   letterBase.forEach(x=>letterCounts.set(x.letter,(letterCounts.get(x.letter)||0)+1));
