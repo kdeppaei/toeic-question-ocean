@@ -249,15 +249,45 @@
     }
     .part1-figure { margin:0 0 18px; }
     .part1-image-frame {
-      width:100%; aspect-ratio:3 / 2; display:grid; place-items:center;
+      position:relative; width:100%; aspect-ratio:3 / 2; display:grid; place-items:center;
       overflow:hidden; border:1px solid var(--line); border-radius:8px; background:#17191d;
     }
     .part1-image-frame img { width:100%; height:100%; object-fit:contain; object-position:center; display:block; }
+    .part1-zoom {
+      position:absolute; top:10px; right:10px; width:42px; height:42px;
+      display:grid; place-items:center; border:1px solid rgba(255,255,255,.72);
+      border-radius:8px; background:rgba(18,24,36,.82); color:#fff;
+      font-size:21px; line-height:1; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.2);
+    }
+    .part1-zoom:hover { background:rgba(18,24,36,.96); }
     .part1-figure figcaption {
       margin-top:7px; color:var(--muted); font-size:11px; line-height:1.45; text-align:right;
     }
     .part1-figure figcaption a { color:inherit; }
     .part1-figure.compact { max-width:720px; }
+    .part1-image-dialog {
+      width:min(1120px,calc(100vw - 24px)); max-width:none; padding:0;
+      border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink);
+      box-shadow:0 24px 70px rgba(9,17,31,.32);
+    }
+    .part1-image-dialog::backdrop { background:rgba(9,17,31,.78); }
+    .part1-image-dialog-head {
+      min-height:58px; padding:8px 10px 8px 16px; display:flex; align-items:center;
+      justify-content:space-between; gap:12px; border-bottom:1px solid var(--line);
+    }
+    .part1-image-dialog-head h2 { margin:0; font-size:17px; }
+    .part1-image-dialog-actions { display:flex; gap:8px; }
+    .part1-image-preview-stage {
+      max-height:calc(100vh - 86px); overflow:auto; display:grid; place-items:center;
+      background:#17191d; overscroll-behavior:contain;
+    }
+    .part1-image-preview {
+      display:block; width:100%; max-height:calc(100vh - 86px); object-fit:contain;
+    }
+    .part1-image-preview-stage.is-zoomed { display:block; }
+    .part1-image-preview-stage.is-zoomed .part1-image-preview {
+      width:200%; max-width:none; max-height:none;
+    }
     .audio-only-choice { min-height:58px; align-items:center; }
     .audio-only-choice > span:last-child { color:var(--muted); font-size:13px; font-weight:750; }
     .group-overview {

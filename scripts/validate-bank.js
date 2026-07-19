@@ -57,9 +57,9 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 908) errors.push(`Expected 908 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 912) errors.push(`Expected 912 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
-if (part1.length !== 8) errors.push(`Expected 8 Part 1 questions, received ${part1.length}`);
+if (part1.length !== 12) errors.push(`Expected 12 Part 1 questions, received ${part1.length}`);
 if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v3.1 annotations, applied ${sandbox.window.TOEIC_V31_ANNOTATION_COUNT}`);
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))

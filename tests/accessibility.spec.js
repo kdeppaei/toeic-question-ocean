@@ -15,8 +15,8 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.1.1");
-  await expect(page.locator("#totalBank")).toHaveText("908");
+  await page.goto("/?v=3.2.0");
+  await expect(page.locator("#totalBank")).toHaveText("912");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -54,6 +54,22 @@ test("Part 1 practice keeps image, displayed choices, and spoken order aligned",
   await expect(page.locator(".part1-figure figcaption")).toContainText(/Pexels|AI 生成情境圖/);
   await expect(page.locator("#quizProgressTrack")).toHaveAttribute("aria-valuetext", "第 1 題，共 5 題");
 
+  const imageSource = await image.getAttribute("src");
+  const zoomButton = page.locator("[data-preview-image]");
+  await zoomButton.click();
+  await expect(page.locator("#part1ImageDialog")).toBeVisible();
+  await expect(page.locator("#part1ImagePreview")).toHaveAttribute("src", imageSource);
+  await page.locator("#togglePart1ImageZoom").click();
+  await expect(page.locator("#part1ImagePreviewStage")).toHaveClass(/is-zoomed/);
+  const zoomMetrics = await page.locator("#part1ImagePreviewStage").evaluate((stage) => ({
+    clientWidth: stage.clientWidth,
+    scrollWidth: stage.scrollWidth
+  }));
+  expect(zoomMetrics.scrollWidth).toBeGreaterThan(zoomMetrics.clientWidth);
+  await page.locator("#closePart1ImageDialog").click();
+  await expect(page.locator("#part1ImageDialog")).not.toBeVisible();
+  await expect(zoomButton).toBeFocused();
+
   const displayedChoices = await page.locator(".choice > span:last-child").allTextContents();
   const firstChoice = page.locator('[data-choice="0"]');
   await firstChoice.click();
@@ -90,7 +106,7 @@ test("every Part 1 source image is landscape and large enough to judge", async (
     })));
   });
 
-  expect(imageMetrics).toHaveLength(8);
+  expect(imageMetrics).toHaveLength(12);
   imageMetrics.forEach(({ source, width, height, ratio }) => {
     expect(width, `${source} should be at least 1200px wide`).toBeGreaterThanOrEqual(1200);
     expect(height, `${source} should be at least 700px high`).toBeGreaterThanOrEqual(700);

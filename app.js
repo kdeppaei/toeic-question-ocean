@@ -281,9 +281,38 @@ function renderQuestionImage(question, context="practice"){
     ? `AI 生成情境圖 · ${safe(question.imageLicense||"本專案原創模擬素材")}`
     : `Photo: ${sourceLink} · ${safe(question.imageLicense||"Pexels License")}`;
   return `<figure class="part1-figure ${context==="compact"?"compact":""}">
-    <div class="part1-image-frame"><img src="${safe(image)}" alt="${safe(question.imageAlt||"Part 1 question photograph.")}" ${context==="practice"?'loading="eager"':'loading="lazy"'}></div>
+    <div class="part1-image-frame">
+      <img src="${safe(image)}" alt="${safe(question.imageAlt||"Part 1 question photograph.")}" ${context==="practice"?'loading="eager"':'loading="lazy"'}>
+      <button class="part1-zoom" type="button" data-preview-image="${safe(image)}" data-preview-alt="${safe(question.imageAlt||"Part 1 question photograph.")}" aria-label="放大圖片" title="放大圖片">⛶</button>
+    </div>
     <figcaption>${provenance}</figcaption>
   </figure>`;
+}
+let part1ImageReturnFocus=null;
+function setPart1ImageZoom(zoomed){
+  const stage=$("#part1ImagePreviewStage");
+  const button=$("#togglePart1ImageZoom");
+  if(!stage||!button) return;
+  stage.classList.toggle("is-zoomed",zoomed);
+  button.textContent=zoomed?"−":"＋";
+  button.setAttribute("aria-label",zoomed?"縮小圖片內容":"放大圖片內容");
+  button.title=zoomed?"縮小圖片":"放大圖片";
+  if(!zoomed) stage.scrollTo({top:0,left:0});
+}
+function openPart1ImagePreview(trigger){
+  const dialog=$("#part1ImageDialog");
+  const image=$("#part1ImagePreview");
+  if(!dialog||!image) return;
+  part1ImageReturnFocus=trigger;
+  image.src=trigger.dataset.previewImage;
+  image.alt=trigger.dataset.previewAlt||"Part 1 question photograph.";
+  setPart1ImageZoom(false);
+  dialog.showModal();
+  $("#closePart1ImageDialog")?.focus({preventScroll:true});
+}
+function closePart1ImagePreview(){
+  const dialog=$("#part1ImageDialog");
+  if(dialog?.open) dialog.close();
 }
 function renderPassageText(question, revealEvidence=false){
   const passage=String(question?.passage||"");
@@ -2615,6 +2644,23 @@ $$("[data-go-setup]").forEach(b=>b.onclick=()=>showViewAndFocus("setupView"));
 $("#mobileHome").onclick=openMobileNav;
 $("#mobileMore").onclick=openMobileNav;
 $("#mobileScrim").onclick=closeMobileNav;
+document.addEventListener("click",event=>{
+  const trigger=event.target.closest("[data-preview-image]");
+  if(trigger) openPart1ImagePreview(trigger);
+});
+$("#closePart1ImageDialog").onclick=closePart1ImagePreview;
+$("#togglePart1ImageZoom").onclick=()=>{
+  setPart1ImageZoom(!$("#part1ImagePreviewStage").classList.contains("is-zoomed"));
+};
+$("#part1ImageDialog").addEventListener("click",event=>{
+  if(event.target===$("#part1ImageDialog")) closePart1ImagePreview();
+});
+$("#part1ImageDialog").addEventListener("close",()=>{
+  setPart1ImageZoom(false);
+  $("#part1ImagePreview").removeAttribute("src");
+  part1ImageReturnFocus?.focus({preventScroll:true});
+  part1ImageReturnFocus=null;
+});
 $("#partSelect").onchange=updateAvailable; $("#difficultySelect").onchange=updateAvailable;
 $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;

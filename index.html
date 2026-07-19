@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 908 題與 Part 1–7 完整題型，支援閱讀素養線索定位、圖片描述、進階文法、跨裝置作答、聽力口音、題目收藏與題目品質稽核。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海練習網站，內建 912 題與 Part 1–7 完整題型，支援閱讀素養線索定位、圖片描述、進階文法、跨裝置作答、聽力口音、題目收藏與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.1.1</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.2.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -74,9 +74,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v3.1.1 Fix</span><span class="badge gray">908 題</span><span class="badge gray">Part 1 圖片稽核</span><span class="badge gray">跨裝置無裁切</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">圖片題排序與判讀品質修正</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">修正 Part 1 隨機重排後語音順序不一致，替換三張直式或近距離照片，並以寬幅、完整入鏡與自動比例稽核降低判讀歧義。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v3.2.0</span><span class="badge gray">912 題</span><span class="badge gray">12 題 Part 1</span><span class="badge gray">圖片放大</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">圖片判讀擴充</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增接待、太陽能、物流掃碼與室內植栽圖片題，並支援跨裝置放大檢視。</p>
         </article>
 
         <div class="stats-grid">
@@ -538,6 +538,18 @@
   <button data-mobile-nav="wrongView"><span>✎</span><small>複習</small></button>
   <button id="mobileMore"><span>☰</span><small>更多</small></button>
 </nav>
+<dialog class="part1-image-dialog" id="part1ImageDialog" aria-labelledby="part1ImageDialogTitle">
+  <div class="part1-image-dialog-head">
+    <h2 id="part1ImageDialogTitle">圖片檢視</h2>
+    <div class="part1-image-dialog-actions">
+      <button class="icon-btn" id="togglePart1ImageZoom" type="button" aria-label="放大圖片內容" title="放大圖片">＋</button>
+      <button class="icon-btn" id="closePart1ImageDialog" type="button" aria-label="關閉圖片檢視" title="關閉">×</button>
+    </div>
+  </div>
+  <div class="part1-image-preview-stage" id="part1ImagePreviewStage">
+    <img class="part1-image-preview" id="part1ImagePreview" alt="">
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="./question-bank.js"></script>
@@ -559,6 +571,7 @@
 <script src="./question-bank-v210.js"></script>
 <script src="./question-bank-v30.js"></script>
 <script src="./question-bank-v31.js"></script>
+<script src="./question-bank-v32.js"></script>
 <script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./modules/app-shell.js"></script>
