@@ -15,7 +15,7 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.3.0");
+  await page.goto("/?v=3.3.1");
   await expect(page.locator("#totalBank")).toHaveText("918");
 });
 
@@ -115,7 +115,7 @@ test("every Part 1 source image is landscape and large enough to judge", async (
   });
 });
 
-test("question audio pauses 1.5 seconds after announcing the question number", async ({ page }) => {
+test("Part 1 audio pauses 1.5 seconds between each choice letter and statement", async ({ page }) => {
   await page.evaluate(() => {
     window.__speechLog = [];
     window.SpeechSynthesisUtterance = class {
@@ -142,18 +142,23 @@ test("question audio pauses 1.5 seconds after announcing the question number", a
   await page.locator("#startPractice").click();
   await page.locator("#listenBtn").click();
 
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 3000 }).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 8000 }).toBe(8);
   const speechLog = await page.evaluate(() => window.__speechLog);
-  expect(speechLog[0].text).toBe("Question 1.");
-  expect(speechLog[1].text).toMatch(/^A\. .+ B\. .+ C\. .+ D\. .+$/);
-  expect(speechLog[1].time - speechLog[0].time).toBeGreaterThanOrEqual(1450);
+  const expectedLetters = ["A.", "B.", "C.", "D."];
+  expectedLetters.forEach((choiceLetter, index) => {
+    const cue = speechLog[index * 2];
+    const statement = speechLog[index * 2 + 1];
+    expect(cue.text).toBe(choiceLetter);
+    expect(statement.text.length).toBeGreaterThan(5);
+    expect(statement.time - cue.time).toBeGreaterThanOrEqual(1450);
+  });
 
   await page.locator("#listenBtn").click();
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(3);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(9);
   await page.locator('[data-choice="0"]').click();
   await page.locator("#nextQuestion").click();
   await page.waitForTimeout(1600);
-  expect(await page.evaluate(() => window.__speechLog.length)).toBe(3);
+  expect(await page.evaluate(() => window.__speechLog.length)).toBe(9);
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {

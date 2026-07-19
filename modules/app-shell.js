@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.3.0",
+  version: "3.3.1",
   release: {
-    title: "圖片細節與播報節奏",
-    summary: "新增六題細節判讀情境；每題語音先念題號，停頓 1.5 秒後再播放內容。",
-    badges: ["v3.3.0", "918 題", "18 題 Part 1", "1.5 秒停頓"]
+    title: "Part 1 選項播報節奏",
+    summary: "依序念出 A、B、C、D，每個字母停頓 1.5 秒後再播放該選項敘述。",
+    badges: ["v3.3.1", "918 題", "18 題 Part 1", "A-D 逐項停頓"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

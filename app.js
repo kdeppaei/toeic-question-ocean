@@ -267,7 +267,7 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
-const QUESTION_NUMBER_PAUSE_MS = 1500;
+const PART1_CHOICE_PAUSE_MS = 1500;
 const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -1818,7 +1818,8 @@ function playQuestionAudio(q,options={}){
     return;
   }
   state.audioPlays[key]=used+1;
-  speakNumberedQuestion(q.audioText,questionIndex+1);
+  if(q.part==="1") speakPart1Choices(q.choices);
+  else speakDialogue(q.audioText);
   renderQuestion();
 }
 function availableEnglishVoices(){
@@ -1877,24 +1878,38 @@ function dialogueSegments(text){
   return source?[{role:"neutral",text:source.replace(/^(Narrator|Speaker)\s*:\s*/i,"")}]:[];
 }
 function rolePitch(role){ return role==="male"?0.72:role==="female"?1.08:1; }
-function speakNumberedQuestion(text,questionNumber){
+function speakPart1Choices(choices=[]){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   cancelQuestionAudio();
   const playbackToken=state.questionAudioToken;
-  const cue=new SpeechSynthesisUtterance(`Question ${questionNumber}.`);
   const voice=pickVoice("neutral");
-  if(voice) cue.voice=voice;
-  cue.lang=voice?.lang||accentProfile().lang||"en-US";
-  cue.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
-  cue.onend=()=>{
+  const rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
+  let index=0;
+  const speakLetter=()=>{
     if(playbackToken!==state.questionAudioToken) return;
-    state.questionAudioDelayId=setTimeout(()=>{
-      state.questionAudioDelayId=null;
+    const choice=choices[index];
+    if(choice===undefined) return;
+    const choiceIndex=index++;
+    const cue=new SpeechSynthesisUtterance(`${letter(choiceIndex)}.`);
+    if(voice) cue.voice=voice;
+    cue.lang=voice?.lang||accentProfile().lang||"en-US";
+    cue.rate=rate;
+    cue.onend=()=>{
       if(playbackToken!==state.questionAudioToken) return;
-      speakDialogue(text,{cancelExisting:false});
-    },QUESTION_NUMBER_PAUSE_MS);
+      state.questionAudioDelayId=setTimeout(()=>{
+        state.questionAudioDelayId=null;
+        if(playbackToken!==state.questionAudioToken) return;
+        const statement=new SpeechSynthesisUtterance(choice);
+        if(voice) statement.voice=voice;
+        statement.lang=voice?.lang||accentProfile().lang||"en-US";
+        statement.rate=rate;
+        statement.onend=speakLetter;
+        speechSynthesis.speak(statement);
+      },PART1_CHOICE_PAUSE_MS);
+    };
+    speechSynthesis.speak(cue);
   };
-  speechSynthesis.speak(cue);
+  speakLetter();
 }
 function speakDialogue(text,options={}){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
