@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.2.0",
+  version: "3.3.0",
   release: {
-    title: "圖片判讀擴充",
-    summary: "新增接待、太陽能、物流掃碼與室內植栽圖片題，並支援跨裝置放大檢視。",
-    badges: ["v3.2.0", "912 題", "12 題 Part 1", "圖片放大"]
+    title: "圖片細節與播報節奏",
+    summary: "新增六題細節判讀情境；每題語音先念題號，停頓 1.5 秒後再播放內容。",
+    badges: ["v3.3.0", "918 題", "18 題 Part 1", "1.5 秒停頓"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

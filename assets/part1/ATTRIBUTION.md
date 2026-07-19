@@ -14,7 +14,7 @@ provenance.
 | `delivery.jpg` | Artem Podrez | [Man Stacking Boxes in a Van](https://www.pexels.com/photo/man-stacking-boxes-in-a-van-5025665/) |
 | `station.jpg` | ready made | [People at the Train Station](https://www.pexels.com/photo/people-at-the-train-station-3921540/) |
 
-Seven 3:2 workplace scenes were generated with OpenAI image generation for this
+Thirteen 3:2 workplace scenes were generated with OpenAI image generation for this
 project, then manually reviewed for clear actions, complete framing, and the
 absence of visible brands or readable text.
 
@@ -27,6 +27,12 @@ absence of visible brands or readable text.
 | `solar-ai-v3.jpg` | A technician inspecting solar panels |
 | `barcode-ai-v3.jpg` | A worker scanning a package |
 | `plants-ai-v3.jpg` | A worker watering indoor plants |
+| `ev-charging-ai-v4.jpg` | A driver connecting an electric vehicle charger |
+| `housekeeping-ai-v4.jpg` | A housekeeper folding towels beside a cart |
+| `high-shelf-ai-v4.jpg` | A worker placing a box on a high shelf |
+| `transit-map-ai-v4.jpg` | Two commuters comparing transit maps |
+| `window-measure-ai-v4.jpg` | A worker measuring a window frame |
+| `cafe-chairs-ai-v4.jpg` | Stacked chairs beside outdoor cafe tables |
 
 The licensed photographs were downloaded on 2026-07-19, and the generated
 images were created on 2026-07-19. No image is presented as an ETS official test

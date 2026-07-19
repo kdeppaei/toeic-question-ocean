@@ -252,6 +252,8 @@ const state = {
   autoPlayedAudio: {},
   listeningPrep: null,
   listeningPrepTimerId: null,
+  questionAudioDelayId: null,
+  questionAudioToken: 0,
   audioAccent: "auto",
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
@@ -265,6 +267,7 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
+const QUESTION_NUMBER_PAUSE_MS = 1500;
 const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -1366,6 +1369,7 @@ function sessionFrom(list,count){
 }
 function startSession(list, options={}){
   if(!list.length){ showToast("沒有可用題目"); return; }
+  cancelQuestionAudio();
   clearActive();
   state.options={
     instant: options.instant ?? $("#instantFeedback").checked,
@@ -1448,6 +1452,7 @@ function buildMockSession(){
   return output;
 }
 function startMockExam(){
+  cancelQuestionAudio();
   clearActive();
   let session;
   try{ session=buildMockSession(); }
@@ -1633,6 +1638,7 @@ function goToQuestion(index){
       return;
     }
   }
+  cancelQuestionAudio();
   clearInterval(state.timerId);
   clearListeningPrep();
   state.currentIndex=index;
@@ -1776,8 +1782,16 @@ function clearListeningPrep(){
   state.listeningPrepTimerId=null;
   state.listeningPrep=null;
 }
+function cancelQuestionAudio(){
+  state.questionAudioToken+=1;
+  if(state.questionAudioDelayId!==null) clearTimeout(state.questionAudioDelayId);
+  state.questionAudioDelayId=null;
+  if("speechSynthesis" in window) speechSynthesis.cancel();
+}
 function playQuestionAudio(q,options={}){
   if(!q?.audioText) return;
+  const questionIndex=state.session.indexOf(q);
+  if(questionIndex<0||questionIndex!==state.currentIndex) return;
   const key=q._groupKey||q.id;
   const used=state.audioPlays[key]||0;
   const limit=state.options.playLimit;
@@ -1804,7 +1818,7 @@ function playQuestionAudio(q,options={}){
     return;
   }
   state.audioPlays[key]=used+1;
-  speakDialogue(q.audioText);
+  speakNumberedQuestion(q.audioText,questionIndex+1);
   renderQuestion();
 }
 function availableEnglishVoices(){
@@ -1863,12 +1877,33 @@ function dialogueSegments(text){
   return source?[{role:"neutral",text:source.replace(/^(Narrator|Speaker)\s*:\s*/i,"")}]:[];
 }
 function rolePitch(role){ return role==="male"?0.72:role==="female"?1.08:1; }
-function speakDialogue(text){
+function speakNumberedQuestion(text,questionNumber){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
-  speechSynthesis.cancel();
+  cancelQuestionAudio();
+  const playbackToken=state.questionAudioToken;
+  const cue=new SpeechSynthesisUtterance(`Question ${questionNumber}.`);
+  const voice=pickVoice("neutral");
+  if(voice) cue.voice=voice;
+  cue.lang=voice?.lang||accentProfile().lang||"en-US";
+  cue.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
+  cue.onend=()=>{
+    if(playbackToken!==state.questionAudioToken) return;
+    state.questionAudioDelayId=setTimeout(()=>{
+      state.questionAudioDelayId=null;
+      if(playbackToken!==state.questionAudioToken) return;
+      speakDialogue(text,{cancelExisting:false});
+    },QUESTION_NUMBER_PAUSE_MS);
+  };
+  speechSynthesis.speak(cue);
+}
+function speakDialogue(text,options={}){
+  if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
+  if(options.cancelExisting!==false) cancelQuestionAudio();
+  const playbackToken=state.questionAudioToken;
   const segments=dialogueSegments(text);
   let index=0;
   const speakNext=()=>{
+    if(playbackToken!==state.questionAudioToken) return;
     const segment=segments[index++];
     if(!segment) return;
     const u=new SpeechSynthesisUtterance(segment.text);
@@ -1884,7 +1919,7 @@ function speakDialogue(text){
 }
 function speak(text){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
-  speechSynthesis.cancel();
+  cancelQuestionAudio();
   const u=new SpeechSynthesisUtterance(text);
   const voice=pickVoice("female");
   if(voice) u.voice=voice;
@@ -1895,7 +1930,7 @@ function speak(text){
 function speakWord(word){
   if(!word) return;
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
-  speechSynthesis.cancel();
+  cancelQuestionAudio();
   const u=new SpeechSynthesisUtterance(word);
   const voice=pickVoice("female");
   if(voice) u.voice=voice;
@@ -1940,6 +1975,7 @@ function answerQuestion(selected,timedOut=false){
 }
 function nextQuestion(){
   if(!state.answers[state.currentIndex]) return;
+  cancelQuestionAudio();
   if(state.sessionMode==="mock"&&state.mockSection==="listening"&&state.currentIndex===state.mockBoundary-1){
     enterReadingSection();
     return;
@@ -2055,6 +2091,7 @@ function finishSession(){
   clearInterval(state.timerId);
   clearInterval(state.sectionTimerId);
   clearListeningPrep();
+  cancelQuestionAudio();
   const results=state.session.map((q,i)=>{
     const answer=state.answers[i]||{id:q.id,selected:null,correct:false,timedOut:true,elapsed:null};
     return {...answer,review:!!state.reviewFlags[i],question:q};

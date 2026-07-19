@@ -15,8 +15,8 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.2.0");
-  await expect(page.locator("#totalBank")).toHaveText("912");
+  await page.goto("/?v=3.3.0");
+  await expect(page.locator("#totalBank")).toHaveText("918");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -106,13 +106,54 @@ test("every Part 1 source image is landscape and large enough to judge", async (
     })));
   });
 
-  expect(imageMetrics).toHaveLength(12);
+  expect(imageMetrics).toHaveLength(18);
   imageMetrics.forEach(({ source, width, height, ratio }) => {
     expect(width, `${source} should be at least 1200px wide`).toBeGreaterThanOrEqual(1200);
     expect(height, `${source} should be at least 700px high`).toBeGreaterThanOrEqual(700);
     expect(ratio, `${source} should use a landscape composition`).toBeGreaterThanOrEqual(1.45);
     expect(ratio, `${source} should not be excessively panoramic`).toBeLessThanOrEqual(1.8);
   });
+});
+
+test("question audio pauses 1.5 seconds after announcing the question number", async ({ page }) => {
+  await page.evaluate(() => {
+    window.__speechLog = [];
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) {
+        this.text = text;
+      }
+    };
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        cancel() {},
+        getVoices() { return []; },
+        speak(utterance) {
+          window.__speechLog.push({ text: utterance.text, time: Date.now() });
+          setTimeout(() => utterance.onend?.(), 5);
+        }
+      }
+    });
+  });
+
+  await page.locator('[data-nav="setupView"]').click();
+  await page.locator("#partSelect").selectOption("1");
+  await page.locator("#countSelect").selectOption("5");
+  await page.locator("#startPractice").click();
+  await page.locator("#listenBtn").click();
+
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 3000 }).toBe(2);
+  const speechLog = await page.evaluate(() => window.__speechLog);
+  expect(speechLog[0].text).toBe("Question 1.");
+  expect(speechLog[1].text).toMatch(/^A\. .+ B\. .+ C\. .+ D\. .+$/);
+  expect(speechLog[1].time - speechLog[0].time).toBeGreaterThanOrEqual(1450);
+
+  await page.locator("#listenBtn").click();
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(3);
+  await page.locator('[data-choice="0"]').click();
+  await page.locator("#nextQuestion").click();
+  await page.waitForTimeout(1600);
+  expect(await page.evaluate(() => window.__speechLog.length)).toBe(3);
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {
