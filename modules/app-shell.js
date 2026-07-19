@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.3.1",
+  version: "3.4.0",
   release: {
-    title: "Part 1 選項播報節奏",
-    summary: "依序念出 A、B、C、D，每個字母停頓 1.5 秒後再播放該選項敘述。",
-    badges: ["v3.3.1", "918 題", "18 題 Part 1", "A-D 逐項停頓"]
+    title: "Part 1 節奏與題庫擴充",
+    summary: "字母後停 1 秒再念敘述，選項念完再停 1 秒進入下一項；新增七題細節判讀情境。",
+    badges: ["v3.4.0", "925 題", "25 題 Part 1", "雙向 1 秒停頓"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

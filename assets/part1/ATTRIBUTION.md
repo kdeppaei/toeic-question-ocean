@@ -14,7 +14,7 @@ provenance.
 | `delivery.jpg` | Artem Podrez | [Man Stacking Boxes in a Van](https://www.pexels.com/photo/man-stacking-boxes-in-a-van-5025665/) |
 | `station.jpg` | ready made | [People at the Train Station](https://www.pexels.com/photo/people-at-the-train-station-3921540/) |
 
-Thirteen 3:2 workplace scenes were generated with OpenAI image generation for this
+Twenty 3:2 workplace scenes were generated with OpenAI image generation for this
 project, then manually reviewed for clear actions, complete framing, and the
 absence of visible brands or readable text.
 
@@ -33,6 +33,13 @@ absence of visible brands or readable text.
 | `transit-map-ai-v4.jpg` | Two commuters comparing transit maps |
 | `window-measure-ai-v4.jpg` | A worker measuring a window frame |
 | `cafe-chairs-ai-v4.jpg` | Stacked chairs beside outdoor cafe tables |
+| `access-badge-ai-v5.jpg` | A businesswoman using an access-card reader |
+| `package-tape-ai-v5.jpg` | A worker sealing a package with tape |
+| `thermostat-ai-v5.jpg` | A worker adjusting an office thermostat |
+| `training-room-ai-v5.jpg` | Rows of chairs facing a presentation screen |
+| `bicycle-lock-ai-v5.jpg` | A commuter locking a bicycle to a rack |
+| `library-cart-ai-v5.jpg` | A librarian placing a book on a rolling cart |
+| `cable-coil-ai-v5.jpg` | A technician coiling an electrical cable |
 
 The licensed photographs were downloaded on 2026-07-19, and the generated
 images were created on 2026-07-19. No image is presented as an ETS official test

@@ -267,7 +267,8 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
-const PART1_CHOICE_PAUSE_MS = 1500;
+const PART1_LETTER_PAUSE_MS = 1000;
+const PART1_INTER_CHOICE_PAUSE_MS = 1000;
 const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -1903,9 +1904,15 @@ function speakPart1Choices(choices=[]){
         if(voice) statement.voice=voice;
         statement.lang=voice?.lang||accentProfile().lang||"en-US";
         statement.rate=rate;
-        statement.onend=speakLetter;
+        statement.onend=()=>{
+          if(playbackToken!==state.questionAudioToken||index>=choices.length) return;
+          state.questionAudioDelayId=setTimeout(()=>{
+            state.questionAudioDelayId=null;
+            speakLetter();
+          },PART1_INTER_CHOICE_PAUSE_MS);
+        };
         speechSynthesis.speak(statement);
-      },PART1_CHOICE_PAUSE_MS);
+      },PART1_LETTER_PAUSE_MS);
     };
     speechSynthesis.speak(cue);
   };

@@ -15,8 +15,8 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.3.1");
-  await expect(page.locator("#totalBank")).toHaveText("918");
+  await page.goto("/?v=3.4.0");
+  await expect(page.locator("#totalBank")).toHaveText("925");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -106,7 +106,7 @@ test("every Part 1 source image is landscape and large enough to judge", async (
     })));
   });
 
-  expect(imageMetrics).toHaveLength(18);
+  expect(imageMetrics).toHaveLength(25);
   imageMetrics.forEach(({ source, width, height, ratio }) => {
     expect(width, `${source} should be at least 1200px wide`).toBeGreaterThanOrEqual(1200);
     expect(height, `${source} should be at least 700px high`).toBeGreaterThanOrEqual(700);
@@ -115,7 +115,7 @@ test("every Part 1 source image is landscape and large enough to judge", async (
   });
 });
 
-test("Part 1 audio pauses 1.5 seconds between each choice letter and statement", async ({ page }) => {
+test("Part 1 audio pauses one second after letters and between choices", async ({ page }) => {
   await page.evaluate(() => {
     window.__speechLog = [];
     window.SpeechSynthesisUtterance = class {
@@ -129,8 +129,12 @@ test("Part 1 audio pauses 1.5 seconds between each choice letter and statement",
         cancel() {},
         getVoices() { return []; },
         speak(utterance) {
-          window.__speechLog.push({ text: utterance.text, time: Date.now() });
-          setTimeout(() => utterance.onend?.(), 5);
+          const entry = { text: utterance.text, time: Date.now(), endedAt: null };
+          window.__speechLog.push(entry);
+          setTimeout(() => {
+            entry.endedAt = Date.now();
+            utterance.onend?.();
+          }, 5);
         }
       }
     });
@@ -142,7 +146,7 @@ test("Part 1 audio pauses 1.5 seconds between each choice letter and statement",
   await page.locator("#startPractice").click();
   await page.locator("#listenBtn").click();
 
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 8000 }).toBe(8);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 9000 }).toBe(8);
   const speechLog = await page.evaluate(() => window.__speechLog);
   const expectedLetters = ["A.", "B.", "C.", "D."];
   expectedLetters.forEach((choiceLetter, index) => {
@@ -150,14 +154,18 @@ test("Part 1 audio pauses 1.5 seconds between each choice letter and statement",
     const statement = speechLog[index * 2 + 1];
     expect(cue.text).toBe(choiceLetter);
     expect(statement.text.length).toBeGreaterThan(5);
-    expect(statement.time - cue.time).toBeGreaterThanOrEqual(1450);
+    expect(statement.time - cue.endedAt).toBeGreaterThanOrEqual(950);
+    if(index>0){
+      const previousStatement = speechLog[index * 2 - 1];
+      expect(cue.time - previousStatement.endedAt).toBeGreaterThanOrEqual(950);
+    }
   });
 
   await page.locator("#listenBtn").click();
   await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(9);
   await page.locator('[data-choice="0"]').click();
   await page.locator("#nextQuestion").click();
-  await page.waitForTimeout(1600);
+  await page.waitForTimeout(1100);
   expect(await page.evaluate(() => window.__speechLog.length)).toBe(9);
 });
 
