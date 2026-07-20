@@ -32,10 +32,10 @@ const counts=Object.fromEntries([...validFits].map(fit=>[
   fit,
   entries.filter(entry=>entry.fit===fit).length
 ]));
-if(entries.length<120) issues.push(`expected at least 120 entries, got ${entries.length}`);
-if(counts["toeic-core"]<40) issues.push(`too few TOEIC core entries: ${counts["toeic-core"]}`);
-if(counts["toeic-extended"]<25) issues.push(`too few TOEIC extended entries: ${counts["toeic-extended"]}`);
-if(counts.broad<25) issues.push(`too few broad entries: ${counts.broad}`);
+if(entries.length<170) issues.push(`expected at least 170 entries, got ${entries.length}`);
+if(counts["toeic-core"]<65) issues.push(`too few TOEIC core entries: ${counts["toeic-core"]}`);
+if(counts["toeic-extended"]<45) issues.push(`too few TOEIC extended entries: ${counts["toeic-extended"]}`);
+if(counts.broad<40) issues.push(`too few broad entries: ${counts.broad}`);
 
 console.log(JSON.stringify({
   entries:entries.length,

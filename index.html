@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.7.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.8.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -74,9 +74,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v3.7.0</span><span class="badge gray">120 詞首批擴庫</span><span class="badge gray">三級考試適配</span><span class="badge gray">來源可追溯</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">達文西廣域詞庫：多益適配分流</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">首批整理 120 個教材詞頭，補上中文、音標、詞性與自編例句，並分成多益核心、多益延伸及雅思／托福廣域三層。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v3.8.0</span><span class="badge gray">170 詞分級補庫</span><span class="badge gray">獨立學習進度</span><span class="badge gray">核心一鍵複習</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">分級詞庫進度與核心複習</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">再補 50 個可核對詞條，並讓多益核心、延伸及廣域詞各自記錄已練詞數、作答數與正確率。</p>
         </article>
 
         <div class="stats-grid">
@@ -262,7 +262,7 @@
             <h2 style="margin:0">多益學習區</h2>
             <p style="color:var(--muted);margin:5px 0 0">把題庫單字、核心文法、商務搭配與合法外部資源整理在同一個學習工作台。</p>
           </div>
-          <div class="badges learning-hub-badges"><span class="badge">18 個文法主題</span><span class="badge gray">48 組搭配</span><span class="badge gray">120 詞廣域補庫</span></div>
+          <div class="badges learning-hub-badges"><span class="badge">18 個文法主題</span><span class="badge gray">48 組搭配</span><span class="badge gray">170 詞廣域補庫</span></div>
         </div>
 
         <div class="learning-tabs" role="tablist" aria-label="多益學習內容">
@@ -275,7 +275,7 @@
         <section class="learning-panel active" id="learningVocabularyPanel" role="tabpanel" aria-labelledby="learningTabVocabulary" data-learning-panel="vocabulary">
           <div class="learning-panel-head">
             <div><h3>A-Z 分級單字詞庫</h3><p>整合題庫即時抽字與廣域教材補庫；依考試適配度分層，不把進階一般詞誤標成多益必背。</p></div>
-            <button class="btn" id="refreshAutoVocab">重新整理詞庫</button>
+            <div class="group"><button class="btn primary" id="practiceCoreVocab">只練多益核心</button><button class="btn" id="refreshAutoVocab">重新整理詞庫</button></div>
           </div>
 
           <div class="stats-grid auto-vocab-stats">
@@ -284,6 +284,7 @@
             <article class="card"><div class="stat-label">待補詞庫</div><div class="stat-value" id="autoVocabPending">0</div><div class="stat-foot">新題目會先進入這裡</div></article>
             <article class="card"><div class="stat-label">目前篩選</div><div class="stat-value" id="autoVocabShown">0</div><div class="stat-foot">顯示於下方卡片</div></article>
           </div>
+          <div class="fit-progress-grid" id="vocabFitProgress" aria-label="分級詞彙學習進度"></div>
 
           <article class="card auto-vocab-panel">
             <div class="form-grid">
@@ -361,7 +362,7 @@
         <div class="toolbar">
           <div>
             <h2 style="margin:0">單字複習</h2>
-            <p style="color:var(--muted);margin:5px 0 0">用題庫完整詞條練英翻中、例句填空與聽音辨字。</p>
+            <p style="color:var(--muted);margin:5px 0 0">用分級完整詞條練英翻中、例句填空與聽音辨字。</p>
           </div>
         </div>
 
@@ -372,7 +373,7 @@
               <label><span>題型</span><select id="vocabReviewMode"><option value="mixed" selected>混合題型</option><option value="meaning">英翻中</option><option value="cloze">例句填空</option><option value="audio">聽音辨字</option></select></label>
               <label><span>題數</span><select id="vocabReviewCount"><option>5</option><option selected>10</option><option>20</option><option>30</option></select></label>
               <label><span>來源 Part</span><select id="vocabReviewPart"><option value="all" selected>全部 Part</option><option value="1">Part 1</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
-              <label><span>出題來源</span><select id="vocabReviewSource"><option value="known" selected>題庫完整詞條</option><option value="personal">個人單字本</option></select></label>
+              <label><span>出題來源</span><select id="vocabReviewSource"><option value="known" selected>全部完整詞條</option><option value="toeic-core">只練多益核心</option><option value="toeic-extended">只練多益延伸</option><option value="broad">只練雅思／托福廣域</option><option value="personal">個人單字本</option></select></label>
             </div>
             <button class="btn primary" id="startVocabReview" style="width:100%;margin-top:18px;padding:14px">開始單字複習</button>
           </article>

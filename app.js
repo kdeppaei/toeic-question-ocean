@@ -17,6 +17,7 @@ const KEYS = {
   performance: "toeicOcean.performance.v1",
   reviewSchedule: "toeicOcean.reviewSchedule.v1",
   vocab: "toeicOcean.vocab.v1",
+  vocabFitProgress: "toeicOcean.vocabFitProgress.v1",
   quality: "toeicOcean.questionQuality.v1",
   audioAccent: "toeicOcean.audioAccent.v1"
 };
@@ -781,6 +782,38 @@ function addAutoVocabToPersonal(key){
   });
   if(ok) showToast("已加入個人單字本");
 }
+function getVocabFitProgress(){
+  return load(KEYS.vocabFitProgress,{});
+}
+function recordVocabFitAnswer(entry,correct){
+  if(!entry?.fit) return;
+  const progress=getVocabFitProgress();
+  const current=progress[entry.fit] || {answered:0,correct:0,seen:[]};
+  current.answered+=1;
+  if(correct) current.correct+=1;
+  if(!current.seen.includes(entry.key)) current.seen.push(entry.key);
+  current.updatedAt=new Date().toISOString();
+  progress[entry.fit]=current;
+  save(KEYS.vocabFitProgress,progress);
+}
+function renderVocabFitProgress(entries){
+  const host=$("#vocabFitProgress");
+  if(!host) return;
+  const progress=getVocabFitProgress();
+  const fits=["toeic-core","toeic-extended","broad"];
+  host.innerHTML=fits.map(fit=>{
+    const total=entries.filter(entry=>entry.sourceKinds.includes("davinci")&&entry.fit===fit).length;
+    const current=progress[fit] || {answered:0,correct:0,seen:[]};
+    const seen=Math.min(current.seen?.length||0,total);
+    const accuracy=current.answered?Math.round(current.correct/current.answered*100):0;
+    const width=total?Math.round(seen/total*100):0;
+    return `<article class="fit-progress-item fit-${safe(fit)}">
+      <div><span class="fit-chip ${safe(fit)}">${safe(DAVINCI_VOCABULARY.fitLabels?.[fit]||fit)}</span><strong>${seen}/${total} 詞</strong></div>
+      <div class="progress"><span style="width:${width}%"></span></div>
+      <small>作答 ${current.answered||0} 題 · 正確率 ${accuracy}%</small>
+    </article>`;
+  }).join("");
+}
 function renderAutoVocab(){
   const all=buildAutoVocabEntries();
   const known=all.filter(x=>x.known).length;
@@ -806,6 +839,7 @@ function renderAutoVocab(){
   $("#autoVocabKnown").textContent=known;
   $("#autoVocabPending").textContent=pending;
   $("#autoVocabShown").textContent=entries.length;
+  renderVocabFitProgress(all);
   $("#autoVocabLetters").innerHTML=AUTO_VOCAB_LETTERS.map(letter=>{
     const active=(state.autoVocabLetter||"all")===letter;
     const label=letter==="all"?"ALL":letter;
@@ -1051,16 +1085,20 @@ function vocabReviewPool(){
         personal:true
       }));
   }
-  return buildAutoVocabEntries()
+  const pool=buildAutoVocabEntries()
     .filter(entry=>entry.known&&entry.zh)
     .filter(entry=>part==="all"||entry.parts.includes(part));
+  if(["toeic-core","toeic-extended","broad"].includes(source)){
+    return pool.filter(entry=>entry.fit===source);
+  }
+  return pool;
 }
 function renderVocabReviewSummary(){
   const known=buildAutoVocabEntries().filter(entry=>entry.known&&entry.zh).length;
   const personal=getVocab().filter(item=>item.word&&item.meaning).length;
   const pool=vocabReviewPool();
   $("#vocabReviewSummary").innerHTML=`
-    <div class="mini-item">題庫完整詞條 <strong style="float:right;color:var(--primary)">${known}</strong></div>
+    <div class="mini-item">完整詞條 <strong style="float:right;color:var(--primary)">${known}</strong></div>
     <div class="mini-item">個人單字可出題 <strong style="float:right;color:var(--green)">${personal}</strong></div>
     <div class="mini-item">目前條件可用 <strong style="float:right">${pool.length}</strong></div>
     <div class="mini-item">題型 <strong style="float:right">${safe($("#vocabReviewMode")?.selectedOptions?.[0]?.textContent||"混合題型")}</strong></div>`;
@@ -1128,6 +1166,14 @@ function startVocabReview(){
   state.vocabQuiz={questions:buildVocabReviewQuestions(), index:0, answers:[]};
   renderVocabReview();
 }
+function startCoreVocabPractice(){
+  $("#vocabReviewSource").value="toeic-core";
+  $("#vocabReviewPart").value="all";
+  $("#vocabReviewMode").value="mixed";
+  $("#vocabReviewCount").value="10";
+  showView("vocabReviewView");
+  startVocabReview();
+}
 function resetVocabReview(){
   state.vocabQuiz={questions:[], index:0, answers:[]};
   renderVocabReviewSummary();
@@ -1183,7 +1229,9 @@ function answerVocabQuestion(selected){
   const quiz=state.vocabQuiz;
   if(!quiz.questions.length||quiz.answers[quiz.index]) return;
   const q=quiz.questions[quiz.index];
-  quiz.answers[quiz.index]={selected, correct:selected===q.answer};
+  const correct=selected===q.answer;
+  quiz.answers[quiz.index]={selected,correct};
+  recordVocabFitAnswer(q.entry,correct);
   renderVocabReview();
 }
 function nextVocabQuestion(){
@@ -3009,6 +3057,7 @@ $("#saveVocab").onclick=saveVocabFromForm;
 $("#resetVocabForm").onclick=resetVocabForm;
 $("#exportVocab").onclick=exportVocab;
 $("#clearVocab").onclick=()=>{ if(confirm("確定清空個人單字本？")){ saveVocab([]); renderVocab(); } };
+$("#practiceCoreVocab").onclick=startCoreVocabPractice;
 $("#refreshAutoVocab").onclick=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); showToast("已重新整理分級詞庫"); };
 $("#autoVocabSearch").addEventListener("input",()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); });
 $("#autoVocabStatus").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };

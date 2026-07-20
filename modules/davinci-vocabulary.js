@@ -120,6 +120,56 @@ diligent|/ˈdɪlədʒənt/
 diploma|/dɪˈploʊmə/
 dispatch|/dɪˈspætʃ/
 enterprise|/ˈɛntɚˌpraɪz/
+ethical|/ˈɛθɪkəl/
+european|/ˌjʊrəˈpiən/
+everlasting|/ˌɛvɚˈlæstɪŋ/
+exaggerate|/ɪgˈzædʒəˌreɪt/
+excel|/ɪkˈsɛl/
+excerpt|/ˈɛksɝpt/
+farewell|/ˌfɛrˈwɛl/
+fertilize|/ˈfɝtəˌlaɪz/
+fiscal|/ˈfɪskəl/
+formerly|/ˈfɔrmɚli/
+fraud|/frɔd/
+frequent|/ˈfrikwənt/
+fro|/froʊ/
+gene|/dʒin/
+glimpse|/glɪmps/
+gracious|/ˈgreɪʃəs/
+habitat|/ˈhæbəˌtæt/
+half|/hæf/
+hereafter|/hɪrˈæftɚ/
+hospitable|/hɑˈspɪtəbəl/
+icy|/ˈaɪsi/
+illustrate|/ˈɪləˌstreɪt/
+inner|/ˈɪnɚ/
+inquiry|/ɪnˈkwaɪri/
+intact|/ɪnˈtækt/
+interaction|/ˌɪntɚˈækʃən/
+inward|/ˈɪnwɚd/
+laboratory|/ˈlæbrəˌtɔri/
+likewise|/ˈlaɪkˌwaɪz/
+lunar|/ˈlunɚ/
+magnetic|/mægˈnɛtɪk/
+meantime|/ˈminˌtaɪm/
+microscope|/ˈmaɪkrəˌskoʊp/
+needy|/ˈnidi/
+nevertheless|/ˌnɛvɚðəˈlɛs/
+noticeable|/ˈnoʊtəsəbəl/
+occupation|/ˌɑkjəˈpeɪʃən/
+overhead|/ˈoʊvɚˌhɛd/
+oversleep|/ˌoʊvɚˈslip/
+paradox|/ˈpɛrəˌdɑks/
+permanent|/ˈpɝmənənt/
+perspective|/pɚˈspɛktɪv/
+pitcher|/ˈpɪtʃɚ/
+pork|/pɔrk/
+postpone|/poʊstˈpoʊn/
+previously|/ˈpriviəsli/
+prominent|/ˈprɑmənənt/
+radical|/ˈrædɪkəl/
+readily|/ˈrɛdəli/
+refresh|/rɪˈfrɛʃ/
 `.trim().split("\n").map(line=>line.split("|")));
 
   const rows=[
@@ -242,7 +292,57 @@ enterprise|/ˈɛntɚˌpraɪz/
     ["diligent","adj.","勤勉的；細心的","The diligent assistant checked every entry twice.","toeic-core","davinci-2","49"],
     ["diploma","n.","畢業證書；文憑","Applicants must submit a copy of their diploma.","toeic-core","davinci-2","49"],
     ["dispatch","n./v.","派遣；發送；迅速處理","The warehouse will dispatch the order this afternoon.","toeic-core","davinci-2","49"],
-    ["enterprise","n.","企業；事業","The program provides grants to small enterprises.","toeic-core","davinci-2","49"]
+    ["enterprise","n.","企業；事業","The program provides grants to small enterprises.","toeic-core","davinci-2","49"],
+    ["ethical","adj.","合乎倫理的；道德的","The company adopted stricter ethical sourcing standards.","toeic-core","davinci-2","50"],
+    ["european","adj./n.","歐洲的；歐洲人","The European branch will join the online conference.","toeic-extended","davinci-2","50"],
+    ["everlasting","adj./n.","永久的；永恆","The material is durable, but it is not everlasting.","broad","davinci-2","50"],
+    ["exaggerate","v.","誇大；言過其實","The advertisement should not exaggerate the product's benefits.","toeic-extended","davinci-2","50"],
+    ["excel","v.","勝過；擅長","The candidate excels at resolving customer complaints.","toeic-core","davinci-2","50"],
+    ["excerpt","n./v.","摘錄；節錄","An excerpt from the report appears in the newsletter.","toeic-core","davinci-2","50"],
+    ["farewell","n./adj./int.","告別；送別的；再會","The department held a farewell lunch for its retiring manager.","toeic-core","davinci-2","50"],
+    ["fertilize","v.","施肥；使受精","Gardeners fertilize the plants twice each year.","broad","davinci-2","50"],
+    ["fiscal","adj.","財政的；會計年度的","The budget will be reviewed before the next fiscal year.","toeic-core","davinci-2","50"],
+    ["formerly","adv.","以前；從前","The building was formerly used as a warehouse.","toeic-core","davinci-2","50"],
+    ["fraud","n.","詐欺；詐騙","Customers should report suspected payment fraud immediately.","toeic-core","davinci-2","50"],
+    ["frequent","adj./v.","頻繁的；常到訪","Frequent travelers can receive additional benefits.","toeic-core","davinci-2","50"],
+    ["fro","adv.","向後；向那邊","The cleaning machine moved to and fro across the floor.","broad","davinci-2","50"],
+    ["gene","n.","基因","The laboratory studies a gene linked to the disease.","toeic-extended","davinci-2","50"],
+    ["glimpse","n./v.","一瞥；短暫看見","Visitors can catch a glimpse of the production area.","toeic-extended","davinci-2","50"],
+    ["gracious","adj.","親切有禮的；寬厚的","The host was gracious to every conference guest.","toeic-core","davinci-2","50"],
+    ["habitat","n.","棲息地；生長環境","The construction plan protects the birds' natural habitat.","toeic-extended","davinci-2","50"],
+    ["half","n./adj./adv.","一半；半數的","Half of the meeting rooms have been renovated.","broad","davinci-2","50"],
+    ["hereafter","adv./n.","此後；今後","The revised policy will hereafter apply to all branches.","toeic-extended","davinci-2","50"],
+    ["hospitable","adj.","好客的；適宜的","The staff created a hospitable environment for overseas guests.","toeic-core","davinci-2","50"],
+    ["icy","adj.","結冰的；冰冷的","Buses may be delayed because of icy road conditions.","toeic-extended","davinci-2","50"],
+    ["illustrate","v.","說明；圖解","The chart illustrates changes in monthly revenue.","toeic-core","davinci-2","50"],
+    ["inner","adj./n.","內部的；裡面","The inner door remains locked outside business hours.","toeic-extended","davinci-2","50"],
+    ["inquiry","n.","詢問；調查","The support team responded to the customer's inquiry.","toeic-core","davinci-2","50"],
+    ["intact","adj.","完整無損的","The package arrived intact despite the long journey.","toeic-extended","davinci-2","50"],
+    ["interaction","n.","互動；相互影響","The workshop encourages interaction among participants.","toeic-core","davinci-2","50"],
+    ["inward","adj./adv.","內部的；向內","The doors open inward toward the lobby.","toeic-extended","davinci-2","50"],
+    ["laboratory","n.","實驗室","All laboratory visitors must wear protective glasses.","toeic-core","davinci-2","50"],
+    ["likewise","adv.","同樣地；也","The first proposal reduced costs, and the second did likewise.","toeic-extended","davinci-2","50"],
+    ["lunar","adj.","月球的；陰曆的","The museum opened an exhibition about lunar exploration.","broad","davinci-2","50"],
+    ["magnetic","adj.","有磁性的；有吸引力的","A magnetic strip keeps the cabinet door closed.","toeic-extended","davinci-2","50"],
+    ["meantime","n./adv.","其間；同時","The printer is being repaired; in the meantime, use the one upstairs.","toeic-core","davinci-2","50"],
+    ["microscope","n.","顯微鏡","The technician placed the sample under a microscope.","toeic-extended","davinci-2","50"],
+    ["needy","adj.","貧困的；需要照顧的","The charity provides meals to needy families.","broad","davinci-2","50"],
+    ["nevertheless","adv.","儘管如此；然而","Demand declined; nevertheless, the company remained profitable.","toeic-extended","davinci-2","50"],
+    ["noticeable","adj.","明顯的；容易察覺的","There was a noticeable improvement in service speed.","toeic-core","davinci-2","50"],
+    ["occupation","n.","職業；佔用","Please state your occupation on the registration form.","toeic-core","davinci-2","50"],
+    ["overhead","n./adj./adv.","營運間接費；頭頂的","The company reduced overhead by sharing office space.","toeic-core","davinci-2","50"],
+    ["oversleep","v.","睡過頭","Call the supervisor if you oversleep and expect to be late.","broad","davinci-2","50"],
+    ["paradox","n.","看似矛盾的情況","It is a paradox that higher demand produced lower profits.","toeic-extended","davinci-2","50"],
+    ["permanent","adj.","永久的；固定的","The temporary desk will be replaced by a permanent counter.","toeic-core","davinci-2","51"],
+    ["perspective","n.","觀點；看法","The consultant offered a different perspective on the expansion.","toeic-core","davinci-2","51"],
+    ["pitcher","n.","水壺；投手","A pitcher of water was placed on the conference table.","broad","davinci-2","51"],
+    ["pork","n.","豬肉","The restaurant clearly labels dishes that contain pork.","broad","davinci-2","51"],
+    ["postpone","v.","延期","The organizers postponed the event because of the storm.","toeic-core","davinci-2","51"],
+    ["previously","adv.","先前；以前","The room was previously reserved by another department.","toeic-core","davinci-2","51"],
+    ["prominent","adj.","重要的；顯眼的","A prominent architect will lead the renovation project.","toeic-core","davinci-2","51"],
+    ["radical","adj./n.","徹底的；激進的；根本","The proposal calls for a radical change in delivery operations.","toeic-extended","davinci-2","51"],
+    ["readily","adv.","容易地；樂意地","Replacement parts are readily available from local suppliers.","toeic-core","davinci-2","51"],
+    ["refresh","v.","使恢復精神；更新","Refresh the browser to view the updated schedule.","toeic-core","davinci-2","51"]
   ];
 
   const sourceTitles={
