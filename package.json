@@ -3,9 +3,10 @@
     "check:js": "node --check app.js",
     "validate:bank": "node scripts/validate-bank.js",
     "validate:vocab": "node scripts/audit-vocab.js --check --top=0",
+    "validate:learning": "node scripts/audit-learning-hub.js",
     "test:ui": "playwright test",
     "test:update-snapshots": "playwright test tests/visual.spec.js --update-snapshots",
-    "test": "pnpm run check:js && pnpm run validate:bank && pnpm run validate:vocab && pnpm run test:ui"
+    "test": "pnpm run check:js && pnpm run validate:bank && pnpm run validate:vocab && pnpm run validate:learning && pnpm run test:ui"
   },
   "private": true,
   "packageManager": "pnpm@11.9.0",

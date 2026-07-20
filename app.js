@@ -1,6 +1,7 @@
 const BUILTIN_BANK = window.BUILTIN_BANK || [];
 const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
 const APP_SHELL = window.TOEIC_APP_SHELL || {};
+const LEARNING_HUB = window.TOEIC_LEARNING_HUB || { grammarTopics: [], collocations: [], collocationCategories: {}, resources: [] };
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
 const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId:{}, issues:[], errors:[], warnings:[], checked:0 }) };
@@ -258,6 +259,8 @@ const state = {
   options: { instant: true, shuffle: true, seconds: 0, playLimit: 2 },
   lastResult: null,
   autoVocabLetter: "all",
+  autoVocabVisible: 100,
+  learningTab: "vocabulary",
   readingSkill: "all",
   sessionStrategy: null,
   vocabQuiz: { questions: [], index: 0, answers: [] }
@@ -704,12 +707,12 @@ function buildAutoVocabEntries(){
     status:item.known?"known":"pending"
   }));
 }
-function autoVocabFilteredEntries(){
+function autoVocabFilteredEntries(sourceEntries=buildAutoVocabEntries()){
   const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
   const status=$("#autoVocabStatus")?.value || "all";
   const part=$("#autoVocabPart")?.value || "all";
   const sort=$("#autoVocabSort")?.value || "alpha";
-  let entries=buildAutoVocabEntries();
+  let entries=[...sourceEntries];
   if(status==="known") entries=entries.filter(x=>x.known);
   if(status==="pending") entries=entries.filter(x=>!x.known);
   if(part!=="all") entries=entries.filter(x=>x.parts.includes(part));
@@ -752,7 +755,9 @@ function renderAutoVocab(){
   );
   const letterCounts=new Map();
   letterBase.forEach(x=>letterCounts.set(x.letter,(letterCounts.get(x.letter)||0)+1));
-  const entries=autoVocabFilteredEntries();
+  const entries=autoVocabFilteredEntries(all);
+  const visibleCount=Math.min(state.autoVocabVisible||100,entries.length);
+  const visibleEntries=entries.slice(0,visibleCount);
   $("#autoVocabTotal").textContent=all.length;
   $("#autoVocabKnown").textContent=known;
   $("#autoVocabPending").textContent=pending;
@@ -763,7 +768,7 @@ function renderAutoVocab(){
     const count=letter==="all"?letterBase.length:(letterCounts.get(letter)||0);
     return `<button class="az-btn ${active?"active":""}" data-auto-letter="${letter}">${label}<small>${count}</small></button>`;
   }).join("");
-  $("#autoVocabList").innerHTML=entries.length?entries.map(entry=>`
+  $("#autoVocabList").innerHTML=entries.length?visibleEntries.map(entry=>`
     <article class="word-card ${entry.known?"":"pending"}">
       <div class="badges">
         <span class="badge">${safe(entry.letter)}</span>
@@ -777,10 +782,201 @@ function renderAutoVocab(){
       <div class="sources">來源題號：${safe(entry.questionIds.slice(0,6).join(", "))}${entry.questionIds.length>6?` 等 ${entry.questionIds.length} 題`:""}</div>
       <div class="vocab-meta"><button class="btn" data-add-auto-vocab="${safe(entry.key)}">加入個人單字本</button>${entry.known?`<button class="btn" data-review-auto-vocab="${safe(entry.key)}">練這個單字</button>`:""}</div>
     </article>`).join(""):'<div class="card empty">這個條件下沒有單字。試著切換字母、顯示模式或清空搜尋。</div>';
-  $$("[data-auto-letter]").forEach(btn=>btn.onclick=()=>{ state.autoVocabLetter=btn.dataset.autoLetter; renderAutoVocab(); });
+  const loadMore=$("#autoVocabLoadMoreWrap");
+  loadMore.hidden=visibleCount>=entries.length;
+  $("#autoVocabDisplayCount").textContent=`目前顯示 ${visibleCount} / ${entries.length} 個`;
+  $("#autoVocabLoadMore").onclick=()=>{
+    state.autoVocabVisible=Math.min(entries.length,visibleCount+100);
+    renderAutoVocab();
+  };
+  $$("[data-auto-letter]").forEach(btn=>btn.onclick=()=>{
+    state.autoVocabLetter=btn.dataset.autoLetter;
+    state.autoVocabVisible=100;
+    renderAutoVocab();
+  });
   $$("[data-add-auto-vocab]").forEach(btn=>btn.onclick=()=>addAutoVocabToPersonal(btn.dataset.addAutoVocab));
   $$("[data-review-auto-vocab]").forEach(btn=>btn.onclick=()=>startSingleVocabReview(btn.dataset.reviewAutoVocab));
   $$("[data-speak-word]").forEach(btn=>btn.onclick=()=>speakWord(btn.dataset.speakWord));
+}
+
+function learningTopicQuestions(topic, selectedPart="all"){
+  const tags=new Set(topic.matchTags||[]);
+  const categories=topic.matchCategories||[];
+  return getActiveBank().filter(q=>{
+    if(!topic.parts.includes(q.part)) return false;
+    if(selectedPart!=="all" && q.part!==selectedPart) return false;
+    const tagMatch=(q.tags||[]).some(tag=>tags.has(tag));
+    const category=String(q.category||"");
+    const categoryMatch=categories.some(pattern=>category.includes(pattern));
+    return tagMatch||categoryMatch;
+  });
+}
+function learningLevelLabel(level){
+  return level==="advanced"?"進階 700–950":"基礎 400–700";
+}
+function grammarTopicViews(){
+  const level=$("#learningGrammarLevel")?.value||"all";
+  const part=$("#learningGrammarPart")?.value||"all";
+  const query=($("#learningGrammarSearch")?.value||"").trim().toLowerCase();
+  let views=(LEARNING_HUB.grammarTopics||[]).map((topic,index)=>({
+    ...topic,
+    pathIndex:index,
+    questions:learningTopicQuestions(topic,part)
+  }));
+  if(level!=="all") views=views.filter(topic=>topic.level===level);
+  if(part!=="all") views=views.filter(topic=>topic.parts.includes(part));
+  if(query){
+    views=views.filter(topic=>[
+      topic.title,topic.summary,topic.rule,learningLevelLabel(topic.level),
+      ...(topic.matchTags||[]),...(topic.matchCategories||[]),
+      ...(topic.examples||[]).flatMap(example=>[example.en,example.zh,example.note]),
+      ...(topic.pitfalls||[])
+    ].some(value=>String(value||"").toLowerCase().includes(query)));
+  }
+  const sort=$("#learningGrammarSort")?.value||"path";
+  if(sort==="questions") views.sort((a,b)=>b.questions.length-a.questions.length||a.pathIndex-b.pathIndex);
+  else if(sort==="title") views.sort((a,b)=>a.title.localeCompare(b.title,"zh-Hant"));
+  else views.sort((a,b)=>a.pathIndex-b.pathIndex);
+  return views;
+}
+function renderLearningGrammar(){
+  const views=grammarTopicViews();
+  const uniqueQuestions=new Set(views.flatMap(topic=>topic.questions.map(q=>q.id)));
+  $("#learningGrammarShown").textContent=views.length;
+  $("#learningGrammarQuestions").textContent=uniqueQuestions.size;
+  $("#learningGrammarList").innerHTML=views.length?views.map(topic=>`
+    <article class="learning-topic-card">
+      <div class="learning-topic-top">
+        <div class="badges">
+          <span class="badge">${safe(learningLevelLabel(topic.level))}</span>
+          <span class="badge gray">${topic.parts.map(part=>`Part ${safe(part)}`).join(" / ")}</span>
+          <span class="badge gray">${topic.questions.length} 題可練</span>
+        </div>
+        <button class="btn primary" data-learning-grammar-practice="${safe(topic.id)}" ${topic.questions.length?"":"disabled"}>練這個主題</button>
+      </div>
+      <h3>${safe(topic.title)}</h3>
+      <p>${safe(topic.summary)}</p>
+      <div class="learning-rule"><span>核心句型</span><code>${safe(topic.rule)}</code></div>
+      <div class="learning-examples">
+        ${(topic.examples||[]).map(example=>`<div class="learning-example">
+          <strong>${safe(example.en)}</strong>
+          <span>${safe(example.zh)}</span>
+          <small>${safe(example.note)}</small>
+        </div>`).join("")}
+      </div>
+      <details class="learning-pitfalls">
+        <summary>常見陷阱與快判提醒</summary>
+        <ul>${(topic.pitfalls||[]).map(item=>`<li>${safe(item)}</li>`).join("")}</ul>
+      </details>
+    </article>
+  `).join(""):'<div class="empty">目前條件下沒有文法主題，請調整搜尋或篩選。</div>';
+  $$("[data-learning-grammar-practice]").forEach(button=>{
+    button.onclick=()=>startLearningGrammarPractice(button.dataset.learningGrammarPractice);
+  });
+}
+function startLearningGrammarPractice(id){
+  const topic=(LEARNING_HUB.grammarTopics||[]).find(item=>item.id===id);
+  if(!topic){ showToast("找不到這個文法主題"); return; }
+  const selectedPart=$("#learningGrammarPart")?.value||"all";
+  const questions=learningTopicQuestions(topic,selectedPart);
+  if(!questions.length){ showToast("目前題庫沒有可配對的練習題"); return; }
+  startSession(questions,{
+    count:Math.min(20,questions.length),
+    seconds:0,
+    shuffle:true,
+    instant:true,
+    mode:"strategy",
+    strategyTitle:`文法：${topic.title}`
+  });
+}
+function filteredLearningCollocations(){
+  const query=($("#learningCollocationSearch")?.value||"").trim().toLowerCase();
+  const category=$("#learningCollocationCategory")?.value||"all";
+  const part=$("#learningCollocationPart")?.value||"all";
+  return (LEARNING_HUB.collocations||[]).filter(item=>{
+    if(category!=="all" && item.category!==category) return false;
+    if(part!=="all" && !item.parts.includes(part)) return false;
+    if(!query) return true;
+    const categoryLabel=LEARNING_HUB.collocationCategories?.[item.category]||item.category;
+    return [item.phrase,item.zh,item.pattern,item.example,categoryLabel]
+      .some(value=>String(value||"").toLowerCase().includes(query));
+  });
+}
+function renderLearningCollocations(){
+  const items=filteredLearningCollocations();
+  $("#learningCollocationShown").textContent=items.length;
+  $("#learningCollocationList").innerHTML=items.length?items.map(item=>`
+    <article class="collocation-item">
+      <div class="collocation-top">
+        <div class="badges">
+          <span class="badge">${safe(LEARNING_HUB.collocationCategories?.[item.category]||item.category)}</span>
+          <span class="badge gray">${safe(item.pattern)}</span>
+          <span class="badge gray">Part ${item.parts.map(safe).join(" / ")}</span>
+        </div>
+        <button class="icon-btn speak-word" data-speak-phrase="${safe(item.phrase)}" aria-label="播放 ${safe(item.phrase)} 發音">▶</button>
+      </div>
+      <h3>${safe(item.phrase)}</h3>
+      <p class="collocation-meaning">${safe(item.zh)}</p>
+      <p class="collocation-example">${safe(item.example)}</p>
+    </article>
+  `).join(""):'<div class="empty">目前條件下沒有搭配詞，請調整搜尋或篩選。</div>';
+  $$("[data-speak-phrase]").forEach(button=>button.onclick=()=>speakWord(button.dataset.speakPhrase));
+}
+function startCollocationPractice(){
+  const questions=getActiveBank().filter(q=>
+    ["5","6"].includes(q.part) &&
+    ((q.tags||[]).some(tag=>["collocation","vocabulary","business-verb","be-adj-prep"].includes(tag)) ||
+      ["固定搭配","商務字彙","動詞搭配","名詞搭配","介系詞搭配"].some(category=>String(q.category||"").includes(category)))
+  );
+  if(!questions.length){ showToast("目前題庫沒有可用的搭配詞練習"); return; }
+  startSession(questions,{
+    count:Math.min(20,questions.length),
+    seconds:0,
+    shuffle:true,
+    instant:true,
+    mode:"strategy",
+    strategyTitle:"常用搭配詞專練"
+  });
+}
+function renderLearningResources(){
+  const resources=LEARNING_HUB.resources||[];
+  $("#learningResourceCount").textContent=resources.length;
+  $("#learningResourceList").innerHTML=resources.map(resource=>`
+    <article class="learning-resource-item">
+      <div class="badges">
+        <span class="badge">${safe(resource.access)}</span>
+        <span class="badge gray">${safe(resource.provider)}</span>
+      </div>
+      <h3>${safe(resource.title)}</h3>
+      <strong class="resource-topic">${safe(resource.topic)}</strong>
+      <p>${safe(resource.description)}</p>
+      <div class="resource-license"><span>授權／存取</span><strong>${safe(resource.license)}</strong></div>
+      <a class="btn resource-link" href="${safe(resource.url)}" target="_blank" rel="noopener noreferrer">開啟來源 <span aria-hidden="true">↗</span></a>
+    </article>
+  `).join("");
+}
+function setLearningTab(tab,{focus=false}={}){
+  const available=new Set(["vocabulary","grammar","collocations","resources"]);
+  state.learningTab=available.has(tab)?tab:"vocabulary";
+  $$("[data-learning-tab]").forEach(button=>{
+    const active=button.dataset.learningTab===state.learningTab;
+    button.classList.toggle("active",active);
+    button.setAttribute("aria-selected",String(active));
+    button.tabIndex=active?0:-1;
+    if(active&&focus) button.focus();
+  });
+  $$("[data-learning-panel]").forEach(panel=>{
+    const active=panel.dataset.learningPanel===state.learningTab;
+    panel.classList.toggle("active",active);
+    panel.hidden=!active;
+  });
+  if(state.learningTab==="vocabulary") renderAutoVocab();
+  if(state.learningTab==="grammar") renderLearningGrammar();
+  if(state.learningTab==="collocations") renderLearningCollocations();
+  if(state.learningTab==="resources") renderLearningResources();
+}
+function renderLearningHub(){
+  setLearningTab(state.learningTab);
 }
 
 function vocabReviewPool(){
@@ -1188,14 +1384,14 @@ function showView(id){
   });
   const titles=APP_SHELL.viewTitles || {
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"題庫單字庫",vocabReviewView:"單字複習",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"多益學習區",vocabReviewView:"單字複習",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
   if(id==="setupView") updateAvailable();
   if(id==="wrongView") renderWrongBook();
   if(id==="vocabView") renderVocab();
-  if(id==="autoVocabView") renderAutoVocab();
+  if(id==="autoVocabView") renderLearningHub();
   if(id==="vocabReviewView") renderVocabReviewSummary();
   if(id==="strategyView") renderStrategies();
   if(id==="readingView") renderReadingLiteracy();
@@ -2760,11 +2956,32 @@ $("#saveVocab").onclick=saveVocabFromForm;
 $("#resetVocabForm").onclick=resetVocabForm;
 $("#exportVocab").onclick=exportVocab;
 $("#clearVocab").onclick=()=>{ if(confirm("確定清空個人單字本？")){ saveVocab([]); renderVocab(); } };
-$("#refreshAutoVocab").onclick=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); showToast("已重新掃描題庫單字"); };
-$("#autoVocabSearch").addEventListener("input",()=>{ state.autoVocabLetter="all"; renderAutoVocab(); });
-$("#autoVocabStatus").onchange=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); };
-$("#autoVocabSort").onchange=renderAutoVocab;
-$("#autoVocabPart").onchange=()=>{ state.autoVocabLetter="all"; renderAutoVocab(); };
+$("#refreshAutoVocab").onclick=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); showToast("已重新掃描題庫單字"); };
+$("#autoVocabSearch").addEventListener("input",()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); });
+$("#autoVocabStatus").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };
+$("#autoVocabSort").onchange=()=>{ state.autoVocabVisible=100; renderAutoVocab(); };
+$("#autoVocabPart").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };
+$$("[data-learning-tab]").forEach((button,index,tabs)=>{
+  button.onclick=()=>setLearningTab(button.dataset.learningTab);
+  button.onkeydown=event=>{
+    if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+    event.preventDefault();
+    let next=index;
+    if(event.key==="ArrowLeft") next=(index-1+tabs.length)%tabs.length;
+    if(event.key==="ArrowRight") next=(index+1)%tabs.length;
+    if(event.key==="Home") next=0;
+    if(event.key==="End") next=tabs.length-1;
+    setLearningTab(tabs[next].dataset.learningTab,{focus:true});
+  };
+});
+$("#learningGrammarSearch").addEventListener("input",renderLearningGrammar);
+$("#learningGrammarLevel").onchange=renderLearningGrammar;
+$("#learningGrammarPart").onchange=renderLearningGrammar;
+$("#learningGrammarSort").onchange=renderLearningGrammar;
+$("#learningCollocationSearch").addEventListener("input",renderLearningCollocations);
+$("#learningCollocationCategory").onchange=renderLearningCollocations;
+$("#learningCollocationPart").onchange=renderLearningCollocations;
+$("#practiceCollocations").onclick=startCollocationPractice;
 $("#startVocabReview").onclick=startVocabReview;
 $("#resetVocabReview").onclick=resetVocabReview;
 $("#nextVocabQuestion").onclick=nextVocabQuestion;

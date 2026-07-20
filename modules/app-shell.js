@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.5.0",
+  version: "3.6.0",
   release: {
-    title: "核心單字庫擴充與品質稽核",
-    summary: "新增 193 個含中文、KK、詞性與例句的核心詞條，並補上單複數與不規則變化歸併；缺少必要欄位時會由自動測試攔截。",
-    badges: ["v3.5.0", "925 題", "384 個完整候選詞", "中文＋KK＋詞性"]
+    title: "多益學習區：文法、搭配與開放資源",
+    summary: "A-Z 單字庫升級為完整學習區，新增 10 個基礎與 8 個進階文法主題、48 組商務搭配，以及 6 個授權狀態清楚的外部資源。",
+    badges: ["v3.6.0", "18 個文法主題", "48 組搭配", "6 個外部資源"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
@@ -12,7 +12,7 @@ window.TOEIC_APP_SHELL = {
     resultView: "成績報告",
     wrongView: "錯題本",
     vocabView: "個人單字本",
-    autoVocabView: "題庫單字庫",
+    autoVocabView: "多益學習區",
     vocabReviewView: "單字複習",
     strategyView: "答題技巧專區",
     readingView: "閱讀素養專區",

@@ -1,8 +1,10 @@
 const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 
-async function expectNoSeriousA11yViolations(page) {
-  const results = await new AxeBuilder({ page }).analyze();
+async function expectNoSeriousA11yViolations(page, include) {
+  let builder = new AxeBuilder({ page });
+  if (include) builder = builder.include(include);
+  const results = await builder.analyze();
   const serious = results.violations.filter((violation) =>
     ["serious", "critical"].includes(violation.impact)
   );
@@ -15,7 +17,7 @@ async function expectNoSeriousA11yViolations(page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.5.0");
+  await page.goto("/?v=3.6.0");
   await expect(page.locator("#totalBank")).toHaveText("925");
 });
 
@@ -207,4 +209,48 @@ test("vocabulary entries require Chinese, KK, and part of speech", async ({ page
   await expect(card.locator("h3 small")).toHaveText("/tim/");
   await expect(card).toContainText("團隊");
   await expect(card).toContainText("The design team is preparing a revised proposal.");
+});
+
+test("learning hub keeps vocabulary and adds grammar, collocations, and resources", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#mobileHome").click();
+  await expect(page.locator(".sidebar")).toHaveClass(/mobile-open/);
+  await page.locator('[data-nav="autoVocabView"]').click();
+  await expect(page.locator("#viewTitle")).toHaveText("多益學習區");
+  await expect(page.locator('[role="tab"]')).toHaveCount(4);
+  await expect(page.locator('[data-learning-tab="vocabulary"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#autoVocabKnown")).toHaveText("384");
+  await expect(page.locator("#autoVocabList .word-card")).toHaveCount(100);
+  await expect(page.locator("#autoVocabDisplayCount")).toHaveText("目前顯示 100 / 2571 個");
+  await expect(page.locator("#autoVocabLoadMore")).toBeVisible();
+
+  await page.locator('[data-learning-tab="grammar"]').focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[data-learning-tab="grammar"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#learningGrammarShown")).toHaveText("18");
+  await expect(page.locator(".learning-topic-card")).toHaveCount(18);
+  await expect(page.locator(".learning-topic-card").first()).toContainText("核心句型");
+
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator('[data-learning-tab="collocations"]')).toBeFocused();
+  await expect(page.locator("#learningCollocationShown")).toHaveText("48");
+  await expect(page.locator(".collocation-item")).toHaveCount(48);
+
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator('[data-learning-tab="resources"]')).toBeFocused();
+  await expect(page.locator("#learningResourceCount")).toHaveText("6");
+  await expect(page.locator(".learning-resource-item")).toHaveCount(6);
+  const links = page.locator(".learning-resource-item a[target='_blank']");
+  await expect(links).toHaveCount(6);
+  for (let index = 0; index < await links.count(); index++) {
+    await expect(links.nth(index)).toHaveAttribute("rel", /noopener/);
+    await expect(links.nth(index)).toHaveAttribute("href", /^https:\/\//);
+  }
+
+  const overflow = await page.evaluate(() => ({
+    body: document.body.scrollWidth - document.body.clientWidth,
+    root: document.documentElement.scrollWidth - document.documentElement.clientWidth
+  }));
+  expect(overflow).toEqual({ body: 0, root: 0 });
+  await expectNoSeriousA11yViolations(page, "#learningResourcesPanel");
 });
