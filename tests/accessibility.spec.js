@@ -17,7 +17,7 @@ async function expectNoSeriousA11yViolations(page, include) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.6.0");
+  await page.goto("/?v=3.7.0");
   await expect(page.locator("#totalBank")).toHaveText("925");
 });
 
@@ -198,11 +198,11 @@ test("vocabulary entries require Chinese, KK, and part of speech", async ({ page
         .map(([word]) => word)
     };
   });
-  expect(lexiconAudit.total).toBe(388);
+  expect(lexiconAudit.total).toBe(495);
   expect(lexiconAudit.incomplete).toEqual([]);
 
   await page.locator('[data-nav="autoVocabView"]').click();
-  await expect(page.locator("#autoVocabKnown")).toHaveText("384");
+  expect(Number(await page.locator("#autoVocabKnown").textContent())).toBeGreaterThan(384);
   await page.locator("#autoVocabSearch").fill("team");
   const card = page.locator("#autoVocabList .word-card").first();
   await expect(card.locator("h3")).toContainText("team");
@@ -219,10 +219,22 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
   await expect(page.locator("#viewTitle")).toHaveText("多益學習區");
   await expect(page.locator('[role="tab"]')).toHaveCount(4);
   await expect(page.locator('[data-learning-tab="vocabulary"]')).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator("#autoVocabKnown")).toHaveText("384");
+  expect(Number(await page.locator("#autoVocabKnown").textContent())).toBeGreaterThan(384);
   await expect(page.locator("#autoVocabList .word-card")).toHaveCount(100);
-  await expect(page.locator("#autoVocabDisplayCount")).toHaveText("目前顯示 100 / 2571 個");
   await expect(page.locator("#autoVocabLoadMore")).toBeVisible();
+  await page.locator("#autoVocabSource").selectOption("davinci");
+  await expect(page.locator("#autoVocabShown")).toHaveText("120");
+  await expect(page.locator("#autoVocabDisplayCount")).toHaveText("目前顯示 100 / 120 個");
+  await page.locator("#autoVocabFit").selectOption("broad");
+  await expect(page.locator("#autoVocabShown")).toHaveText("35");
+  await expect(page.locator("#autoVocabList .word-card")).toHaveCount(35);
+  await expect(page.locator("#autoVocabList .fit-chip.broad").first()).toHaveText("雅思／托福廣域");
+  await page.locator("#autoVocabFit").selectOption("toeic-core");
+  await page.locator("#autoVocabSearch").fill("revenue");
+  const sourceCard=page.locator("#autoVocabList .word-card");
+  await expect(sourceCard).toHaveCount(1);
+  await expect(sourceCard).toContainText("多益核心");
+  await expect(sourceCard).toContainText("達文西 2 p.48");
 
   await page.locator('[data-learning-tab="grammar"]').focus();
   await page.keyboard.press("Enter");

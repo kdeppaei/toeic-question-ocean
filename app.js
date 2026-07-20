@@ -1,5 +1,6 @@
 const BUILTIN_BANK = window.BUILTIN_BANK || [];
 const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
+const DAVINCI_VOCABULARY = window.DAVINCI_VOCABULARY || { entries: [], fitLabels: {} };
 const APP_SHELL = window.TOEIC_APP_SHELL || {};
 const LEARNING_HUB = window.TOEIC_LEARNING_HUB || { grammarTopics: [], collocations: [], collocationCategories: {}, resources: [] };
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
@@ -691,7 +692,10 @@ function buildAutoVocabEntries(){
         pos:info?.pos || "",
         kk:info?.kk || "",
         zh:info?.zh || "",
-        letter:key.charAt(0).toUpperCase()
+        letter:key.charAt(0).toUpperCase(),
+        fit:"toeic-core",
+        sourceKinds:new Set(["questions"]),
+        sourceRefs:new Set()
       };
       existing.count+=1;
       existing.parts.add(q.part);
@@ -700,10 +704,42 @@ function buildAutoVocabEntries(){
       map.set(key, existing);
     }
   });
+  (DAVINCI_VOCABULARY.entries||[]).forEach(sourceEntry=>{
+    const key=normalizeAutoWord(sourceEntry.word);
+    if(!key) return;
+    const info=TOEIC_VOCAB_LEXICON[key] || sourceEntry;
+    const existing=map.get(key) || {
+      key,
+      word:key,
+      count:0,
+      parts:new Set(),
+      questionIds:new Set(),
+      example:"",
+      known:isCompleteAutoVocabInfo(info),
+      pos:info?.pos || "",
+      kk:info?.kk || "",
+      zh:info?.zh || "",
+      letter:key.charAt(0).toUpperCase(),
+      fit:sourceEntry.fit || "broad",
+      sourceKinds:new Set(),
+      sourceRefs:new Set()
+    };
+    existing.sourceKinds.add("davinci");
+    existing.sourceRefs.add(sourceEntry.sourceLabel);
+    existing.fit=existing.count>0 ? "toeic-core" : sourceEntry.fit;
+    existing.pos=existing.pos || sourceEntry.pos;
+    existing.kk=existing.kk || sourceEntry.kk;
+    existing.zh=existing.zh || sourceEntry.zh;
+    existing.example=existing.example || sourceEntry.example;
+    existing.known=isCompleteAutoVocabInfo(existing);
+    map.set(key,existing);
+  });
   return [...map.values()].map(item=>({
     ...item,
     parts:[...item.parts].sort((a,b)=>Number(a)-Number(b)),
     questionIds:[...item.questionIds],
+    sourceKinds:[...item.sourceKinds],
+    sourceRefs:[...item.sourceRefs],
     status:item.known?"known":"pending"
   }));
 }
@@ -711,14 +747,18 @@ function autoVocabFilteredEntries(sourceEntries=buildAutoVocabEntries()){
   const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
   const status=$("#autoVocabStatus")?.value || "all";
   const part=$("#autoVocabPart")?.value || "all";
+  const source=$("#autoVocabSource")?.value || "all";
+  const fit=$("#autoVocabFit")?.value || "all";
   const sort=$("#autoVocabSort")?.value || "alpha";
   let entries=[...sourceEntries];
   if(status==="known") entries=entries.filter(x=>x.known);
   if(status==="pending") entries=entries.filter(x=>!x.known);
   if(part!=="all") entries=entries.filter(x=>x.parts.includes(part));
+  if(source!=="all") entries=entries.filter(x=>x.sourceKinds.includes(source));
+  if(fit!=="all") entries=entries.filter(x=>x.fit===fit);
   if(query){
     entries=entries.filter(x=>[
-      x.word,x.zh,x.kk,x.pos
+      x.word,x.zh,x.kk,x.pos,DAVINCI_VOCABULARY.fitLabels?.[x.fit],...(x.sourceRefs||[])
     ].some(value=>String(value||"").toLowerCase().includes(query)));
   }
   if(state.autoVocabLetter && state.autoVocabLetter!=="all") entries=entries.filter(x=>x.letter===state.autoVocabLetter);
@@ -747,11 +787,15 @@ function renderAutoVocab(){
   const pending=all.length-known;
   const status=$("#autoVocabStatus")?.value || "all";
   const part=$("#autoVocabPart")?.value || "all";
+  const source=$("#autoVocabSource")?.value || "all";
+  const fit=$("#autoVocabFit")?.value || "all";
   const query=normalizeWord($("#autoVocabSearch")?.value || "").toLowerCase();
   const letterBase=all.filter(x=>
     (status==="all" || (status==="known" ? x.known : !x.known)) &&
     (part==="all" || x.parts.includes(part)) &&
-    (!query || [x.word,x.zh,x.kk,x.pos].some(value=>String(value||"").toLowerCase().includes(query)))
+    (source==="all" || x.sourceKinds.includes(source)) &&
+    (fit==="all" || x.fit===fit) &&
+    (!query || [x.word,x.zh,x.kk,x.pos,DAVINCI_VOCABULARY.fitLabels?.[x.fit],...(x.sourceRefs||[])].some(value=>String(value||"").toLowerCase().includes(query)))
   );
   const letterCounts=new Map();
   letterBase.forEach(x=>letterCounts.set(x.letter,(letterCounts.get(x.letter)||0)+1));
@@ -768,20 +812,29 @@ function renderAutoVocab(){
     const count=letter==="all"?letterBase.length:(letterCounts.get(letter)||0);
     return `<button class="az-btn ${active?"active":""}" data-auto-letter="${letter}">${label}<small>${count}</small></button>`;
   }).join("");
-  $("#autoVocabList").innerHTML=entries.length?visibleEntries.map(entry=>`
-    <article class="word-card ${entry.known?"":"pending"}">
+  $("#autoVocabList").innerHTML=entries.length?visibleEntries.map(entry=>{
+    const fitLabel=DAVINCI_VOCABULARY.fitLabels?.[entry.fit] || "多益核心";
+    const sourceLabels=[
+      entry.questionIds.length ? `題庫：${entry.questionIds.slice(0,6).join(", ")}${entry.questionIds.length>6?` 等 ${entry.questionIds.length} 題`:""}` : "",
+      ...(entry.sourceRefs||[])
+    ].filter(Boolean);
+    return `
+    <article class="word-card ${entry.known?"":"pending"} fit-${safe(entry.fit)}">
       <div class="badges">
         <span class="badge">${safe(entry.letter)}</span>
-        <span class="badge gray">出現 ${entry.count} 次</span>
-        <span class="badge gray">Part ${entry.parts.map(safe).join(" / ")}</span>
-        ${entry.known?`<span class="badge">完整詞條</span>`:`<span class="badge amber">題庫候選詞</span>`}
+        ${entry.count?`<span class="badge gray">題庫出現 ${entry.count} 次</span>`:""}
+        ${entry.parts.length?`<span class="badge gray">Part ${entry.parts.map(safe).join(" / ")}</span>`:""}
+        <span class="fit-chip ${safe(entry.fit)}">${safe(fitLabel)}</span>
+        ${entry.sourceKinds.includes("davinci")?'<span class="badge gray">達文西補庫</span>':""}
+        ${entry.known?`<span class="badge">完整詞條</span>`:`<span class="badge amber">待補詞庫</span>`}
       </div>
       <h3><span>${safe(entry.word)}</span> <small>${safe(entry.kk || "KK 待補")}</small><button class="icon-btn speak-word" data-speak-word="${safe(entry.word)}" aria-label="播放 ${safe(entry.word)} 發音">▶</button></h3>
       <p><b>${safe(entry.pos || "詞性待補")}</b>　${safe(entry.zh || "待補中文解釋")}</p>
-      <p class="example"><b>題庫例句：</b>${safe(entry.example || "尚未擷取到完整例句")}</p>
-      <div class="sources">來源題號：${safe(entry.questionIds.slice(0,6).join(", "))}${entry.questionIds.length>6?` 等 ${entry.questionIds.length} 題`:""}</div>
+      <p class="example"><b>${entry.sourceKinds.includes("questions")?"題庫／學習例句":"學習例句"}：</b>${safe(entry.example || "尚未擷取到完整例句")}</p>
+      <div class="sources">來源：${safe(sourceLabels.join("；") || "現有詞庫")}</div>
       <div class="vocab-meta"><button class="btn" data-add-auto-vocab="${safe(entry.key)}">加入個人單字本</button>${entry.known?`<button class="btn" data-review-auto-vocab="${safe(entry.key)}">練這個單字</button>`:""}</div>
-    </article>`).join(""):'<div class="card empty">這個條件下沒有單字。試著切換字母、顯示模式或清空搜尋。</div>';
+    </article>`;
+  }).join(""):'<div class="card empty">這個條件下沒有單字。試著切換來源、考試適配、字母或清空搜尋。</div>';
   const loadMore=$("#autoVocabLoadMoreWrap");
   loadMore.hidden=visibleCount>=entries.length;
   $("#autoVocabDisplayCount").textContent=`目前顯示 ${visibleCount} / ${entries.length} 個`;
@@ -2956,11 +3009,13 @@ $("#saveVocab").onclick=saveVocabFromForm;
 $("#resetVocabForm").onclick=resetVocabForm;
 $("#exportVocab").onclick=exportVocab;
 $("#clearVocab").onclick=()=>{ if(confirm("確定清空個人單字本？")){ saveVocab([]); renderVocab(); } };
-$("#refreshAutoVocab").onclick=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); showToast("已重新掃描題庫單字"); };
+$("#refreshAutoVocab").onclick=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); showToast("已重新整理分級詞庫"); };
 $("#autoVocabSearch").addEventListener("input",()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); });
 $("#autoVocabStatus").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };
 $("#autoVocabSort").onchange=()=>{ state.autoVocabVisible=100; renderAutoVocab(); };
 $("#autoVocabPart").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };
+$("#autoVocabSource").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };
+$("#autoVocabFit").onchange=()=>{ state.autoVocabLetter="all"; state.autoVocabVisible=100; renderAutoVocab(); };
 $$("[data-learning-tab]").forEach((button,index,tabs)=>{
   button.onclick=()=>setLearningTab(button.dataset.learningTab);
   button.onkeydown=event=>{

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海學習網站，內建 925 題與 Part 1–7 完整題型，支援 A-Z 單字、基礎與進階文法、商務搭配、閱讀素養、聽力口音與題目品質稽核。" />
+  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海學習網站，內建 925 題與 Part 1–7 完整題型，支援分級廣域單字、基礎與進階文法、商務搭配、閱讀素養、聽力口音與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.6.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.7.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
@@ -74,9 +74,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v3.6.0</span><span class="badge gray">18 個文法主題</span><span class="badge gray">48 組搭配</span><span class="badge gray">6 個外部資源</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">多益學習區：文法、搭配與開放資源</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">A-Z 單字庫升級為完整學習區，新增 10 個基礎與 8 個進階文法主題、48 組商務搭配，以及 6 個授權狀態清楚的外部資源。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v3.7.0</span><span class="badge gray">120 詞首批擴庫</span><span class="badge gray">三級考試適配</span><span class="badge gray">來源可追溯</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">達文西廣域詞庫：多益適配分流</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">首批整理 120 個教材詞頭，補上中文、音標、詞性與自編例句，並分成多益核心、多益延伸及雅思／托福廣域三層。</p>
         </article>
 
         <div class="stats-grid">
@@ -262,11 +262,11 @@
             <h2 style="margin:0">多益學習區</h2>
             <p style="color:var(--muted);margin:5px 0 0">把題庫單字、核心文法、商務搭配與合法外部資源整理在同一個學習工作台。</p>
           </div>
-          <div class="badges learning-hub-badges"><span class="badge">18 個文法主題</span><span class="badge gray">48 組搭配</span><span class="badge gray">6 個外部資源</span></div>
+          <div class="badges learning-hub-badges"><span class="badge">18 個文法主題</span><span class="badge gray">48 組搭配</span><span class="badge gray">120 詞廣域補庫</span></div>
         </div>
 
         <div class="learning-tabs" role="tablist" aria-label="多益學習內容">
-          <button class="learning-tab active" id="learningTabVocabulary" role="tab" aria-selected="true" aria-controls="learningVocabularyPanel" data-learning-tab="vocabulary">A-Z 題庫單字</button>
+          <button class="learning-tab active" id="learningTabVocabulary" role="tab" aria-selected="true" aria-controls="learningVocabularyPanel" data-learning-tab="vocabulary">A-Z 單字詞庫</button>
           <button class="learning-tab" id="learningTabGrammar" role="tab" aria-selected="false" aria-controls="learningGrammarPanel" tabindex="-1" data-learning-tab="grammar">文法教材</button>
           <button class="learning-tab" id="learningTabCollocations" role="tab" aria-selected="false" aria-controls="learningCollocationsPanel" tabindex="-1" data-learning-tab="collocations">常用搭配</button>
           <button class="learning-tab" id="learningTabResources" role="tab" aria-selected="false" aria-controls="learningResourcesPanel" tabindex="-1" data-learning-tab="resources">開放資源</button>
@@ -274,12 +274,12 @@
 
         <section class="learning-panel active" id="learningVocabularyPanel" role="tabpanel" aria-labelledby="learningTabVocabulary" data-learning-panel="vocabulary">
           <div class="learning-panel-head">
-            <div><h3>A-Z 題庫單字</h3><p>從題目、選項、閱讀文章與聽力逐字稿即時抽字；題目增加時，候選詞也會更新。</p></div>
-            <button class="btn" id="refreshAutoVocab">重新掃描題庫</button>
+            <div><h3>A-Z 分級單字詞庫</h3><p>整合題庫即時抽字與廣域教材補庫；依考試適配度分層，不把進階一般詞誤標成多益必背。</p></div>
+            <button class="btn" id="refreshAutoVocab">重新整理詞庫</button>
           </div>
 
           <div class="stats-grid auto-vocab-stats">
-            <article class="card"><div class="stat-label">題庫候選詞</div><div class="stat-value" id="autoVocabTotal">0</div><div class="stat-foot">由目前題庫即時擷取</div></article>
+            <article class="card"><div class="stat-label">學習詞條總數</div><div class="stat-value" id="autoVocabTotal">0</div><div class="stat-foot">題庫抽字＋廣域補充</div></article>
             <article class="card"><div class="stat-label">已完成詞條</div><div class="stat-value" id="autoVocabKnown">0</div><div class="stat-foot">含中文、KK、詞性</div></article>
             <article class="card"><div class="stat-label">待補詞庫</div><div class="stat-value" id="autoVocabPending">0</div><div class="stat-foot">新題目會先進入這裡</div></article>
             <article class="card"><div class="stat-label">目前篩選</div><div class="stat-value" id="autoVocabShown">0</div><div class="stat-foot">顯示於下方卡片</div></article>
@@ -288,15 +288,23 @@
           <article class="card auto-vocab-panel">
             <div class="form-grid">
               <label><span>搜尋單字</span><input id="autoVocabSearch" type="text" placeholder="warranty / 採購 / /ˈvɛndɚ/"></label>
-              <label><span>顯示模式</span><select id="autoVocabStatus"><option value="all" selected>全部題庫單字</option><option value="known">完整詞條</option><option value="pending">待補資料</option></select></label>
+              <label><span>顯示模式</span><select id="autoVocabStatus"><option value="all" selected>全部詞條</option><option value="known">完整詞條</option><option value="pending">待補資料</option></select></label>
               <label><span>排序</span><select id="autoVocabSort"><option value="alpha" selected>A-Z</option><option value="frequency">題庫出現次數</option></select></label>
               <label><span>來源 Part</span><select id="autoVocabPart"><option value="all" selected>全部 Part</option><option value="1">Part 1</option><option value="2">Part 2</option><option value="3">Part 3</option><option value="4">Part 4</option><option value="5">Part 5</option><option value="6">Part 6</option><option value="7">Part 7</option></select></label>
+              <label><span>詞庫來源</span><select id="autoVocabSource"><option value="all" selected>全部來源</option><option value="questions">現有題庫</option><option value="davinci">達文西廣域詞庫</option></select></label>
+              <label><span>考試適配</span><select id="autoVocabFit"><option value="all" selected>全部層級</option><option value="toeic-core">多益核心</option><option value="toeic-extended">多益延伸</option><option value="broad">雅思／托福廣域</option></select></label>
             </div>
+            <div class="vocab-fit-legend" aria-label="單字適配度圖例">
+              <span class="fit-chip toeic-core">多益核心：商務與題庫高頻</span>
+              <span class="fit-chip toeic-extended">多益延伸：情境閱讀可見</span>
+              <span class="fit-chip broad">雅思／托福廣域：一般進階</span>
+            </div>
+            <p class="vocab-fit-note">適配度依本站題庫交集與常見商務情境人工判斷，並非 ETS、IELTS 或 TOEFL 官方字表。</p>
             <div class="az-strip" id="autoVocabLetters"></div>
           </article>
 
           <div class="section-head">
-            <div><h2>單字卡</h2><p>例句優先取自題庫原文；按「加入個人單字本」可排入你的長期複習。</p></div>
+            <div><h2>單字卡</h2><p>題庫詞優先採用題目原句；廣域補充使用重新編寫的例句並標示教材來源頁。</p></div>
           </div>
           <div id="autoVocabList" class="auto-vocab-grid"></div>
           <div class="learning-load-more" id="autoVocabLoadMoreWrap" hidden>
@@ -638,6 +646,7 @@
 <script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./vocab-lexicon-v35.js"></script>
+<script src="./modules/davinci-vocabulary.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/toeic-learning-hub.js"></script>
 <script src="./modules/learning-command-center.js"></script>
