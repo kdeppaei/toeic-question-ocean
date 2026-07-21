@@ -1,0 +1,1081 @@
+{
+  "version": "0.1",
+  "title": "TOEIC五天邪修手冊",
+  "cards": [
+    {
+      "id": "card-001",
+      "category": "總策略",
+      "title": "錯題六分類",
+      "rule": "每一題只選一個主要錯因：V/G/L/P/T/C。分類的目的，是決定下一步，而不是做漂亮筆記。",
+      "examples": [
+        "invoice 不會 → V",
+        "because / because of 搞混 → G",
+        "聽到 fifteen 誤判 fifty → L"
+      ],
+      "traps": [
+        "不要把所有錯題都寫成粗心"
+      ]
+    },
+    {
+      "id": "card-002",
+      "category": "Part 5 詞性",
+      "title": "冠詞／所有格＋____＋名詞",
+      "rule": "通常缺形容詞",
+      "examples": [
+        "an annual report；our new policy"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-003",
+      "category": "Part 5 詞性",
+      "title": "冠詞＋____",
+      "rule": "通常缺名詞",
+      "examples": [
+        "a decision；the expansion"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-004",
+      "category": "Part 5 詞性",
+      "title": "be 動詞＋____",
+      "rule": "形容詞或過去分詞，須看語意",
+      "examples": [
+        "is available；was approved"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-005",
+      "category": "Part 5 詞性",
+      "title": "動詞＋____",
+      "rule": "多半是副詞或受詞名詞",
+      "examples": [
+        "respond promptly；submit an application"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-006",
+      "category": "Part 5 詞性",
+      "title": "____＋形容詞／副詞",
+      "rule": "通常缺副詞",
+      "examples": [
+        "highly effective；very carefully"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-007",
+      "category": "Part 5 詞性",
+      "title": "介系詞＋____",
+      "rule": "名詞、代名詞或 V-ing",
+      "examples": [
+        "after completion；by using"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-008",
+      "category": "Part 5 動詞",
+      "title": "主被動判斷",
+      "rule": "先問主詞「做動作」還是「被做」；再決定主動或 be + Vpp。",
+      "examples": [
+        "The manager approved the plan.",
+        "The plan was approved by the manager."
+      ],
+      "traps": [
+        "不要只看到 by 就機械選被動；by Friday 是時間"
+      ]
+    },
+    {
+      "id": "card-009",
+      "category": "Part 5 連接詞",
+      "title": "because 與 because of",
+      "rule": "because 後面接完整子句；because of 後面接名詞片語。",
+      "examples": [
+        "The event was canceled because it rained.",
+        "The event was canceled because of the rain."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-010",
+      "category": "Part 5 連接詞",
+      "title": "although 與 despite",
+      "rule": "although 接 S+V；despite 接名詞或 V-ing。",
+      "examples": [
+        "Although demand increased, prices remained stable.",
+        "Despite increased demand, prices remained stable."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-011",
+      "category": "Part 1",
+      "title": "lean against",
+      "rule": "倚靠著",
+      "examples": [
+        "A ladder is leaning against a wall."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-012",
+      "category": "Part 1",
+      "title": "lean on",
+      "rule": "把重量靠在……上",
+      "examples": [
+        "A man is leaning on a counter."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-013",
+      "category": "Part 1",
+      "title": "be stacked",
+      "rule": "被堆疊",
+      "examples": [
+        "Boxes are stacked near the doorway."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-014",
+      "category": "Part 1",
+      "title": "be lined up",
+      "rule": "排成一列",
+      "examples": [
+        "Bicycles are lined up along the street."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-015",
+      "category": "Part 1",
+      "title": "be arranged",
+      "rule": "被排列／布置",
+      "examples": [
+        "Chairs are arranged in rows."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-016",
+      "category": "Part 1",
+      "title": "be displayed",
+      "rule": "被展示",
+      "examples": [
+        "Merchandise is displayed on shelves."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-017",
+      "category": "Part 1",
+      "title": "be scattered",
+      "rule": "散落",
+      "examples": [
+        "Papers are scattered across the desk."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-018",
+      "category": "Part 1",
+      "title": "be piled up",
+      "rule": "堆成一堆",
+      "examples": [
+        "Logs are piled up beside a building."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-019",
+      "category": "Part 1",
+      "title": "reach for",
+      "rule": "伸手拿",
+      "examples": [
+        "The woman is reaching for a book."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-020",
+      "category": "Part 1",
+      "title": "pour",
+      "rule": "倒液體",
+      "examples": [
+        "A server is pouring water into a glass."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-021",
+      "category": "Part 1",
+      "title": "load / unload",
+      "rule": "裝載／卸貨",
+      "examples": [
+        "Workers are unloading boxes from a truck."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-022",
+      "category": "Part 1",
+      "title": "face",
+      "rule": "面向",
+      "examples": [
+        "Rows of chairs are facing a screen."
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-023",
+      "category": "Part 2",
+      "title": "Where...?",
+      "rule": "地點／方向／替代安排",
+      "examples": [
+        "In Conference Room B.",
+        "The venue was changed."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-024",
+      "category": "Part 2",
+      "title": "When...?",
+      "rule": "時間／進度",
+      "examples": [
+        "At three o’clock.",
+        "It hasn’t been decided yet."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-025",
+      "category": "Part 2",
+      "title": "Who...?",
+      "rule": "人／負責單位",
+      "examples": [
+        "Ms. Chen will.",
+        "The accounting department."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-026",
+      "category": "Part 2",
+      "title": "Why...?",
+      "rule": "原因／目的",
+      "examples": [
+        "Because the printer is broken.",
+        "To reduce costs."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-027",
+      "category": "Part 2",
+      "title": "How often...?",
+      "rule": "頻率",
+      "examples": [
+        "Twice a month."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-028",
+      "category": "Part 2",
+      "title": "Would you...?",
+      "rule": "請求或提議",
+      "examples": [
+        "Certainly.",
+        "I’d be happy to."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-029",
+      "category": "Part 2",
+      "title": "Why don’t we...?",
+      "rule": "提議",
+      "examples": [
+        "That sounds good.",
+        "I already made a reservation."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-030",
+      "category": "Part 2",
+      "title": "Haven’t you...?",
+      "rule": "確認／驚訝",
+      "examples": [
+        "Not yet.",
+        "I sent it this morning."
+      ],
+      "traps": [
+        "答案不一定重複問句中的字"
+      ]
+    },
+    {
+      "id": "card-031",
+      "category": "Part 2",
+      "title": "間接回答",
+      "rule": "答案只要在情境上合理，不必逐字回答問句。",
+      "examples": [
+        "Where is Tom? — His car is outside.",
+        "Would you like lunch? — I already ate."
+      ],
+      "traps": [
+        "不要因為沒有 yes/no 就排除"
+      ]
+    },
+    {
+      "id": "card-032",
+      "category": "Part 6",
+      "title": "轉折",
+      "rule": "辨認前後句的邏輯關係，再選連接副詞。",
+      "examples": [
+        "however / nevertheless"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-033",
+      "category": "Part 6",
+      "title": "結果",
+      "rule": "辨認前後句的邏輯關係，再選連接副詞。",
+      "examples": [
+        "therefore / consequently"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-034",
+      "category": "Part 6",
+      "title": "補充",
+      "rule": "辨認前後句的邏輯關係，再選連接副詞。",
+      "examples": [
+        "moreover / in addition"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-035",
+      "category": "Part 3/4",
+      "title": "轉折",
+      "rule": "轉折後常是問題或真正決定",
+      "examples": [
+        "but, however, actually"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-036",
+      "category": "Part 3/4",
+      "title": "原因",
+      "rule": "回答 why／problem",
+      "examples": [
+        "because, since, due to"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-037",
+      "category": "Part 3/4",
+      "title": "下一步",
+      "rule": "回答 what will happen next",
+      "examples": [
+        "I’ll, we’ll, need to, should"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-038",
+      "category": "Part 3/4",
+      "title": "更正",
+      "rule": "原先資訊可能被推翻",
+      "examples": [
+        "I mean, rather, instead"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-039",
+      "category": "Part 3/4",
+      "title": "數字",
+      "rule": "注意 fifteen/fifty、Tuesday/Thursday",
+      "examples": [
+        "時間、日期、價格、數量"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-040",
+      "category": "同義改寫",
+      "title": "buy",
+      "rule": "聽到 buy 時，選項可能改寫成其他表達。",
+      "examples": [
+        "purchase / place an order"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-041",
+      "category": "同義改寫",
+      "title": "delay",
+      "rule": "聽到 delay 時，選項可能改寫成其他表達。",
+      "examples": [
+        "postpone / put off"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-042",
+      "category": "同義改寫",
+      "title": "repair",
+      "rule": "聽到 repair 時，選項可能改寫成其他表達。",
+      "examples": [
+        "fix / service"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-043",
+      "category": "同義改寫",
+      "title": "reduce",
+      "rule": "聽到 reduce 時，選項可能改寫成其他表達。",
+      "examples": [
+        "cut / lower"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-044",
+      "category": "同義改寫",
+      "title": "available",
+      "rule": "聽到 available 時，選項可能改寫成其他表達。",
+      "examples": [
+        "in stock / open"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-045",
+      "category": "同義改寫",
+      "title": "free",
+      "rule": "聽到 free 時，選項可能改寫成其他表達。",
+      "examples": [
+        "complimentary / no charge"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-046",
+      "category": "同義改寫",
+      "title": "near",
+      "rule": "聽到 near 時，選項可能改寫成其他表達。",
+      "examples": [
+        "close to / within walking distance"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-047",
+      "category": "同義改寫",
+      "title": "submit",
+      "rule": "聽到 submit 時，選項可能改寫成其他表達。",
+      "examples": [
+        "turn in / send"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-048",
+      "category": "同義改寫",
+      "title": "employee",
+      "rule": "聽到 employee 時，選項可能改寫成其他表達。",
+      "examples": [
+        "staff member / worker"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-049",
+      "category": "同義改寫",
+      "title": "customer",
+      "rule": "聽到 customer 時，選項可能改寫成其他表達。",
+      "examples": [
+        "client / patron"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-050",
+      "category": "Part 7 文件",
+      "title": "Email",
+      "rule": "閱讀 Email 時優先定位：寄件目的、要求、截止日。",
+      "examples": [
+        "寄件目的、要求、截止日"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-051",
+      "category": "Part 7 文件",
+      "title": "Notice",
+      "rule": "閱讀 Notice 時優先定位：變更與適用對象。",
+      "examples": [
+        "變更與適用對象"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-052",
+      "category": "Part 7 文件",
+      "title": "Advertisement",
+      "rule": "閱讀 Advertisement 時優先定位：優惠與限制。",
+      "examples": [
+        "優惠與限制"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-053",
+      "category": "Part 7 文件",
+      "title": "Invoice",
+      "rule": "閱讀 Invoice 時優先定位：金額與付款狀態。",
+      "examples": [
+        "金額與付款狀態"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-054",
+      "category": "固定搭配",
+      "title": "apply for",
+      "rule": "申請",
+      "examples": [
+        "apply for"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-055",
+      "category": "固定搭配",
+      "title": "apply to",
+      "rule": "適用於／向……申請",
+      "examples": [
+        "apply to"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-056",
+      "category": "固定搭配",
+      "title": "be responsible for",
+      "rule": "負責",
+      "examples": [
+        "be responsible for"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-057",
+      "category": "固定搭配",
+      "title": "participate in",
+      "rule": "參加",
+      "examples": [
+        "participate in"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-058",
+      "category": "固定搭配",
+      "title": "comply with",
+      "rule": "遵守",
+      "examples": [
+        "comply with"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-059",
+      "category": "固定搭配",
+      "title": "depend on",
+      "rule": "取決於",
+      "examples": [
+        "depend on"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-060",
+      "category": "固定搭配",
+      "title": "belong to",
+      "rule": "屬於",
+      "examples": [
+        "belong to"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-061",
+      "category": "固定搭配",
+      "title": "be eligible for",
+      "rule": "有資格獲得",
+      "examples": [
+        "be eligible for"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-062",
+      "category": "固定搭配",
+      "title": "be aware of",
+      "rule": "知道",
+      "examples": [
+        "be aware of"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-063",
+      "category": "固定搭配",
+      "title": "be familiar with",
+      "rule": "熟悉",
+      "examples": [
+        "be familiar with"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-064",
+      "category": "固定搭配",
+      "title": "in accordance with",
+      "rule": "依照",
+      "examples": [
+        "in accordance with"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-065",
+      "category": "固定搭配",
+      "title": "in response to",
+      "rule": "回應",
+      "examples": [
+        "in response to"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-066",
+      "category": "固定搭配",
+      "title": "in advance",
+      "rule": "事先",
+      "examples": [
+        "in advance"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-067",
+      "category": "固定搭配",
+      "title": "on behalf of",
+      "rule": "代表",
+      "examples": [
+        "on behalf of"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-068",
+      "category": "固定搭配",
+      "title": "at no additional cost",
+      "rule": "不加收費用",
+      "examples": [
+        "at no additional cost"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-069",
+      "category": "固定搭配",
+      "title": "ahead of schedule",
+      "rule": "提前",
+      "examples": [
+        "ahead of schedule"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-070",
+      "category": "固定搭配",
+      "title": "under construction",
+      "rule": "施工中",
+      "examples": [
+        "under construction"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-071",
+      "category": "固定搭配",
+      "title": "out of stock",
+      "rule": "缺貨",
+      "examples": [
+        "out of stock"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-072",
+      "category": "固定搭配",
+      "title": "in charge of",
+      "rule": "負責",
+      "examples": [
+        "in charge of"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-073",
+      "category": "固定搭配",
+      "title": "on display",
+      "rule": "展示中",
+      "examples": [
+        "on display"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-074",
+      "category": "固定搭配",
+      "title": "meet a deadline",
+      "rule": "趕上期限",
+      "examples": [
+        "meet a deadline"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-075",
+      "category": "固定搭配",
+      "title": "make a reservation",
+      "rule": "預約",
+      "examples": [
+        "make a reservation"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-076",
+      "category": "固定搭配",
+      "title": "place an order",
+      "rule": "下訂單",
+      "examples": [
+        "place an order"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-077",
+      "category": "固定搭配",
+      "title": "submit an application",
+      "rule": "提交申請",
+      "examples": [
+        "submit an application"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-078",
+      "category": "固定搭配",
+      "title": "issue a refund",
+      "rule": "退款",
+      "examples": [
+        "issue a refund"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-079",
+      "category": "固定搭配",
+      "title": "conduct a survey",
+      "rule": "進行調查",
+      "examples": [
+        "conduct a survey"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-080",
+      "category": "固定搭配",
+      "title": "hold a meeting",
+      "rule": "舉行會議",
+      "examples": [
+        "hold a meeting"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-081",
+      "category": "固定搭配",
+      "title": "reach an agreement",
+      "rule": "達成協議",
+      "examples": [
+        "reach an agreement"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-082",
+      "category": "固定搭配",
+      "title": "file a complaint",
+      "rule": "提出申訴",
+      "examples": [
+        "file a complaint"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-083",
+      "category": "固定搭配",
+      "title": "renew a subscription",
+      "rule": "續訂",
+      "examples": [
+        "renew a subscription"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-084",
+      "category": "固定搭配",
+      "title": "annual revenue",
+      "rule": "年營收",
+      "examples": [
+        "annual revenue"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-085",
+      "category": "固定搭配",
+      "title": "operating expenses",
+      "rule": "營運支出",
+      "examples": [
+        "operating expenses"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-086",
+      "category": "固定搭配",
+      "title": "customer satisfaction",
+      "rule": "顧客滿意度",
+      "examples": [
+        "customer satisfaction"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-087",
+      "category": "固定搭配",
+      "title": "job opening",
+      "rule": "職缺",
+      "examples": [
+        "job opening"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-088",
+      "category": "固定搭配",
+      "title": "work experience",
+      "rule": "工作經驗",
+      "examples": [
+        "work experience"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-089",
+      "category": "固定搭配",
+      "title": "shipping fee",
+      "rule": "運費",
+      "examples": [
+        "shipping fee"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-090",
+      "category": "固定搭配",
+      "title": "delivery date",
+      "rule": "交貨日",
+      "examples": [
+        "delivery date"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-091",
+      "category": "固定搭配",
+      "title": "product warranty",
+      "rule": "產品保固",
+      "examples": [
+        "product warranty"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-092",
+      "category": "固定搭配",
+      "title": "safety regulations",
+      "rule": "安全規範",
+      "examples": [
+        "safety regulations"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-093",
+      "category": "固定搭配",
+      "title": "training session",
+      "rule": "訓練課程",
+      "examples": [
+        "training session"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-094",
+      "category": "易混字",
+      "title": "affect (v.) vs. effect (n.)",
+      "rule": "affect (v.)：影響；effect (n.)：效果。",
+      "examples": [
+        "affect (v.)",
+        "effect (n.)"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-095",
+      "category": "易混字",
+      "title": "complimentary vs. complementary",
+      "rule": "complimentary：免費的／讚美的；complementary：互補的。",
+      "examples": [
+        "complimentary",
+        "complementary"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-096",
+      "category": "易混字",
+      "title": "economic vs. economical",
+      "rule": "economic：經濟的；economical：節省的。",
+      "examples": [
+        "economic",
+        "economical"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-097",
+      "category": "易混字",
+      "title": "personnel vs. personal",
+      "rule": "personnel：人事／全體員工；personal：個人的。",
+      "examples": [
+        "personnel",
+        "personal"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-098",
+      "category": "易混字",
+      "title": "respectively vs. respectfully",
+      "rule": "respectively：分別地；respectfully：恭敬地。",
+      "examples": [
+        "respectively",
+        "respectfully"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-099",
+      "category": "易混字",
+      "title": "stationary vs. stationery",
+      "rule": "stationary：靜止的；stationery：文具。",
+      "examples": [
+        "stationary",
+        "stationery"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-100",
+      "category": "易混字",
+      "title": "assure vs. ensure",
+      "rule": "assure：向人保證；ensure：確保事情。",
+      "examples": [
+        "assure",
+        "ensure"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-101",
+      "category": "易混字",
+      "title": "rise vs. raise",
+      "rule": "rise：自己上升；raise：提高某物。",
+      "examples": [
+        "rise",
+        "raise"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-102",
+      "category": "易混字",
+      "title": "beside vs. besides",
+      "rule": "beside：在旁邊；besides：此外。",
+      "examples": [
+        "beside",
+        "besides"
+      ],
+      "traps": []
+    },
+    {
+      "id": "card-103",
+      "category": "易混字",
+      "title": "later vs. latter",
+      "rule": "later：稍後；latter：後者。",
+      "examples": [
+        "later",
+        "latter"
+      ],
+      "traps": []
+    }
+  ]
+}

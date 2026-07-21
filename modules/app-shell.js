@@ -1,13 +1,14 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.8.0",
+  version: "3.9.0",
   release: {
-    title: "分級詞庫進度與核心複習",
-    summary: "再補 50 個可核對詞條，並讓多益核心、延伸及廣域詞各自記錄已練詞數、作答數與正確率。",
-    badges: ["v3.8.0", "170 詞分級補庫", "獨立學習進度", "核心一鍵複習"]
+    title: "ETS × abceed × 新東方三軌訓練",
+    summary: "以官方素材校準、智慧工具刷題、中文資源補洞；本站負責任務、錯因與進度，不重製外部付費題目。",
+    badges: ["v3.9.0", "五天衝刺工作台", "103 張手冊卡", "外部練習紀錄"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
     setupView: "建立練習",
+    sprintView: "五天衝刺工作台",
     practiceView: "作答練習",
     resultView: "成績報告",
     wrongView: "錯題本",

@@ -6,6 +6,7 @@ const LEARNING_HUB = window.TOEIC_LEARNING_HUB || { grammarTopics: [], collocati
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
 const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId:{}, issues:[], errors:[], warnings:[], checked:0 }) };
+const FIVE_DAY_SPRINT = window.TOEIC_FIVE_DAY_SPRINT || { days: [], sources: [], errorTags: [], handbookUrl: "" };
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -19,7 +20,8 @@ const KEYS = {
   vocab: "toeicOcean.vocab.v1",
   vocabFitProgress: "toeicOcean.vocabFitProgress.v1",
   quality: "toeicOcean.questionQuality.v1",
-  audioAccent: "toeicOcean.audioAccent.v1"
+  audioAccent: "toeicOcean.audioAccent.v1",
+  sprint: "toeicOcean.fiveDaySprint.v1"
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
@@ -265,7 +267,11 @@ const state = {
   learningTab: "vocabulary",
   readingSkill: "all",
   sessionStrategy: null,
-  vocabQuiz: { questions: [], index: 0, answers: [] }
+  vocabQuiz: { questions: [], index: 0, answers: [] },
+  sprintDay: 1,
+  sprintCards: [],
+  sprintCardsLoaded: false,
+  sprintReady: false
 };
 
 const $ = (s) => document.querySelector(s);
@@ -1253,6 +1259,179 @@ function nextVocabQuestion(){
   renderVocabReview();
 }
 
+function getSprintState(){
+  const saved=load(KEYS.sprint,{});
+  const currentDay=Math.min(5,Math.max(1,Number(saved.currentDay)||1));
+  return {
+    currentDay,
+    tasks:saved.tasks&&typeof saved.tasks==="object"?saved.tasks:{},
+    logs:Array.isArray(saved.logs)?saved.logs.slice(0,100):[]
+  };
+}
+function saveSprintState(value){
+  save(KEYS.sprint,value);
+}
+function sprintDay(){
+  return FIVE_DAY_SPRINT.days.find(day=>day.day===state.sprintDay)||FIVE_DAY_SPRINT.days[0];
+}
+async function loadSprintCards(){
+  if(state.sprintCardsLoaded||!FIVE_DAY_SPRINT.handbookUrl) return;
+  state.sprintCardsLoaded=true;
+  try{
+    const response=await fetch(FIVE_DAY_SPRINT.handbookUrl,{cache:"no-cache"});
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload=await response.json();
+    state.sprintCards=Array.isArray(payload.cards)?payload.cards:[];
+  }catch{
+    state.sprintCards=[];
+  }
+  if(state.currentView==="sprintView") renderFiveDaySprint();
+}
+function selectSprintDay(day){
+  const next=Math.min(5,Math.max(1,Number(day)||1));
+  state.sprintDay=next;
+  const saved=getSprintState();
+  saved.currentDay=next;
+  saveSprintState(saved);
+  renderFiveDaySprint();
+}
+function toggleSprintTask(taskIndex,checked){
+  const saved=getSprintState();
+  saved.tasks[`${state.sprintDay}-${taskIndex}`]=!!checked;
+  saveSprintState(saved);
+  renderFiveDaySprint();
+}
+function sprintProgress(saved){
+  const total=FIVE_DAY_SPRINT.days.reduce((sum,day)=>sum+day.tasks.length,0);
+  const done=Object.entries(saved.tasks).filter(([,value])=>value).length;
+  return {done,total,percent:total?Math.round(done/total*100):0};
+}
+function renderSprintSources(){
+  $("#sprintSourceGrid").innerHTML=FIVE_DAY_SPRINT.sources.map(source=>`
+    <article class="sprint-source-card source-${safe(source.id)}">
+      <div class="sprint-source-top"><div><span>${safe(source.ratio)}%</span><small>${safe(source.role)}</small></div><h3>${safe(source.name)}</h3></div>
+      <ul>${source.uses.map(use=>`<li>${safe(use)}</li>`).join("")}</ul>
+      <p>${safe(source.note)}</p>
+      <a class="btn" href="${safe(source.url)}" target="_blank" rel="noopener noreferrer">開啟官方網站 ↗</a>
+    </article>`).join("");
+}
+function sprintCardEntries(){
+  const day=sprintDay();
+  const scope=$("#sprintCardScope")?.value||"day";
+  const category=$("#sprintCardCategory")?.value||"all";
+  const query=($("#sprintCardSearch")?.value||"").trim().toLowerCase();
+  return state.sprintCards.filter(card=>{
+    if(scope==="day"&&!day.cardCategories.includes(card.category)) return false;
+    if(category!=="all"&&card.category!==category) return false;
+    if(!query) return true;
+    return [card.category,card.title,card.rule,...(card.examples||[]),...(card.traps||[])].join(" ").toLowerCase().includes(query);
+  });
+}
+function renderSprintCards(){
+  const categorySelect=$("#sprintCardCategory");
+  const current=categorySelect.value||"all";
+  const categories=[...new Set(state.sprintCards.map(card=>card.category))];
+  categorySelect.innerHTML='<option value="all">全部分類</option>'+categories.map(category=>`<option value="${safe(category)}">${safe(category)}</option>`).join("");
+  categorySelect.value=categories.includes(current)?current:"all";
+  const entries=sprintCardEntries();
+  $("#sprintCardCount").textContent=state.sprintCards.length;
+  $("#sprintCardStatus").textContent=state.sprintCardsLoaded
+    ? state.sprintCards.length?`目前顯示 ${entries.length} / ${state.sprintCards.length} 張。`:`卡片檔無法載入，請改用 GitHub Pages 或本機伺服器開啟。`
+    : "載入五天手冊卡片中。";
+  $("#sprintCardList").innerHTML=entries.length?entries.map(card=>`
+    <article class="sprint-handbook-card">
+      <div class="badges"><span class="badge gray">${safe(card.category)}</span><span class="badge gray">${safe(card.id)}</span></div>
+      <h3>${safe(card.title)}</h3>
+      <p class="sprint-card-rule">${safe(card.rule)}</p>
+      ${(card.examples||[]).length?`<div class="sprint-card-examples">${card.examples.map(example=>`<span>${safe(example)}</span>`).join("")}</div>`:""}
+      ${(card.traps||[]).length?`<p class="sprint-card-trap"><strong>陷阱：</strong>${safe(card.traps.join("；"))}</p>`:""}
+    </article>`).join(""):'<div class="empty">目前條件沒有符合的手冊卡。</div>';
+}
+function renderSprintStats(saved){
+  const total=saved.logs.reduce((sum,log)=>sum+(Number(log.total)||0),0);
+  const correct=saved.logs.reduce((sum,log)=>sum+(Number(log.correct)||0),0);
+  const errorCounts={};
+  saved.logs.forEach(log=>errorCounts[log.error]=(errorCounts[log.error]||0)+1);
+  const top=Object.entries(errorCounts).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const topTag=FIVE_DAY_SPRINT.errorTags.find(tag=>tag.id===top);
+  $("#sprintLoggedTotal").textContent=total;
+  $("#sprintLoggedAccuracy").textContent=total?`${Math.round(correct/total*100)}%`:"0%";
+  $("#sprintTopError").textContent=topTag?`${topTag.id} · ${topTag.label}`:"—";
+}
+function renderFiveDaySprint(){
+  if(!state.sprintReady){
+    state.sprintDay=getSprintState().currentDay;
+    state.sprintReady=true;
+  }
+  const day=sprintDay();
+  if(!day) return;
+  const saved=getSprintState();
+  const progress=sprintProgress(saved);
+  $("#sprintDayBadge").textContent=`Day ${day.day}`;
+  $("#sprintDayFocus").textContent=day.title;
+  $("#sprintDayTitle").textContent=day.goal;
+  $("#sprintDayGoal").textContent=day.tasks.join(" · ");
+  $("#sprintProgressBar").style.width=`${progress.percent}%`;
+  $("#sprintProgressTrack").setAttribute("aria-valuenow",String(progress.percent));
+  $("#sprintProgressText").textContent=`${progress.done} / ${progress.total} 項任務`;
+  $("#sprintDayTabs").innerHTML=FIVE_DAY_SPRINT.days.map(item=>`
+    <button class="sprint-day-tab ${item.day===day.day?"active":""}" type="button" role="tab" aria-selected="${item.day===day.day}" data-sprint-day="${item.day}">
+      <span>Day ${item.day}</span><small>${safe(item.title)}</small>
+    </button>`).join("");
+  $("#sprintTaskList").innerHTML=day.tasks.map((task,index)=>`
+    <label class="sprint-task ${saved.tasks[`${day.day}-${index}`]?"done":""}">
+      <input type="checkbox" data-sprint-task="${index}" ${saved.tasks[`${day.day}-${index}`]?"checked":""}>
+      <span><strong>${index+1}</strong>${safe(task)}</span>
+    </label>`).join("");
+  $("#sprintLogError").innerHTML=FIVE_DAY_SPRINT.errorTags.map(tag=>`<option value="${safe(tag.id)}">${safe(tag.id)} · ${safe(tag.label)}｜${safe(tag.detail)}</option>`).join("");
+  renderSprintStats(saved);
+  renderSprintSources();
+  renderSprintCards();
+  $$('[data-sprint-day]').forEach(button=>button.onclick=()=>selectSprintDay(button.dataset.sprintDay));
+  $$('[data-sprint-task]').forEach(input=>input.onchange=()=>toggleSprintTask(input.dataset.sprintTask,input.checked));
+  if(!state.sprintCardsLoaded) loadSprintCards();
+}
+function saveSprintLog(event){
+  event.preventDefault();
+  const total=Number($("#sprintLogTotal").value);
+  const correct=Number($("#sprintLogCorrect").value);
+  if(!Number.isInteger(total)||total<1||total>200||!Number.isInteger(correct)||correct<0||correct>total){
+    showToast("請確認答對題數不超過總題數");
+    return;
+  }
+  const saved=getSprintState();
+  saved.logs.unshift({
+    id:`log-${Date.now()}`,
+    day:state.sprintDay,
+    source:$("#sprintLogSource").value,
+    total,
+    correct,
+    error:$("#sprintLogError").value,
+    note:$("#sprintLogNote").value.trim().slice(0,80),
+    createdAt:new Date().toISOString()
+  });
+  saved.logs=saved.logs.slice(0,100);
+  saveSprintState(saved);
+  $("#sprintLogCorrect").value="0";
+  $("#sprintLogNote").value="";
+  renderFiveDaySprint();
+  showToast("練習紀錄已儲存");
+}
+function findSprintReviewCards(){
+  const map={V:"固定搭配",G:"Part 5",L:"Part 2",P:"Part 7",T:"同義改寫",C:"總策略"};
+  $("#sprintCardScope").value="all";
+  $("#sprintCardCategory").value="all";
+  $("#sprintCardSearch").value=map[$("#sprintLogError").value]||"";
+  renderSprintCards();
+  $("#sprintCardList").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function resetSprintProgress(){
+  if(!confirm("確定清除五天任務與外部練習紀錄？")) return;
+  saveSprintState({currentDay:1,tasks:{},logs:[]});
+  state.sprintDay=1;
+  renderFiveDaySprint();
+  showToast("五天衝刺進度已重設");
+}
 function strategyTypeLabel(type){
   return {grammar:"文法快判",reading:"閱讀定位",listening:"聽力戰術",vocabulary:"字彙搭配"}[type]||"綜合技巧";
 }
@@ -1485,7 +1664,7 @@ function showView(id){
   });
   const titles=APP_SHELL.viewTitles || {
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"多益學習區",vocabReviewView:"單字複習",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"多益學習區",vocabReviewView:"單字複習",sprintView:"五天衝刺工作台",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
@@ -1494,6 +1673,7 @@ function showView(id){
   if(id==="vocabView") renderVocab();
   if(id==="autoVocabView") renderLearningHub();
   if(id==="vocabReviewView") renderVocabReviewSummary();
+  if(id==="sprintView") renderFiveDaySprint();
   if(id==="strategyView") renderStrategies();
   if(id==="readingView") renderReadingLiteracy();
   if(id==="historyView") renderHistory();
@@ -2747,6 +2927,7 @@ function localStorageRows(){
     ["語音口音偏好", accentProfile().label, KEYS.audioAccent],
     ["間隔複習", `${Object.keys(getReviewSchedule()).length} 題`, KEYS.reviewSchedule],
     ["弱點分析", `${performance.total} 題`, KEYS.performance],
+    ["五天衝刺", `${getSprintState().logs.length} 筆練習`, KEYS.sprint],
     ["題目品質標記", `${Object.keys(getQuestionQuality()).length} 筆`, KEYS.quality],
     ["未完成練習", `${snapshotQuestionCount(active)} 題`, KEYS.active]
   ];
@@ -2762,7 +2943,7 @@ function renderLocalStorageSummary(){
 function exportLearningState(){
   const payload={
     exportedAt:new Date().toISOString(),
-    version:"2.6",
+    version:"3.9",
     cookie:{
       dailyGoal:decodeURIComponent(getCookie(COOKIE_KEYS.dailyGoal)||""),
       lastVisit:decodeURIComponent(getCookie(COOKIE_KEYS.lastVisit)||"")
@@ -2776,6 +2957,7 @@ function exportLearningState(){
       performance:getPerformance(),
       questionQuality:getQuestionQuality(),
       reviewSchedule:getReviewSchedule(),
+      fiveDaySprint:getSprintState(),
       audioAccent:state.audioAccent,
       activeSession:load(KEYS.active,null)
     },
@@ -3093,6 +3275,12 @@ $("#vocabReviewMode").onchange=renderVocabReviewSummary;
 $("#vocabReviewCount").onchange=renderVocabReviewSummary;
 $("#vocabReviewPart").onchange=renderVocabReviewSummary;
 $("#vocabReviewSource").onchange=renderVocabReviewSummary;
+$("#sprintLogForm").onsubmit=saveSprintLog;
+$("#sprintFindCard").onclick=findSprintReviewCards;
+$("#resetSprint").onclick=resetSprintProgress;
+$("#sprintCardSearch").addEventListener("input",renderSprintCards);
+$("#sprintCardCategory").onchange=renderSprintCards;
+$("#sprintCardScope").onchange=renderSprintCards;
 $("#strategySearch").addEventListener("input",renderStrategies);
 $("#strategyPart").onchange=renderStrategies;
 $("#strategyType").onchange=renderStrategies;

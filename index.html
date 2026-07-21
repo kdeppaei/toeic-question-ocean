@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API、可離線使用的 TOEIC 多益題海學習網站，內建 925 題與 Part 1–7 完整題型，支援分級廣域單字、基礎與進階文法、商務搭配、閱讀素養、聽力口音與題目品質稽核。" />
+  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 925 題、Part 1–7、五天衝刺、103 張技巧卡、分級單字、文法搭配、閱讀素養與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,11 +14,12 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.8.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v3.9.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active" data-nav="homeView">⌂　學習總覽</button>
       <button data-nav="setupView">▶　開始練習</button>
+      <button data-nav="sprintView">▣　五天衝刺</button>
       <button data-nav="strategyView">⚑　答題技巧</button>
       <button data-nav="readingView">▤　閱讀素養</button>
       <button data-nav="wrongView">✎　錯題本</button>
@@ -74,9 +75,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v3.8.0</span><span class="badge gray">170 詞分級補庫</span><span class="badge gray">獨立學習進度</span><span class="badge gray">核心一鍵複習</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">分級詞庫進度與核心複習</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">再補 50 個可核對詞條，並讓多益核心、延伸及廣域詞各自記錄已練詞數、作答數與正確率。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v3.9.0</span><span class="badge gray">五天衝刺工作台</span><span class="badge gray">103 張手冊卡</span><span class="badge gray">外部練習紀錄</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">ETS × abceed × 新東方三軌訓練</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">以官方素材校準、智慧工具刷題、中文資源補洞；本站負責任務、錯因與進度，不重製外部付費題目。</p>
         </article>
 
         <div class="stats-grid">
@@ -398,6 +399,67 @@
         </article>
       </section>
 
+      <section id="sprintView" class="view">
+        <div class="toolbar sprint-toolbar">
+          <div>
+            <h2 style="margin:0">五天衝刺工作台</h2>
+            <p style="color:var(--muted);margin:5px 0 0">有一定底子者的考前壓縮計畫：每天只處理一組核心任務。</p>
+          </div>
+          <button class="btn danger" id="resetSprint">重設五天進度</button>
+        </div>
+
+        <section class="sprint-overview" aria-labelledby="sprintDayTitle">
+          <div class="sprint-overview-main">
+            <div class="badges"><span class="badge" id="sprintDayBadge">Day 1</span><span class="badge gray" id="sprintDayFocus">Part 5 + Part 1</span></div>
+            <h2 id="sprintDayTitle">建立弱點基準</h2>
+            <p id="sprintDayGoal"></p>
+            <div class="progress" role="progressbar" aria-label="五天任務完成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sprintProgressTrack"><div id="sprintProgressBar"></div></div>
+            <small id="sprintProgressText">0 / 15 項任務</small>
+          </div>
+          <div class="sprint-day-tabs" id="sprintDayTabs" role="tablist" aria-label="選擇衝刺日"></div>
+        </section>
+
+        <div class="sprint-work-grid">
+          <section aria-labelledby="sprintTasksTitle">
+            <div class="section-head"><div><h2 id="sprintTasksTitle">今日任務</h2><p>完成後勾選，進度長期儲存在本機。</p></div></div>
+            <div class="sprint-task-list" id="sprintTaskList"></div>
+          </section>
+          <section aria-labelledby="sprintLogTitle">
+            <div class="section-head"><div><h2 id="sprintLogTitle">練習紀錄</h2><p>外部題目只記數據與主要錯因。</p></div></div>
+            <form class="card sprint-log-form" id="sprintLogForm">
+              <div class="form-grid">
+                <label><span>練習來源</span><select id="sprintLogSource"><option value="ets">ETS 官方</option><option value="abceed">abceed</option><option value="xdf">新東方</option><option value="other">其他合法素材</option></select></label>
+                <label><span>題數</span><input id="sprintLogTotal" type="number" min="1" max="200" value="20" required></label>
+                <label><span>答對</span><input id="sprintLogCorrect" type="number" min="0" max="200" value="0" required></label>
+                <label><span>主要錯因</span><select id="sprintLogError"></select></label>
+              </div>
+              <label><span>簡短備註</span><input id="sprintLogNote" type="text" maxlength="80" placeholder="例：because / because of 混淆"></label>
+              <div class="group"><button class="btn primary" type="submit">記錄這次練習</button><button class="btn" type="button" id="sprintFindCard">回手冊查考點</button></div>
+            </form>
+          </section>
+        </div>
+
+        <div class="stats-grid sprint-stats">
+          <article class="card"><div class="stat-label">累積題數</div><div class="stat-value" id="sprintLoggedTotal">0</div><div class="stat-foot">所有外部練習</div></article>
+          <article class="card"><div class="stat-label">整體正確率</div><div class="stat-value" id="sprintLoggedAccuracy">0%</div><div class="stat-foot">依紀錄計算</div></article>
+          <article class="card"><div class="stat-label">主要錯因</div><div class="stat-value" id="sprintTopError" style="font-size:21px">—</div><div class="stat-foot">V / G / L / P / T / C</div></article>
+          <article class="card"><div class="stat-label">手冊卡片</div><div class="stat-value" id="sprintCardCount">0</div><div class="stat-foot">原始 JSON 資料</div></article>
+        </div>
+
+        <div class="section-head"><div><h2>三軌資源配置</h2><p>50% 官方校準、30% 智慧刷題、20% 中文補強。</p></div></div>
+        <div class="sprint-source-grid" id="sprintSourceGrid"></div>
+
+        <div class="section-head"><div><h2>手冊技巧卡</h2><p id="sprintCardStatus">載入五天手冊卡片中。</p></div></div>
+        <article class="card sprint-card-filter">
+          <div class="form-grid">
+            <label><span>搜尋卡片</span><input id="sprintCardSearch" type="search" placeholder="because / Part 2 / 固定搭配"></label>
+            <label><span>分類</span><select id="sprintCardCategory"><option value="all">全部分類</option></select></label>
+            <label><span>顯示範圍</span><select id="sprintCardScope"><option value="day" selected>今天相關</option><option value="all">全部 103 張</option></select></label>
+          </div>
+        </article>
+        <div class="sprint-card-grid" id="sprintCardList"></div>
+      </section>
+
       <section id="strategyView" class="view">
         <div class="toolbar">
           <div>
@@ -653,6 +715,7 @@
 <script src="./modules/learning-command-center.js"></script>
 <script src="./modules/legal-practice-sources.js"></script>
 <script src="./modules/question-quality-audit.js"></script>
+<script src="./modules/five-day-sprint.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

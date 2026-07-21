@@ -17,7 +17,7 @@ async function expectNoSeriousA11yViolations(page, include) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.8.0");
+  await page.goto("/?v=3.9.0");
   await expect(page.locator("#totalBank")).toHaveText("925");
 });
 
@@ -217,7 +217,7 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
   await expect(page.locator(".sidebar")).toHaveClass(/mobile-open/);
   await page.locator('[data-nav="autoVocabView"]').click();
   await expect(page.locator("#viewTitle")).toHaveText("多益學習區");
-  await expect(page.locator('[role="tab"]')).toHaveCount(4);
+  await expect(page.locator('[data-learning-tab]')).toHaveCount(4);
   await expect(page.locator('[data-learning-tab="vocabulary"]')).toHaveAttribute("aria-selected", "true");
   expect(Number(await page.locator("#autoVocabKnown").textContent())).toBeGreaterThan(384);
   await expect(page.locator("#autoVocabList .word-card")).toHaveCount(100);
@@ -272,4 +272,35 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
   }));
   expect(overflow).toEqual({ body: 0, root: 0 });
   await expectNoSeriousA11yViolations(page, "#learningResourcesPanel");
+});
+
+test("five-day sprint tracks tasks, external practice, and handbook cards", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#mobileHome").click();
+  await page.locator('[data-nav="sprintView"]').click();
+  await expect(page.locator("#viewTitle")).toHaveText("五天衝刺工作台");
+  await expect(page.locator("[data-sprint-day]")).toHaveCount(5);
+  await expect(page.locator("[data-sprint-task]")).toHaveCount(3);
+  await expect(page.locator("#sprintSourceGrid .sprint-source-card")).toHaveCount(3);
+  await expect(page.locator("#sprintSourceGrid a[target='_blank']")).toHaveCount(3);
+  await expect(page.locator("#sprintCardCount")).toHaveText("103");
+
+  await page.locator('[data-sprint-task="0"]').check();
+  await expect(page.locator("#sprintProgressText")).toHaveText("1 / 15 項任務");
+  await page.locator("#sprintLogTotal").fill("20");
+  await page.locator("#sprintLogCorrect").fill("15");
+  await page.locator("#sprintLogError").selectOption("G");
+  await page.locator("#sprintLogForm button[type='submit']").click();
+  await expect(page.locator("#sprintLoggedTotal")).toHaveText("20");
+  await expect(page.locator("#sprintLoggedAccuracy")).toHaveText("75%");
+  await expect(page.locator("#sprintTopError")).toHaveText("G · 文法");
+
+  await page.locator("#sprintFindCard").click();
+  await expect(page.locator("#sprintCardList .sprint-handbook-card")).not.toHaveCount(0);
+  const overflow = await page.evaluate(() => ({
+    body: document.body.scrollWidth - document.body.clientWidth,
+    root: document.documentElement.scrollWidth - document.documentElement.clientWidth
+  }));
+  expect(overflow).toEqual({ body: 0, root: 0 });
+  await expectNoSeriousA11yViolations(page, "#sprintView");
 });
