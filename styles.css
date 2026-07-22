@@ -75,6 +75,14 @@
       display: flex; gap: 10px; align-items: center;
     }
     .nav button:hover, .nav button.active { color: var(--primary); background: var(--primary-soft); }
+    .nav-group { display:grid; gap:4px; }
+    .nav-group-toggle { min-height:44px; }
+    .nav-group-toggle .nav-chevron { margin-left:auto; transition:transform .16s ease; }
+    .nav-group-toggle[aria-expanded="true"] .nav-chevron { transform:rotate(180deg); }
+    .nav-group-toggle.group-active { color:var(--primary); }
+    .nav-submenu { display:grid; gap:3px; margin:0 0 3px 31px; padding-left:10px; border-left:1px solid var(--line); }
+    .nav-submenu[hidden] { display:none; }
+    .nav .nav-submenu button { min-height:38px; padding:8px 10px; font-size:13px; }
     .side-note {
       margin-top: auto; padding: 13px; border-radius: 8px; background: var(--primary-soft);
       color: var(--muted); font-size: 13px; line-height: 1.65;

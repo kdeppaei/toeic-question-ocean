@@ -16,9 +16,18 @@ async function expectNoSeriousA11yViolations(page, include) {
   }))).toEqual([]);
 }
 
+async function navigate(page, view) {
+  const target = page.locator(`[data-nav="${view}"]`);
+  if (!(await page.locator(".sidebar").isVisible())) await page.locator("#mobileHome").click();
+  if (!(await target.isVisible())) {
+    await page.locator(`[data-nav-group]:has([data-nav="${view}"]) .nav-group-toggle`).click();
+  }
+  await target.click();
+}
+
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=3.9.0");
-  await expect(page.locator("#totalBank")).toHaveText("925");
+  await page.goto("/?v=4.0.0");
+  await expect(page.locator("#totalBank")).toHaveText("945");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -28,6 +37,10 @@ test("skip link, navigation, and module cards work from the keyboard", async ({ 
   await page.keyboard.press("Enter");
   await expect(page.locator("#mainContent")).toBeFocused();
 
+  const practiceGroup = page.locator('[aria-controls="navPractice"]');
+  await practiceGroup.focus();
+  await page.keyboard.press("Enter");
+  await expect(practiceGroup).toHaveAttribute("aria-expanded", "true");
   const setupNav = page.locator('[data-nav="setupView"]');
   await setupNav.focus();
   await page.keyboard.press("Enter");
@@ -35,7 +48,7 @@ test("skip link, navigation, and module cards work from the keyboard", async ({ 
   await expect(page.locator("#viewTitle")).toBeFocused();
   await expect(setupNav).toHaveAttribute("aria-current", "page");
 
-  await page.locator('[data-nav="homeView"]').click();
+  await navigate(page, "homeView");
   const part1Card = page.locator('[data-part-card="1"]');
   await expect(part1Card).toHaveRole("button");
   await part1Card.focus();
@@ -45,7 +58,7 @@ test("skip link, navigation, and module cards work from the keyboard", async ({ 
 });
 
 test("Part 1 practice keeps image, displayed choices, and spoken order aligned", async ({ page }) => {
-  await page.locator('[data-nav="setupView"]').click();
+  await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("1");
   await page.locator("#countSelect").selectOption("5");
   await page.locator("#startPractice").click();
@@ -142,49 +155,107 @@ test("Part 1 audio pauses one second after letters and between choices", async (
     });
   });
 
-  await page.locator('[data-nav="setupView"]').click();
+  await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("1");
   await page.locator("#countSelect").selectOption("5");
   await page.locator("#startPractice").click();
   await page.locator("#listenBtn").click();
 
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 9000 }).toBe(8);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 12000 }).toBe(9);
   const speechLog = await page.evaluate(() => window.__speechLog);
+  expect(speechLog[0].text).toBe("Number 1.");
+  expect(speechLog[1].time - speechLog[0].endedAt).toBeGreaterThanOrEqual(850);
   const expectedLetters = ["A.", "B.", "C.", "D."];
   expectedLetters.forEach((choiceLetter, index) => {
-    const cue = speechLog[index * 2];
-    const statement = speechLog[index * 2 + 1];
+    const cue = speechLog[index * 2 + 1];
+    const statement = speechLog[index * 2 + 2];
     expect(cue.text).toBe(choiceLetter);
     expect(statement.text.length).toBeGreaterThan(5);
     expect(statement.time - cue.endedAt).toBeGreaterThanOrEqual(950);
     if(index>0){
-      const previousStatement = speechLog[index * 2 - 1];
+      const previousStatement = speechLog[index * 2];
       expect(cue.time - previousStatement.endedAt).toBeGreaterThanOrEqual(950);
     }
   });
 
   await page.locator("#listenBtn").click();
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(9);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(10);
   await page.locator('[data-choice="0"]').click();
   await page.locator("#nextQuestion").click();
   await page.waitForTimeout(1100);
-  expect(await page.evaluate(() => window.__speechLog.length)).toBe(9);
+  expect(await page.evaluate(() => window.__speechLog.length)).toBe(10);
+});
+
+test("Part 2 audio announces the number, prompt, and three paced responses", async ({ page }) => {
+  await page.evaluate(() => {
+    window.__speechLog = [];
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) { this.text = text; }
+    };
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        cancel() {},
+        getVoices() { return []; },
+        speak(utterance) {
+          const entry = { text: utterance.text, pitch: utterance.pitch, time: Date.now(), endedAt: null };
+          window.__speechLog.push(entry);
+          setTimeout(() => {
+            entry.endedAt = Date.now();
+            utterance.onend?.();
+          }, 5);
+        }
+      }
+    });
+  });
+
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("2");
+  await page.locator("#countSelect").selectOption("5");
+  await page.locator("#startPractice").click();
+  await page.locator("#listenBtn").click();
+
+  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 10000 }).toBe(8);
+  const speechLog = await page.evaluate(() => window.__speechLog);
+  expect(speechLog[0].text).toBe("Number 1.");
+  expect(speechLog[1].text.length).toBeGreaterThan(5);
+  expect(speechLog[1].time - speechLog[0].endedAt).toBeGreaterThanOrEqual(850);
+  expect(speechLog[2].time - speechLog[1].endedAt).toBeGreaterThanOrEqual(900);
+  ["A.", "B.", "C."].forEach((choiceLetter, index) => {
+    const cue = speechLog[index * 2 + 2];
+    const response = speechLog[index * 2 + 3];
+    expect(cue.text).toBe(choiceLetter);
+    expect(response.text.length).toBeGreaterThan(3);
+    expect(response.time - cue.endedAt).toBeGreaterThanOrEqual(750);
+    expect(response.pitch).not.toBe(speechLog[1].pitch);
+    if(index>0){
+      const previousResponse=speechLog[index * 2 + 1];
+      expect(cue.time - previousResponse.endedAt).toBeGreaterThanOrEqual(850);
+    }
+  });
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {
-  await page.locator('[data-nav="setupView"]').click();
+  await navigate(page, "setupView");
   await page.locator("#startMockExam").click();
   await expect(page.locator("#quizBadges")).toContainText("Q1/200");
   await expect(page.locator("#quizBadges")).toContainText("Part 1");
   await expect(page.locator(".part1-image-frame img")).toBeVisible();
   await expect(page.locator(".choice")).toHaveCount(4);
-  await expect(page.locator(".choice").first()).toContainText("聆聽語音後選擇");
+  await expect(page.locator(".choice").first()).toContainText("聆聽敘述後選擇");
   await expect(page.locator(".choice").first()).not.toContainText("A woman");
+  for(let index=0;index<6;index++){
+    await page.locator('[data-choice="0"]').click();
+    await page.locator("#nextQuestion").click();
+  }
+  await expect(page.locator("#quizBadges")).toContainText("Part 2");
+  await expect(page.locator(".choice")).toHaveCount(3);
+  await expect(page.locator(".choice").first()).toContainText("聆聽回應後選擇");
 });
 
 test("home and setup views have no serious automated accessibility violations", async ({ page }) => {
   await expectNoSeriousA11yViolations(page);
-  await page.locator('[data-nav="setupView"]').click();
+  await navigate(page, "setupView");
   await expectNoSeriousA11yViolations(page);
 });
 
@@ -201,7 +272,7 @@ test("vocabulary entries require Chinese, KK, and part of speech", async ({ page
   expect(lexiconAudit.total).toBeGreaterThanOrEqual(540);
   expect(lexiconAudit.incomplete).toEqual([]);
 
-  await page.locator('[data-nav="autoVocabView"]').click();
+  await navigate(page, "autoVocabView");
   expect(Number(await page.locator("#autoVocabKnown").textContent())).toBeGreaterThan(384);
   await page.locator("#autoVocabSearch").fill("team");
   const card = page.locator("#autoVocabList .word-card").first();
@@ -215,7 +286,7 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator("#mobileHome").click();
   await expect(page.locator(".sidebar")).toHaveClass(/mobile-open/);
-  await page.locator('[data-nav="autoVocabView"]').click();
+  await navigate(page, "autoVocabView");
   await expect(page.locator("#viewTitle")).toHaveText("多益學習區");
   await expect(page.locator('[data-learning-tab]')).toHaveCount(4);
   await expect(page.locator('[data-learning-tab="vocabulary"]')).toHaveAttribute("aria-selected", "true");
@@ -241,7 +312,7 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
   await expect(page.locator("#vocabReviewSource")).toHaveValue("toeic-core");
   await expect(page.locator("[data-vocab-choice]")).toHaveCount(4);
   await page.locator("#mobileHome").click();
-  await page.locator('[data-nav="autoVocabView"]').click();
+  await navigate(page, "autoVocabView");
 
   await page.locator('[data-learning-tab="grammar"]').focus();
   await page.keyboard.press("Enter");
@@ -277,7 +348,7 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
 test("five-day sprint tracks tasks, external practice, and handbook cards", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator("#mobileHome").click();
-  await page.locator('[data-nav="sprintView"]').click();
+  await navigate(page, "sprintView");
   await expect(page.locator("#viewTitle")).toHaveText("五天衝刺工作台");
   await expect(page.locator("[data-sprint-day]")).toHaveCount(5);
   await expect(page.locator("[data-sprint-task]")).toHaveCount(3);

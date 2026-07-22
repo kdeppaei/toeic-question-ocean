@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "3.9.0",
+  version: "4.0.0",
   release: {
-    title: "ETS × abceed × 新東方三軌訓練",
-    summary: "以官方素材校準、智慧工具刷題、中文資源補洞；本站負責任務、錯因與進度，不重製外部付費題目。",
-    badges: ["v3.9.0", "五天衝刺工作台", "103 張手冊卡", "外部練習紀錄"]
+    title: "精簡導覽與官方示範節奏聽力",
+    summary: "側欄收斂為五個主分類；Part 1／2 依官方公開示範的題號、題幹與選項停頓結構分段播放，另增 20 題原創 Part 2。",
+    badges: ["v4.0.0", "945 題", "五類導覽", "Part 1／2 節奏升級"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

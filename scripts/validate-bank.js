@@ -57,7 +57,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 925) errors.push(`Expected 925 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 945) errors.push(`Expected 945 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v3.1 annotations, applied ${sandbox.window.TOEIC_V31_ANNOTATION_COUNT}`);

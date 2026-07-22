@@ -280,6 +280,11 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const letter = (i) => String.fromCharCode(65 + i);
 const PART1_LETTER_PAUSE_MS = 1000;
 const PART1_INTER_CHOICE_PAUSE_MS = 1000;
+const LISTENING_LEAD_IN_PAUSE_MS = 650;
+const QUESTION_NUMBER_PAUSE_MS = 900;
+const PART2_PROMPT_PAUSE_MS = 950;
+const PART2_LETTER_PAUSE_MS = 800;
+const PART2_INTER_RESPONSE_PAUSE_MS = 900;
 const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -1656,6 +1661,7 @@ function showView(id){
     if(active) b.setAttribute("aria-current","page");
     else b.removeAttribute("aria-current");
   });
+  syncNavGroups(id);
   $$("[data-mobile-nav]").forEach(b=>{
     const active=b.dataset.mobileNav===id;
     b.classList.toggle("active",active);
@@ -1685,6 +1691,24 @@ function showView(id){
 function showViewAndFocus(id){
   showView(id);
   requestAnimationFrame(()=>$("#viewTitle")?.focus({preventScroll:true}));
+}
+function setNavGroupExpanded(group,expanded){
+  const toggle=group?.querySelector(".nav-group-toggle");
+  const submenu=group?.querySelector(".nav-submenu");
+  if(!toggle||!submenu) return;
+  toggle.setAttribute("aria-expanded",String(expanded));
+  submenu.hidden=!expanded;
+}
+function syncNavGroups(viewId){
+  $$("[data-nav-group]").forEach(group=>{
+    const contains=!!group.querySelector(`[data-nav="${viewId}"]`);
+    group.querySelector(".nav-group-toggle")?.classList.toggle("group-active",contains);
+    setNavGroupExpanded(group,contains);
+  });
+}
+function toggleNavGroup(group){
+  const willOpen=group.querySelector(".nav-group-toggle")?.getAttribute("aria-expanded")!=="true";
+  $$("[data-nav-group]").forEach(item=>setNavGroupExpanded(item,item===group&&willOpen));
 }
 function openMobileNav(){
   $(".sidebar")?.classList.add("mobile-open");
@@ -2189,8 +2213,9 @@ function renderQuestion(){
     }else if(!answered && hasSelection && i===selected){
       cls="pending";
     }
-    const mockPart1=state.sessionMode==="mock"&&q.part==="1";
-    return `<button class="choice ${cls} ${mockPart1?"audio-only-choice":""}" data-choice="${i}" aria-pressed="${selected===i}" ${mockPart1?`aria-label="選項 ${letter(i)}"`:""}><span class="choice-letter">${letter(i)}</span><span>${mockPart1?"聆聽語音後選擇":safe(c)}</span></button>`;
+    const mockAudioOnly=state.sessionMode==="mock"&&["1","2"].includes(q.part);
+    const audioOnlyLabel=q.part==="1"?"聆聽敘述後選擇":"聆聽回應後選擇";
+    return `<button class="choice ${cls} ${mockAudioOnly?"audio-only-choice":""}" data-choice="${i}" aria-pressed="${selected===i}" ${mockAudioOnly?`aria-label="選項 ${letter(i)}"`:""}><span class="choice-letter">${letter(i)}</span><span>${mockAudioOnly?audioOnlyLabel:safe(c)}</span></button>`;
   }).join("");
   let feedback="";
   if(revealAnswer){
@@ -2306,7 +2331,8 @@ function playQuestionAudio(q,options={}){
     return;
   }
   state.audioPlays[key]=used+1;
-  if(q.part==="1") speakPart1Choices(q.choices);
+  if(q.part==="1") speakPart1Choices(q.choices,state.currentIndex+1);
+  else if(q.part==="2") speakPart2Question(q,state.currentIndex+1);
   else speakDialogue(q.audioText);
   renderQuestion();
 }
@@ -2365,45 +2391,86 @@ function dialogueSegments(text){
   }
   return source?[{role:"neutral",text:source.replace(/^(Narrator|Speaker)\s*:\s*/i,"")}]:[];
 }
-function rolePitch(role){ return role==="male"?0.72:role==="female"?1.08:1; }
-function speakPart1Choices(choices=[]){
+function rolePitch(role){ return role==="male"?0.92:role==="female"?1.04:1; }
+function speechRate(){ return state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92); }
+function makeUtterance(text,role="neutral",rate=speechRate()){
+  const utterance=new SpeechSynthesisUtterance(text);
+  const voice=pickVoice(role);
+  if(voice) utterance.voice=voice;
+  utterance.lang=voice?.lang||accentProfile().lang||"en-US";
+  utterance.rate=rate;
+  utterance.pitch=rolePitch(role);
+  return utterance;
+}
+function scheduleQuestionAudio(callback,delay,playbackToken){
+  state.questionAudioDelayId=setTimeout(()=>{
+    state.questionAudioDelayId=null;
+    if(playbackToken===state.questionAudioToken) callback();
+  },delay);
+}
+function speakPart1Choices(choices=[],questionNumber=1){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   cancelQuestionAudio();
   const playbackToken=state.questionAudioToken;
-  const voice=pickVoice("neutral");
-  const rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
+  const rate=speechRate();
   let index=0;
   const speakLetter=()=>{
     if(playbackToken!==state.questionAudioToken) return;
     const choice=choices[index];
     if(choice===undefined) return;
     const choiceIndex=index++;
-    const cue=new SpeechSynthesisUtterance(`${letter(choiceIndex)}.`);
-    if(voice) cue.voice=voice;
-    cue.lang=voice?.lang||accentProfile().lang||"en-US";
-    cue.rate=rate;
+    const cue=makeUtterance(`${letter(choiceIndex)}.`,"neutral",rate);
     cue.onend=()=>{
       if(playbackToken!==state.questionAudioToken) return;
-      state.questionAudioDelayId=setTimeout(()=>{
-        state.questionAudioDelayId=null;
-        if(playbackToken!==state.questionAudioToken) return;
-        const statement=new SpeechSynthesisUtterance(choice);
-        if(voice) statement.voice=voice;
-        statement.lang=voice?.lang||accentProfile().lang||"en-US";
-        statement.rate=rate;
+      scheduleQuestionAudio(()=>{
+        const statement=makeUtterance(choice,"neutral",rate);
         statement.onend=()=>{
           if(playbackToken!==state.questionAudioToken||index>=choices.length) return;
-          state.questionAudioDelayId=setTimeout(()=>{
-            state.questionAudioDelayId=null;
-            speakLetter();
-          },PART1_INTER_CHOICE_PAUSE_MS);
+          scheduleQuestionAudio(speakLetter,PART1_INTER_CHOICE_PAUSE_MS,playbackToken);
         };
         speechSynthesis.speak(statement);
-      },PART1_LETTER_PAUSE_MS);
+      },PART1_LETTER_PAUSE_MS,playbackToken);
     };
     speechSynthesis.speak(cue);
   };
-  speakLetter();
+  const numberCue=makeUtterance(`Number ${questionNumber}.`,"neutral",rate);
+  numberCue.onend=()=>scheduleQuestionAudio(speakLetter,QUESTION_NUMBER_PAUSE_MS,playbackToken);
+  scheduleQuestionAudio(()=>speechSynthesis.speak(numberCue),LISTENING_LEAD_IN_PAUSE_MS,playbackToken);
+}
+function part2PromptRole(q){
+  if(["male","female"].includes(q?.audioSpeaker)) return q.audioSpeaker;
+  const number=Number(String(q?.id||"").match(/\d+/)?.[0]||state.currentIndex);
+  return number%2?"male":"female";
+}
+function speakPart2Question(q,questionNumber=1){
+  if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
+  cancelQuestionAudio();
+  const playbackToken=state.questionAudioToken;
+  const rate=speechRate();
+  const promptRole=part2PromptRole(q);
+  const responseRole=promptRole==="male"?"female":"male";
+  let responseIndex=0;
+  const speakResponseLetter=()=>{
+    if(playbackToken!==state.questionAudioToken) return;
+    const response=q.choices?.[responseIndex];
+    if(response===undefined) return;
+    const choiceIndex=responseIndex++;
+    const letterCue=makeUtterance(`${letter(choiceIndex)}.`,"neutral",rate);
+    letterCue.onend=()=>scheduleQuestionAudio(()=>{
+      const answerCue=makeUtterance(response,responseRole,rate);
+      answerCue.onend=()=>{
+        if(playbackToken!==state.questionAudioToken||responseIndex>=q.choices.length) return;
+        scheduleQuestionAudio(speakResponseLetter,PART2_INTER_RESPONSE_PAUSE_MS,playbackToken);
+      };
+      speechSynthesis.speak(answerCue);
+    },PART2_LETTER_PAUSE_MS,playbackToken);
+    speechSynthesis.speak(letterCue);
+  };
+  const promptCue=makeUtterance(q.audioText,promptRole,rate);
+  promptCue.onend=()=>scheduleQuestionAudio(speakResponseLetter,PART2_PROMPT_PAUSE_MS,playbackToken);
+  const numberCue=makeUtterance(`Number ${questionNumber}.`,"neutral",rate);
+  numberCue.onend=()=>scheduleQuestionAudio(()=>speechSynthesis.speak(promptCue),QUESTION_NUMBER_PAUSE_MS,playbackToken);
+  scheduleQuestionAudio(()=>speechSynthesis.speak(numberCue),LISTENING_LEAD_IN_PAUSE_MS,playbackToken);
 }
 function speakDialogue(text,options={}){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
@@ -2415,12 +2482,7 @@ function speakDialogue(text,options={}){
     if(playbackToken!==state.questionAudioToken) return;
     const segment=segments[index++];
     if(!segment) return;
-    const u=new SpeechSynthesisUtterance(segment.text);
-    const voice=segment.role==="neutral"?pickVoice("female"):pickVoice(segment.role);
-    if(voice) u.voice=voice;
-    u.lang=voice?.lang||accentProfile().lang||"en-US";
-    u.rate=state.sessionMode==="mock"?1:Number($("#listenSpeed")?.value || 0.92);
-    u.pitch=rolePitch(segment.role);
+    const u=makeUtterance(segment.text,segment.role);
     u.onend=speakNext;
     speechSynthesis.speak(u);
   };
@@ -3187,6 +3249,7 @@ $("#themeToggle").onclick=()=>{
 };
 if(storageGet(KEYS.theme)==="dark") document.documentElement.dataset.theme="dark";
 $$("[data-nav]").forEach(b=>b.onclick=()=>showViewAndFocus(b.dataset.nav));
+$$(".nav-group-toggle").forEach(button=>button.onclick=()=>toggleNavGroup(button.closest("[data-nav-group]")));
 $$("[data-mobile-nav]").forEach(b=>b.onclick=()=>showViewAndFocus(b.dataset.mobileNav));
 $$("[data-go-setup]").forEach(b=>b.onclick=()=>showViewAndFocus("setupView"));
 $("#mobileHome").onclick=openMobileNav;
