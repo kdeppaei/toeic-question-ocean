@@ -10,8 +10,8 @@ const viewports = [
 for (const viewport of viewports) {
   test(`home visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.1.0");
-    await expect(page.locator("#totalBank")).toHaveText("965");
+    await page.goto("/?v=4.2.0");
+    await expect(page.locator("#totalBank")).toHaveText("977");
     await page.addStyleTag({
       content: `
         *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -26,8 +26,8 @@ async function navigate(page, view) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.1.0");
-  await expect(page.locator("#totalBank")).toHaveText("965");
+  await page.goto("/?v=4.2.0");
+  await expect(page.locator("#totalBank")).toHaveText("977");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -143,8 +143,9 @@ test("Part 1 audio pauses one second after letters and between choices", async (
       value: {
         cancel() {},
         getVoices() { return []; },
+        resume() {},
         speak(utterance) {
-          const entry = { text: utterance.text, time: Date.now(), endedAt: null };
+          const entry = { text: utterance.text, volume: utterance.volume, time: Date.now(), endedAt: null };
           window.__speechLog.push(entry);
           setTimeout(() => {
             entry.endedAt = Date.now();
@@ -161,29 +162,31 @@ test("Part 1 audio pauses one second after letters and between choices", async (
   await page.locator("#startPractice").click();
   await page.locator("#listenBtn").click();
 
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 12000 }).toBe(9);
-  const speechLog = await page.evaluate(() => window.__speechLog);
-  expect(speechLog[0].text).toBe("Number 1.");
-  expect(speechLog[1].time - speechLog[0].endedAt).toBeGreaterThanOrEqual(850);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.filter((entry) => entry.volume !== 0).length), { timeout: 20000 }).toBe(11);
+  const speechLog = await page.evaluate(() => window.__speechLog.filter((entry) => entry.volume !== 0));
+  expect(speechLog[0].text).toContain("Listening Test.");
+  expect(speechLog[1].text).toContain("Part 1. Directions.");
+  expect(speechLog[2].text).toBe("Number 1. Look at the picture marked number 1 in your test book.");
+  expect(speechLog[3].time - speechLog[2].endedAt).toBeGreaterThanOrEqual(850);
   const expectedLetters = ["A.", "B.", "C.", "D."];
   expectedLetters.forEach((choiceLetter, index) => {
-    const cue = speechLog[index * 2 + 1];
-    const statement = speechLog[index * 2 + 2];
+    const cue = speechLog[index * 2 + 3];
+    const statement = speechLog[index * 2 + 4];
     expect(cue.text).toBe(choiceLetter);
     expect(statement.text.length).toBeGreaterThan(5);
     expect(statement.time - cue.endedAt).toBeGreaterThanOrEqual(950);
     if(index>0){
-      const previousStatement = speechLog[index * 2];
+      const previousStatement = speechLog[index * 2 + 2];
       expect(cue.time - previousStatement.endedAt).toBeGreaterThanOrEqual(950);
     }
   });
 
   await page.locator("#listenBtn").click();
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length)).toBe(10);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.filter((entry) => entry.volume === 0).length)).toBe(2);
   await page.locator('[data-choice="0"]').click();
   await page.locator("#nextQuestion").click();
   await page.waitForTimeout(1100);
-  expect(await page.evaluate(() => window.__speechLog.length)).toBe(10);
+  expect(await page.evaluate(() => window.__speechLog.filter((entry) => entry.text.startsWith("Listening Test.")).length)).toBe(1);
 });
 
 test("Part 2 audio announces the number, prompt, and three paced responses", async ({ page }) => {
@@ -197,8 +200,9 @@ test("Part 2 audio announces the number, prompt, and three paced responses", asy
       value: {
         cancel() {},
         getVoices() { return []; },
+        resume() {},
         speak(utterance) {
-          const entry = { text: utterance.text, pitch: utterance.pitch, time: Date.now(), endedAt: null };
+          const entry = { text: utterance.text, pitch: utterance.pitch, volume: utterance.volume, time: Date.now(), endedAt: null };
           window.__speechLog.push(entry);
           setTimeout(() => {
             entry.endedAt = Date.now();
@@ -215,24 +219,69 @@ test("Part 2 audio announces the number, prompt, and three paced responses", asy
   await page.locator("#startPractice").click();
   await page.locator("#listenBtn").click();
 
-  await expect.poll(() => page.evaluate(() => window.__speechLog.length), { timeout: 10000 }).toBe(8);
-  const speechLog = await page.evaluate(() => window.__speechLog);
-  expect(speechLog[0].text).toBe("Number 1.");
-  expect(speechLog[1].text.length).toBeGreaterThan(5);
-  expect(speechLog[1].time - speechLog[0].endedAt).toBeGreaterThanOrEqual(850);
-  expect(speechLog[2].time - speechLog[1].endedAt).toBeGreaterThanOrEqual(900);
+  await expect.poll(() => page.evaluate(() => window.__speechLog.filter((entry) => entry.volume !== 0).length), { timeout: 20000 }).toBe(10);
+  const speechLog = await page.evaluate(() => window.__speechLog.filter((entry) => entry.volume !== 0));
+  expect(speechLog[0].text).toContain("Listening Test.");
+  expect(speechLog[1].text).toContain("Part 2. Directions.");
+  expect(speechLog[2].text).toBe("Number 1.");
+  expect(speechLog[3].text.length).toBeGreaterThan(5);
+  expect(speechLog[3].time - speechLog[2].endedAt).toBeGreaterThanOrEqual(850);
+  expect(speechLog[4].time - speechLog[3].endedAt).toBeGreaterThanOrEqual(900);
   ["A.", "B.", "C."].forEach((choiceLetter, index) => {
-    const cue = speechLog[index * 2 + 2];
-    const response = speechLog[index * 2 + 3];
+    const cue = speechLog[index * 2 + 4];
+    const response = speechLog[index * 2 + 5];
     expect(cue.text).toBe(choiceLetter);
     expect(response.text.length).toBeGreaterThan(3);
     expect(response.time - cue.endedAt).toBeGreaterThanOrEqual(750);
-    expect(response.pitch).not.toBe(speechLog[1].pitch);
+    expect(response.pitch).not.toBe(speechLog[3].pitch);
     if(index>0){
-      const previousResponse=speechLog[index * 2 + 1];
+      const previousResponse=speechLog[index * 2 + 3];
       expect(cue.time - previousResponse.endedAt).toBeGreaterThanOrEqual(850);
     }
   });
+});
+
+test("Part 3 audio announces the group and reads prompts five seconds apart", async ({ page }) => {
+  await page.evaluate(() => {
+    window.__speechLog = [];
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) { this.text = text; }
+    };
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        cancel() {},
+        resume() {},
+        getVoices() { return []; },
+        speak(utterance) {
+          const entry = { text: utterance.text, volume: utterance.volume, time: Date.now(), endedAt: null };
+          window.__speechLog.push(entry);
+          setTimeout(() => {
+            entry.endedAt = Date.now();
+            utterance.onend?.();
+          }, 5);
+        }
+      }
+    });
+  });
+
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("3");
+  await page.locator("#countSelect").selectOption("5");
+  await page.locator("#startPractice").click();
+  await page.locator("#listenBtn").click();
+
+  await expect.poll(() => page.evaluate(() => window.__speechLog.filter((entry) => entry.volume !== 0 && /^Question \d+\./.test(entry.text)).length), { timeout: 30000 }).toBe(3);
+  const speechLog = await page.evaluate(() => window.__speechLog.filter((entry) => entry.volume !== 0));
+  expect(speechLog[0].text).toContain("Listening Test.");
+  expect(speechLog[1].text).toContain("Part 3. Directions.");
+  expect(speechLog[2].text).toMatch(/^Questions \d+ through \d+ refer to the following conversation\.$/);
+  const prompts = speechLog.filter((entry) => /^Question \d+\./.test(entry.text));
+  expect(prompts).toHaveLength(3);
+  expect(prompts[1].time - prompts[0].endedAt).toBeGreaterThanOrEqual(4950);
+  expect(prompts[2].time - prompts[1].endedAt).toBeGreaterThanOrEqual(4950);
+  const groupChoices = await page.locator(".group-overview .group-question").allTextContents();
+  prompts.forEach((prompt) => groupChoices.forEach((choice) => expect(prompt.text).not.toContain(choice.trim())));
 });
 
 test("Part 3 directions and all three questions appear before grouped practice", async ({ page }) => {
@@ -262,6 +311,30 @@ test("Reading directions show the 75-minute overview and switch by part", async 
   await page.locator("#startPractice").click();
   await expect(page.locator(".reading-intro-strip")).toContainText("閱讀測驗共 75 分鐘");
   await expect(page.locator(".part-direction-cue")).toContainText("PART 5 句子填空");
+});
+
+test("completed answers and explanations persist in Local Storage", async ({ page }) => {
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("5");
+  await page.locator("#countSelect").selectOption("5");
+  await page.locator("#startPractice").click();
+  for(let index=0;index<5;index++){
+    await page.locator('[data-choice="0"]').click();
+    await page.locator("#nextQuestion").click();
+  }
+  await expect(page.locator("#resultView")).toHaveClass(/active/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.answerArchive.v1") || "[]").length)).toBe(5);
+
+  await navigate(page, "historyView");
+  await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
+  await expect(page.locator("#answerArchiveList").first()).toContainText("詳解：");
+  await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
+
+  await page.reload();
+  await expect(page.locator("#totalBank")).toHaveText("977");
+  await navigate(page, "historyView");
+  await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
+  await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {

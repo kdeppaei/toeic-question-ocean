@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.1.0",
+  version: "4.2.0",
   release: {
-    title: "Part 3–7 Directions 與完整三題題組",
-    summary: "加入可播放的英文 Directions、Reading 75 分鐘提醒與題型入口提示；另增 20 題原創 Part 3／4，並稽核所有聽力題組皆為三題。",
-    badges: ["v4.1.0", "965 題", "Part 3–7 Directions", "聽力三題題組"]
+    title: "完整聽力播報與長期解析紀錄",
+    summary: "聽力加入暖機防截音、Part 1–4 Directions、題號與題組後五秒作答節奏；逐題答案與詳解改用 Local Storage 長期保存。",
+    badges: ["v4.2.0", "977 題", "完整聽力播報", "解析長期保存"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
@@ -71,7 +71,24 @@ window.TOEIC_APP_SHELL = {
     english: "In the Reading test, you will read a variety of texts and answer several different types of reading comprehension questions. The entire Reading test will last 75 minutes. There are three parts, and directions are given for each part. You are encouraged to answer as many questions as possible within the time allowed. You must mark your answers on the separate answer sheet. Do not write your answers in your test book.",
     chinese: "閱讀測驗共 75 分鐘，包含 Part 5、6、7。請在時間內盡可能完成題目；正式紙筆測驗須將答案劃記在答案卡上。"
   },
+  listeningIntroduction: {
+    title: "LISTENING TEST",
+    english: "In the Listening test, you will be asked to demonstrate how well you understand spoken English. The entire Listening test will last approximately 45 minutes. There are four parts, and directions are given for each part. You must mark your answers on the separate answer sheet. Do not write your answers in your test book.",
+    chinese: "聽力測驗約 45 分鐘，包含 Part 1–4。各 Part 會先宣告作答指示；正式紙筆測驗須將答案劃記在答案卡上。"
+  },
   partDirections: {
+    "1": {
+      title: "PART 1 照片描述",
+      english: "For each question in this part, you will hear four statements about a picture in your test book. When you hear the statements, you must select the one statement that best describes what you see in the picture. Then find the number of the question on your answer sheet and mark your answer. The statements will not be printed in your test book and will be spoken only one time.",
+      chinese: "每張照片會播放四個敘述，選出最符合圖片的一項。正式測驗不印出敘述且只播放一次。",
+      metrics: ["四個敘述", "圖片判讀", "只播放 1 次"]
+    },
+    "2": {
+      title: "PART 2 應答問題",
+      english: "You will hear a question or statement and three responses spoken in English. They will not be printed in your test book and will be spoken only one time. Select the best response to the question or statement and mark the letter (A), (B), or (C) on your answer sheet.",
+      chinese: "每題先播放問題或陳述，再播放三個回應。正式測驗不印出內容且只播放一次。",
+      metrics: ["問題或陳述", "三個回應", "只播放 1 次"]
+    },
     "3": {
       title: "PART 3 簡短對話",
       english: "You will hear some conversations between two or more people. You will be asked to answer three questions about what the speakers say in each conversation. Select the best response to each question and mark the letter (A), (B), (C), or (D) on your answer sheet. The conversations will not be printed in your test book and will be spoken only one time.",
@@ -105,7 +122,7 @@ window.TOEIC_APP_SHELL = {
   },
   storageContracts: [
     { area: "Cookie", owner: "dailyGoal", description: "每日目標與最後造訪日期" },
-    { area: "Local Storage", owner: "learningState", description: "題庫、錯題、成績、單字、品質標記" },
+    { area: "Local Storage", owner: "learningState", description: "題庫、錯題、成績、逐題解析、單字、品質標記" },
     { area: "Session Storage", owner: "scratchpad", description: "單一分頁的暫存筆記" }
   ]
 };

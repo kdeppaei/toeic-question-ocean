@@ -9,11 +9,13 @@ const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId
 const FIVE_DAY_SPRINT = window.TOEIC_FIVE_DAY_SPRINT || { days: [], sources: [], errorTags: [], handbookUrl: "" };
 const PART_DIRECTIONS = APP_SHELL.partDirections || {};
 const READING_INTRODUCTION = APP_SHELL.readingIntroduction || {};
+const LISTENING_INTRODUCTION = APP_SHELL.listeningIntroduction || {};
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
   favorite: "toeicOcean.favoriteQuestions.v1",
   history: "toeicOcean.history.v1",
+  answerArchive: "toeicOcean.answerArchive.v1",
   custom: "toeicOcean.customBank.v1",
   theme: "toeicOcean.theme.v1",
   active: "toeicOcean.activeSession.v1",
@@ -257,6 +259,7 @@ const state = {
   restored: false,
   audioPlays: {},
   autoPlayedAudio: {},
+  spokenDirections: {},
   listeningPrep: null,
   listeningPrepTimerId: null,
   questionAudioDelayId: null,
@@ -288,6 +291,9 @@ const QUESTION_NUMBER_PAUSE_MS = 900;
 const PART2_PROMPT_PAUSE_MS = 950;
 const PART2_LETTER_PAUSE_MS = 800;
 const PART2_INTER_RESPONSE_PAUSE_MS = 900;
+const AUDIO_PRIMER_PAUSE_MS = 350;
+const DIALOGUE_SEGMENT_PAUSE_MS = 320;
+const PART34_QUESTION_PAUSE_MS = 5000;
 const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -465,6 +471,50 @@ function toggleFavoriteQuestion(id=currentQ()?.id){
   renderDashboard();
 }
 function getHistory(){ return load(KEYS.history, []); }
+function getAnswerArchive(){
+  const archive=load(KEYS.answerArchive,[]);
+  return Array.isArray(archive)?archive:[];
+}
+function saveAnswerArchive(archive){ save(KEYS.answerArchive,archive); }
+function archiveResults(results,mode="自由練習"){
+  const map=new Map(getAnswerArchive().map(entry=>[entry.id,entry]));
+  const answeredAt=new Date().toISOString();
+  results.forEach(result=>{
+    const q=result.question;
+    const previous=map.get(q.id)||{};
+    const attempt={
+      answeredAt,
+      selected:Number.isInteger(result.selected)?result.selected:null,
+      selectedText:Number.isInteger(result.selected)?q.choices[result.selected]:"未作答",
+      correct:!!result.correct,
+      mode
+    };
+    const attempts=[...(previous.attempts||[]),attempt].slice(-20);
+    map.set(q.id,{
+      id:q.id,
+      part:String(q.part),
+      groupId:q.groupId||null,
+      category:q.category||"未分類",
+      difficulty:q.difficulty||"",
+      prompt:q.prompt||"",
+      choices:[...(q.choices||[])],
+      answer:q.answer,
+      correctText:q.choices?.[q.answer]||"",
+      explanation:q.explanation||"",
+      translation:q.translation||"",
+      answerTranslation:q.answerTranslation||"",
+      evidence:q.evidence||"",
+      attempts,
+      attemptCount:(previous.attemptCount||0)+1,
+      correctCount:(previous.correctCount||0)+(result.correct?1:0),
+      lastSelected:attempt.selected,
+      lastSelectedText:attempt.selectedText,
+      lastCorrect:attempt.correct,
+      lastAnsweredAt:answeredAt
+    });
+  });
+  saveAnswerArchive([...map.values()].sort((a,b)=>String(b.lastAnsweredAt).localeCompare(String(a.lastAnsweredAt))));
+}
 function getReviewSchedule(){ return load(KEYS.reviewSchedule, {}); }
 function saveReviewSchedule(schedule){ save(KEYS.reviewSchedule, schedule); }
 function dateAfterDays(days){ const d=new Date(); d.setDate(d.getDate()+days); d.setHours(0,0,0,0); return d.getTime(); }
@@ -1745,7 +1795,8 @@ function activeSnapshot(){
     sectionRemaining:state.sectionRemaining,
     sectionEndsAt:state.sectionEndsAt,
     audioPlays:state.audioPlays,
-    autoPlayedAudio:state.autoPlayedAudio
+    autoPlayedAudio:state.autoPlayedAudio,
+    spokenDirections:state.spokenDirections
   };
 }
 function persistActive(){
@@ -1797,6 +1848,7 @@ function restoreActive(){
     sectionEndsAt:snapshot.sectionEndsAt||null,
     audioPlays:snapshot.audioPlays||{},
     autoPlayedAudio:snapshot.autoPlayedAudio||{},
+    spokenDirections:snapshot.spokenDirections||{},
     lastResult:null,
     restored:true
   });
@@ -1818,8 +1870,16 @@ function updateAvailable(){
   list.forEach(q=>counts[`Part ${q.part}`]=(counts[`Part ${q.part}`]||0)+1);
   $("#filterBreakdown").innerHTML=Object.entries(counts).map(([k,v])=>`<div class="mini-item"><strong>${k}</strong><span style="float:right">${v} 題</span></div>`).join("")||'<div class="empty">沒有符合條件的題目</div>';
 }
-const DIRECTION_TABS = ["3", "4", "reading", "5", "6", "7"];
+const DIRECTION_TABS = ["listening", "1", "2", "3", "4", "reading", "5", "6", "7"];
 function directionData(key){
+  if(key==="listening"){
+    return {
+      title: LISTENING_INTRODUCTION.title || "LISTENING TEST",
+      english: LISTENING_INTRODUCTION.english || "",
+      chinese: LISTENING_INTRODUCTION.chinese || "",
+      metrics: ["約 45 分鐘", "Part 1–4", "答案劃記於答案卡"]
+    };
+  }
   if(key==="reading"){
     return {
       title: READING_INTRODUCTION.title || "READING TEST",
@@ -1830,7 +1890,10 @@ function directionData(key){
   }
   return PART_DIRECTIONS[key] || null;
 }
-function directionTabLabel(key){ return key==="reading"?"Reading":"Part "+key; }
+function directionTabLabel(key){
+  if(key==="listening") return "Listening";
+  return key==="reading"?"Reading":"Part "+key;
+}
 function directionBody(data,{compact=false}={}){
   if(!data) return "";
   return `<div class="direction-title-row"><div><span class="eyebrow">DIRECTIONS</span><h${compact?"3":"2"}>${safe(data.title)}</h${compact?"3":"2"}></div></div>
@@ -1965,6 +2028,7 @@ function startSession(list, options={}){
   state.reviewFlags=Array(state.session.length).fill(false);
   state.audioPlays={};
   state.autoPlayedAudio={};
+  state.spokenDirections={};
   clearListeningPrep();
   state.mockSection=null;
   state.mockBoundary=0;
@@ -2043,6 +2107,7 @@ function startMockExam(){
   state.reviewFlags=Array(session.length).fill(false);
   state.audioPlays={};
   state.autoPlayedAudio={};
+  state.spokenDirections={};
   state.mockBoundary=session.findIndex(q=>q.part==="5");
   state.questionStartedAt=null;
   state.questionStartedIndex=null;
@@ -2262,7 +2327,7 @@ function renderQuestion(){
     const countLabel=limit>0?`${used}/${limit}`:`${used}/∞`;
     const prepActive=state.listeningPrep?.key===audioKey;
     const prepLabel=mockAudio?(prepActive?`讀題倒數 ${state.listeningPrep.remaining}s`:"模考 10 秒讀題"):"專項即時播放";
-    const includesDirections=mockAudio&&isFirstQuestionOfPart()&&["3","4"].includes(q.part);
+    const includesDirections=mockAudio&&isFirstQuestionOfPart()&&["1","2","3","4"].includes(q.part);
     const audioHint=mockAudio
       ? includesDirections?"本 Part 首次播放會先念 Directions；10 秒讀題後接續播放題組一次。":"模考會先給 10 秒讀題時間，再自動播放一次。"
       :"專項練習可點擊立即播放，並自由調整速度與常考口音。";
@@ -2400,12 +2465,9 @@ function playQuestionAudio(q,options={}){
   state.audioPlays[key]=used+1;
   if(q.part==="1") speakPart1Choices(q.choices,state.currentIndex+1);
   else if(q.part==="2") speakPart2Question(q,state.currentIndex+1);
-  else {
-    const directions=state.sessionMode==="mock"&&isFirstQuestionOfPart()&&["3","4"].includes(q.part)
-      ? `Narrator: Part ${q.part}. Directions. ${PART_DIRECTIONS[q.part]?.english||""}\n`
-      : "";
-    speakDialogue(`${directions}${q.audioText}`);
-  }
+  else if(["3","4"].includes(q.part)) speakPart34Group(q);
+  else speakDialogue(q.audioText);
+  persistActive();
   renderQuestion();
 }
 function availableEnglishVoices(){
@@ -2480,34 +2542,63 @@ function scheduleQuestionAudio(callback,delay,playbackToken){
     if(playbackToken===state.questionAudioToken) callback();
   },delay);
 }
-function speakPart1Choices(choices=[],questionNumber=1){
+function directionSpeechSteps(part){
+  const steps=[];
+  if(!state.spokenDirections.listening&&LISTENING_INTRODUCTION.english){
+    state.spokenDirections.listening=true;
+    steps.push({text:`Listening Test. ${LISTENING_INTRODUCTION.english}`,role:"neutral",pauseAfter:900});
+  }
+  if(!state.spokenDirections[part]&&PART_DIRECTIONS[part]?.english){
+    state.spokenDirections[part]=true;
+    steps.push({text:`Part ${part}. Directions. ${PART_DIRECTIONS[part].english}`,role:"neutral",pauseAfter:900});
+  }
+  return steps;
+}
+function speakSequence(steps=[],options={}){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
   cancelQuestionAudio();
   const playbackToken=state.questionAudioToken;
-  const rate=speechRate();
+  const rate=options.rate??speechRate();
+  const queue=steps.filter(step=>String(step?.text||"").trim());
   let index=0;
-  const speakLetter=()=>{
+  const speakNext=()=>{
     if(playbackToken!==state.questionAudioToken) return;
-    const choice=choices[index];
-    if(choice===undefined) return;
-    const choiceIndex=index++;
-    const cue=makeUtterance(`${letter(choiceIndex)}.`,"neutral",rate);
-    cue.onend=()=>{
+    const step=queue[index++];
+    if(!step){ options.onComplete?.(); return; }
+    const utterance=makeUtterance(step.text,step.role||"neutral",step.rate??rate);
+    const advance=()=>{
       if(playbackToken!==state.questionAudioToken) return;
-      scheduleQuestionAudio(()=>{
-        const statement=makeUtterance(choice,"neutral",rate);
-        statement.onend=()=>{
-          if(playbackToken!==state.questionAudioToken||index>=choices.length) return;
-          scheduleQuestionAudio(speakLetter,PART1_INTER_CHOICE_PAUSE_MS,playbackToken);
-        };
-        speechSynthesis.speak(statement);
-      },PART1_LETTER_PAUSE_MS,playbackToken);
+      scheduleQuestionAudio(speakNext,Math.max(0,Number(step.pauseAfter)||0),playbackToken);
     };
-    speechSynthesis.speak(cue);
+    utterance.onend=advance;
+    utterance.onerror=advance;
+    speechSynthesis.speak(utterance);
   };
-  const numberCue=makeUtterance(`Number ${questionNumber}.`,"neutral",rate);
-  numberCue.onend=()=>scheduleQuestionAudio(speakLetter,QUESTION_NUMBER_PAUSE_MS,playbackToken);
-  scheduleQuestionAudio(()=>speechSynthesis.speak(numberCue),LISTENING_LEAD_IN_PAUSE_MS,playbackToken);
+  const start=()=>scheduleQuestionAudio(speakNext,options.initialDelay??AUDIO_PRIMER_PAUSE_MS,playbackToken);
+  speechSynthesis.resume?.();
+  const primer=makeUtterance("Audio ready.","neutral",rate);
+  primer.volume=0;
+  let primed=false;
+  const finishPrimer=()=>{
+    if(primed||playbackToken!==state.questionAudioToken) return;
+    primed=true;
+    start();
+  };
+  primer.onend=finishPrimer;
+  primer.onerror=finishPrimer;
+  speechSynthesis.speak(primer);
+  setTimeout(finishPrimer,900);
+}
+function speakPart1Choices(choices=[],questionNumber=1){
+  const steps=[
+    ...directionSpeechSteps("1"),
+    {text:`Number ${questionNumber}. Look at the picture marked number ${questionNumber} in your test book.`,role:"neutral",pauseAfter:QUESTION_NUMBER_PAUSE_MS}
+  ];
+  choices.forEach((choice,index)=>{
+    steps.push({text:`${letter(index)}.`,role:"neutral",pauseAfter:PART1_LETTER_PAUSE_MS});
+    steps.push({text:choice,role:"neutral",pauseAfter:PART1_INTER_CHOICE_PAUSE_MS});
+  });
+  speakSequence(steps,{initialDelay:LISTENING_LEAD_IN_PAUSE_MS});
 }
 function part2PromptRole(q){
   if(["male","female"].includes(q?.audioSpeaker)) return q.audioSpeaker;
@@ -2515,50 +2606,48 @@ function part2PromptRole(q){
   return number%2?"male":"female";
 }
 function speakPart2Question(q,questionNumber=1){
-  if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
-  cancelQuestionAudio();
-  const playbackToken=state.questionAudioToken;
   const rate=speechRate();
   const promptRole=part2PromptRole(q);
   const responseRole=promptRole==="male"?"female":"male";
-  let responseIndex=0;
-  const speakResponseLetter=()=>{
-    if(playbackToken!==state.questionAudioToken) return;
-    const response=q.choices?.[responseIndex];
-    if(response===undefined) return;
-    const choiceIndex=responseIndex++;
-    const letterCue=makeUtterance(`${letter(choiceIndex)}.`,"neutral",rate);
-    letterCue.onend=()=>scheduleQuestionAudio(()=>{
-      const answerCue=makeUtterance(response,responseRole,rate);
-      answerCue.onend=()=>{
-        if(playbackToken!==state.questionAudioToken||responseIndex>=q.choices.length) return;
-        scheduleQuestionAudio(speakResponseLetter,PART2_INTER_RESPONSE_PAUSE_MS,playbackToken);
-      };
-      speechSynthesis.speak(answerCue);
-    },PART2_LETTER_PAUSE_MS,playbackToken);
-    speechSynthesis.speak(letterCue);
-  };
-  const promptCue=makeUtterance(q.audioText,promptRole,rate);
-  promptCue.onend=()=>scheduleQuestionAudio(speakResponseLetter,PART2_PROMPT_PAUSE_MS,playbackToken);
-  const numberCue=makeUtterance(`Number ${questionNumber}.`,"neutral",rate);
-  numberCue.onend=()=>scheduleQuestionAudio(()=>speechSynthesis.speak(promptCue),QUESTION_NUMBER_PAUSE_MS,playbackToken);
-  scheduleQuestionAudio(()=>speechSynthesis.speak(numberCue),LISTENING_LEAD_IN_PAUSE_MS,playbackToken);
+  const steps=[
+    ...directionSpeechSteps("2"),
+    {text:`Number ${questionNumber}.`,role:"neutral",pauseAfter:QUESTION_NUMBER_PAUSE_MS},
+    {text:q.audioText,role:promptRole,pauseAfter:PART2_PROMPT_PAUSE_MS}
+  ];
+  (q.choices||[]).forEach((response,index)=>{
+    steps.push({text:`${letter(index)}.`,role:"neutral",pauseAfter:PART2_LETTER_PAUSE_MS});
+    steps.push({text:response,role:responseRole,pauseAfter:PART2_INTER_RESPONSE_PAUSE_MS});
+  });
+  speakSequence(steps,{rate,initialDelay:LISTENING_LEAD_IN_PAUSE_MS});
+}
+function speakPart34Group(q){
+  const indexes=q._groupKey?groupIndexes(q._groupKey):[state.currentIndex];
+  const firstNumber=(indexes[0]??state.currentIndex)+1;
+  const lastNumber=(indexes[indexes.length-1]??state.currentIndex)+1;
+  const subject=q.part==="3"?"conversation":"talk";
+  const steps=[
+    ...directionSpeechSteps(q.part),
+    {text:`Questions ${firstNumber} through ${lastNumber} refer to the following ${subject}.`,role:"neutral",pauseAfter:QUESTION_NUMBER_PAUSE_MS}
+  ];
+  const dialogue=dialogueSegments(q.audioText);
+  dialogue.forEach((segment,index)=>steps.push({
+    text:segment.text,
+    role:segment.role,
+    pauseAfter:index===dialogue.length-1?1000:DIALOGUE_SEGMENT_PAUSE_MS
+  }));
+  indexes.forEach((index,promptIndex)=>{
+    const item=state.session[index];
+    if(item) steps.push({
+      text:`Question ${index+1}. ${item.prompt}`,
+      role:"neutral",
+      pauseAfter:promptIndex<indexes.length-1?PART34_QUESTION_PAUSE_MS:0
+    });
+  });
+  speakSequence(steps,{initialDelay:LISTENING_LEAD_IN_PAUSE_MS});
 }
 function speakDialogue(text,options={}){
-  if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
-  if(options.cancelExisting!==false) cancelQuestionAudio();
-  const playbackToken=state.questionAudioToken;
-  const segments=dialogueSegments(text);
-  let index=0;
-  const speakNext=()=>{
-    if(playbackToken!==state.questionAudioToken) return;
-    const segment=segments[index++];
-    if(!segment) return;
-    const u=makeUtterance(segment.text,segment.role);
-    u.onend=speakNext;
-    speechSynthesis.speak(u);
-  };
-  speakNext();
+  const steps=dialogueSegments(text).map(segment=>({text:segment.text,role:segment.role,pauseAfter:DIALOGUE_SEGMENT_PAUSE_MS}));
+  speakSequence(steps,{initialDelay:options.initialDelay??AUDIO_PRIMER_PAUSE_MS});
 }
 function speak(text){
   if(!("speechSynthesis" in window)){ showToast("此瀏覽器不支援語音播放"); return; }
@@ -2746,6 +2835,7 @@ function finishSession(){
   setWrongIds(wrongIds);
   const partLabel=[...new Set(results.map(r=>`Part ${r.question.part}`))].join(", ");
   const mode=state.sessionMode==="mock"?"Part 1–7 模考":state.sessionMode==="review"?"間隔複習":state.sessionMode==="strategy"?"技巧專練":state.sessionMode==="literacy"?"閱讀素養":"自由練習";
+  archiveResults(results,mode);
   const record={
     id:Date.now(),
     date:new Date().toISOString(),
@@ -3056,6 +3146,7 @@ function localStorageRows(){
     ["錯題本", `${getWrongIds().length} 題`, KEYS.wrong],
     ["題目收藏", `${getFavoriteIds().length} 題`, KEYS.favorite],
     ["歷史成績", `${getHistory().length} 筆`, KEYS.history],
+    ["逐題解析", `${getAnswerArchive().length} 題`, KEYS.answerArchive],
     ["自訂題庫", `${load(KEYS.custom,[]).length} 題`, KEYS.custom],
     ["個人單字本", `${getVocab().length} 筆`, KEYS.vocab],
     ["語音口音偏好", accentProfile().label, KEYS.audioAccent],
@@ -3077,7 +3168,7 @@ function renderLocalStorageSummary(){
 function exportLearningState(){
   const payload={
     exportedAt:new Date().toISOString(),
-    version:"3.9",
+    version:"4.2",
     cookie:{
       dailyGoal:decodeURIComponent(getCookie(COOKIE_KEYS.dailyGoal)||""),
       lastVisit:decodeURIComponent(getCookie(COOKIE_KEYS.lastVisit)||"")
@@ -3086,6 +3177,7 @@ function exportLearningState(){
       wrong:getWrongIds(),
       favoriteQuestions:getFavoriteIds(),
       history:getHistory(),
+      answerArchive:getAnswerArchive(),
       customBank:load(KEYS.custom,[]),
       vocab:getVocab(),
       performance:getPerformance(),
@@ -3133,6 +3225,72 @@ function renderStorageCenter(){
 function renderHistory(){
   const h=getHistory();
   $("#historyRows").innerHTML=h.length?h.map(x=>`<tr><td>${new Date(x.date).toLocaleString("zh-TW")}</td><td>${safe(x.mode||"自由練習")}</td><td>${x.total}</td><td>${x.correct}</td><td>${x.accuracy}%</td><td>${safe(x.parts)}</td></tr>`).join(""):'<tr><td colspan="6" class="empty">尚無紀錄</td></tr>';
+  renderAnswerArchive();
+}
+function answerArchiveRows(){
+  const query=($("#answerArchiveSearch")?.value||"").trim().toLowerCase();
+  const part=$("#answerArchivePart")?.value||"all";
+  const result=$("#answerArchiveResult")?.value||"all";
+  const sort=$("#answerArchiveSort")?.value||"recent";
+  let rows=getAnswerArchive();
+  if(part!=="all") rows=rows.filter(entry=>entry.part===part);
+  if(result==="correct") rows=rows.filter(entry=>entry.lastCorrect);
+  if(result==="wrong") rows=rows.filter(entry=>!entry.lastCorrect);
+  if(query) rows=rows.filter(entry=>[
+    entry.id,entry.category,entry.prompt,entry.explanation,entry.translation,
+    entry.correctText,entry.lastSelectedText,...(entry.choices||[])
+  ].join(" ").toLowerCase().includes(query));
+  if(sort==="attempts") rows.sort((a,b)=>(b.attemptCount||0)-(a.attemptCount||0)||String(b.lastAnsweredAt).localeCompare(String(a.lastAnsweredAt)));
+  if(sort==="part") rows.sort((a,b)=>Number(a.part)-Number(b.part)||a.id.localeCompare(b.id,undefined,{numeric:true}));
+  if(sort==="recent") rows.sort((a,b)=>String(b.lastAnsweredAt).localeCompare(String(a.lastAnsweredAt)));
+  return rows;
+}
+function renderAnswerArchive(){
+  const list=$("#answerArchiveList");
+  const summary=$("#answerArchiveSummary");
+  if(!list||!summary) return;
+  const all=getAnswerArchive();
+  const rows=answerArchiveRows();
+  const totalAttempts=all.reduce((sum,entry)=>sum+(entry.attemptCount||0),0);
+  const mastered=all.filter(entry=>(entry.attemptCount||0)>=2&&(entry.correctCount||0)/(entry.attemptCount||1)>=.8).length;
+  summary.innerHTML=`<span><strong>${all.length}</strong> 題已保存</span><span><strong>${totalAttempts}</strong> 次作答</span><span><strong>${mastered}</strong> 題達 80%</span><span>目前顯示 <strong>${rows.length}</strong> 題</span>`;
+  list.innerHTML=rows.length?rows.map(entry=>{
+    const accuracy=entry.attemptCount?Math.round((entry.correctCount||0)/entry.attemptCount*100):0;
+    const attempts=[...(entry.attempts||[])].reverse();
+    return `<article class="answer-archive-card">
+      <div class="answer-archive-head">
+        <div class="badges"><span class="badge">Part ${safe(entry.part)}</span><span class="badge gray">${safe(entry.category)}</span><span class="badge ${entry.lastCorrect?"":"amber"}">${entry.lastCorrect?"最近答對":"最近答錯／未答"}</span></div>
+        <span>${new Date(entry.lastAnsweredAt).toLocaleString("zh-TW")}</span>
+      </div>
+      <h3>${safe(entry.prompt)}</h3>
+      <div class="answer-archive-answer-grid">
+        <div><span>你的最近答案</span><strong class="${entry.lastCorrect?"correct":"wrong"}">${safe(entry.lastSelectedText||"未作答")}</strong></div>
+        <div><span>正確答案</span><strong>${letter(entry.answer)} ${safe(entry.correctText)}</strong></div>
+        <div><span>累積表現</span><strong>${entry.correctCount||0}/${entry.attemptCount||0}・${accuracy}%</strong></div>
+      </div>
+      <p class="answer-explanation"><strong>詳解：</strong>${safe(entry.explanation)}</p>
+      ${entry.translation?`<p class="answer-translation"><strong>中文：</strong>${safe(entry.translation)}</p>`:""}
+      ${entry.answerTranslation?`<p class="answer-translation"><strong>正確回應：</strong>${safe(entry.answerTranslation)}</p>`:""}
+      ${entry.evidence?`<p class="answer-translation"><strong>原文線索：</strong>${safe(entry.evidence)}</p>`:""}
+      <details class="answer-archive-attempts"><summary>最近作答紀錄（最多 20 次）</summary>${attempts.map(attempt=>`<div><time>${new Date(attempt.answeredAt).toLocaleString("zh-TW")}</time><span>${safe(attempt.mode)}</span><strong class="${attempt.correct?"correct":"wrong"}">${attempt.correct?"答對":"答錯"}・${safe(attempt.selectedText)}</strong></div>`).join("")}</details>
+      <div class="group"><button class="btn primary" data-practice-archive="${safe(entry.id)}">再練此題${entry.groupId?"組":""}</button><button class="btn danger" data-remove-archive="${safe(entry.id)}">刪除紀錄</button></div>
+    </article>`;
+  }).join(""):'<div class="card empty">目前篩選下沒有解析紀錄；完成一回練習後會自動保存。</div>';
+  $$("[data-remove-archive]").forEach(button=>button.onclick=()=>{
+    saveAnswerArchive(getAnswerArchive().filter(entry=>entry.id!==button.dataset.removeArchive));
+    renderAnswerArchive();
+    renderLocalStorageSummary();
+  });
+  $$("[data-practice-archive]").forEach(button=>button.onclick=()=>{
+    const entry=getAnswerArchive().find(item=>item.id===button.dataset.practiceArchive);
+    if(!entry) return;
+    const questions=getActiveBank().filter(q=>entry.groupId?q.groupId===entry.groupId:q.id===entry.id);
+    startSession(questions,{count:questions.length,seconds:0,shuffle:true,instant:true,mode:"practice"});
+  });
+}
+function exportAnswerArchive(){
+  const archive=getAnswerArchive();
+  download(new Blob([JSON.stringify({exportedAt:new Date().toISOString(),storage:"Local Storage",questions:archive},null,2)],{type:"application/json"}),`toeic-answer-archive-${Date.now()}.json`);
 }
 function download(blob,name){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
 function exportResultJson(){ if(!state.lastResult)return; download(new Blob([JSON.stringify(state.lastResult,null,2)],{type:"application/json"}),`toeic-result-${Date.now()}.json`); }
@@ -3370,6 +3528,19 @@ $("#practiceFavorites").onclick=()=>{ const list=questionsFromIds(getFavoriteIds
 $("#clearWrong").onclick=()=>{ if(confirm("確定清空錯題本？")){removeReviewSchedule(getWrongIds());setWrongIds([]);renderWrongBook();renderDashboard();} };
 $("#clearFavorites").onclick=()=>{ if(confirm("確定清空所有題目收藏？")){setFavoriteIds([]);renderWrongBook();renderDashboard();} };
 $("#clearHistory").onclick=()=>{ if(confirm("確定清空歷史紀錄？")){save(KEYS.history,[]);renderHistory();renderDashboard();} };
+$("#answerArchiveSearch").addEventListener("input",renderAnswerArchive);
+$("#answerArchivePart").onchange=renderAnswerArchive;
+$("#answerArchiveResult").onchange=renderAnswerArchive;
+$("#answerArchiveSort").onchange=renderAnswerArchive;
+$("#exportAnswerArchive").onclick=exportAnswerArchive;
+$("#clearAnswerArchive").onclick=()=>{
+  if(confirm("確定清空所有逐題答案與詳解紀錄？歷史成績不會受影響。")){
+    saveAnswerArchive([]);
+    renderAnswerArchive();
+    renderLocalStorageSummary();
+    showToast("逐題解析紀錄已清空");
+  }
+};
 $("#exportJson").onclick=exportResultJson; $("#exportCsv").onclick=exportResultCsv; $("#printReport").onclick=()=>window.print();
 $("#exportBank").onclick=()=>download(new Blob([JSON.stringify(getBank(),null,2)],{type:"application/json"}),"toeic-question-bank.json");
 $("#resetBank").onclick=()=>{ if(confirm("移除所有自訂題庫？")){save(KEYS.custom,[]);renderDashboard();showToast("自訂題庫已移除");} };

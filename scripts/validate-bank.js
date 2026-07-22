@@ -57,7 +57,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 965) errors.push(`Expected 965 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 977) errors.push(`Expected 977 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
