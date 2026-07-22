@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.0.0",
+  version: "4.1.0",
   release: {
-    title: "精簡導覽與官方示範節奏聽力",
-    summary: "側欄收斂為五個主分類；Part 1／2 依官方公開示範的題號、題幹與選項停頓結構分段播放，另增 20 題原創 Part 2。",
-    badges: ["v4.0.0", "945 題", "五類導覽", "Part 1／2 節奏升級"]
+    title: "Part 3–7 Directions 與完整三題題組",
+    summary: "加入可播放的英文 Directions、Reading 75 分鐘提醒與題型入口提示；另增 20 題原創 Part 3／4，並稽核所有聽力題組皆為三題。",
+    badges: ["v4.1.0", "965 題", "Part 3–7 Directions", "聽力三題題組"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
@@ -66,6 +66,43 @@ window.TOEIC_APP_SHELL = {
       focus: "先定位題目問法，再回文件交叉比對。"
     }
   ],
+  readingIntroduction: {
+    title: "READING TEST",
+    english: "In the Reading test, you will read a variety of texts and answer several different types of reading comprehension questions. The entire Reading test will last 75 minutes. There are three parts, and directions are given for each part. You are encouraged to answer as many questions as possible within the time allowed. You must mark your answers on the separate answer sheet. Do not write your answers in your test book.",
+    chinese: "閱讀測驗共 75 分鐘，包含 Part 5、6、7。請在時間內盡可能完成題目；正式紙筆測驗須將答案劃記在答案卡上。"
+  },
+  partDirections: {
+    "3": {
+      title: "PART 3 簡短對話",
+      english: "You will hear some conversations between two or more people. You will be asked to answer three questions about what the speakers say in each conversation. Select the best response to each question and mark the letter (A), (B), (C), or (D) on your answer sheet. The conversations will not be printed in your test book and will be spoken only one time.",
+      chinese: "每段對話搭配三題。正式測驗不印逐字稿且只播放一次；播放前先讀完三題題幹與選項。",
+      metrics: ["每段 3 題", "四選一", "只播放 1 次"]
+    },
+    "4": {
+      title: "PART 4 簡短獨白",
+      english: "You will hear some talks given by a single speaker. You will be asked to answer three questions about what the speaker says in each talk. Select the best response to each question and mark the letter (A), (B), (C), or (D) on your answer sheet. The talks will not be printed in your test book and will be spoken only one time.",
+      chinese: "每段獨白搭配三題。正式測驗不印逐字稿且只播放一次；先定位目的、對象、時間與下一步。",
+      metrics: ["每段 3 題", "單一說話者", "只播放 1 次"]
+    },
+    "5": {
+      title: "PART 5 句子填空",
+      english: "A word or phrase is missing in each of the sentences below. Four answer choices are given below each sentence. Select the best answer to complete the sentence. Then mark the letter (A), (B), (C), or (D) on your answer sheet.",
+      chinese: "每題有一個單字或片語空格。先判斷句子結構與詞性，再用語意及搭配確認答案。",
+      metrics: ["單句填空", "四選一", "先結構後語意"]
+    },
+    "6": {
+      title: "PART 6 段落填空",
+      english: "Read the texts that follow. A word, phrase, or sentence is missing in parts of each text. Four answer choices for each question are given below the text. Select the best answer to complete the text. Then mark the letter (A), (B), (C), or (D) on your answer sheet.",
+      chinese: "閱讀完整文章後補入單字、片語或句子。除句內文法外，也要檢查前後文邏輯與語氣。",
+      metrics: ["完整文章", "字詞或句子插入", "檢查上下文"]
+    },
+    "7": {
+      title: "PART 7 閱讀測驗",
+      english: "In this part you will read a selection of texts, such as magazine and newspaper articles, e-mails, and instant messages. Each text or set of texts is followed by several questions. Select the best answer for each question and mark the letter (A), (B), (C), or (D) on your answer sheet.",
+      chinese: "閱讀文章、電子郵件、即時訊息等單篇或多篇文件。先讀題幹，再回原文定位並交叉核對證據。",
+      metrics: ["單篇／雙篇／三篇", "四選一", "回原文找證據"]
+    }
+  },
   storageContracts: [
     { area: "Cookie", owner: "dailyGoal", description: "每日目標與最後造訪日期" },
     { area: "Local Storage", owner: "learningState", description: "題庫、錯題、成績、單字、品質標記" },

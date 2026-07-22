@@ -63,7 +63,7 @@ window.BUILTIN_BANK.push(...[
     "passage": "",
     "audioText": "M: Did the security update finish on the reception tablets?\nW: Not yet. The network team found a compatibility issue with the older models.\nM: We have visitors arriving at nine tomorrow. Can we use the backup login page?\nW: Yes, but I will ask the team to test it again this afternoon.",
     "audioTranslation": "男：接待平板的資安更新完成了嗎？\n女：還沒有。網路團隊發現舊機型有相容性問題。\n男：明天九點有訪客到。可以用備用登入頁嗎？\n女：可以，但我會請團隊今天下午再測一次。",
-    "groupId": "P3-052",
+    "groupId": "P3-G18",
     "tags": ["listening", "conversation", "inference"],
     "sourceNote": "Original TOEIC-style item; source hub used for format awareness only."
   },

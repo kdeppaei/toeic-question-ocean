@@ -26,8 +26,8 @@ async function navigate(page, view) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.0.0");
-  await expect(page.locator("#totalBank")).toHaveText("945");
+  await page.goto("/?v=4.1.0");
+  await expect(page.locator("#totalBank")).toHaveText("965");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -233,6 +233,35 @@ test("Part 2 audio announces the number, prompt, and three paced responses", asy
       expect(cue.time - previousResponse.endedAt).toBeGreaterThanOrEqual(850);
     }
   });
+});
+
+test("Part 3 directions and all three questions appear before grouped practice", async ({ page }) => {
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("3");
+  await expect(page.locator("#directionReferenceContent")).toContainText("PART 3 簡短對話");
+  await expect(page.locator("#directionReferenceContent")).toContainText("three questions");
+  await page.locator("#countSelect").selectOption("5");
+  await page.locator("#startPractice").click();
+  await expect(page.locator(".part-direction-cue")).toContainText("PART 3 簡短對話");
+  await expect(page.locator(".group-overview .group-question")).toHaveCount(3);
+});
+
+test("Reading directions show the 75-minute overview and switch by part", async ({ page }) => {
+  await navigate(page, "setupView");
+  await page.locator('[data-direction-tab="3"]').focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator('[data-direction-tab="4"]')).toBeFocused();
+  await expect(page.locator("#directionReferenceContent")).toContainText("PART 4 簡短獨白");
+  await page.locator('[data-direction-tab="reading"]').click();
+  await expect(page.locator("#directionReferenceContent")).toContainText("75 minutes");
+  await page.locator("#partSelect").selectOption("6");
+  await expect(page.locator("#directionReferenceContent")).toContainText("PART 6 段落填空");
+  await expect(page.locator("#directionReferenceContent")).toContainText("word, phrase, or sentence");
+  await page.locator("#partSelect").selectOption("5");
+  await page.locator("#countSelect").selectOption("5");
+  await page.locator("#startPractice").click();
+  await expect(page.locator(".reading-intro-strip")).toContainText("閱讀測驗共 75 分鐘");
+  await expect(page.locator(".part-direction-cue")).toContainText("PART 5 句子填空");
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {

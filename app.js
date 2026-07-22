@@ -7,6 +7,8 @@ const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildS
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
 const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId:{}, issues:[], errors:[], warnings:[], checked:0 }) };
 const FIVE_DAY_SPRINT = window.TOEIC_FIVE_DAY_SPRINT || { days: [], sources: [], errorTags: [], handbookUrl: "" };
+const PART_DIRECTIONS = APP_SHELL.partDirections || {};
+const READING_INTRODUCTION = APP_SHELL.readingIntroduction || {};
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -266,6 +268,7 @@ const state = {
   autoVocabVisible: 100,
   learningTab: "vocabulary",
   readingSkill: "all",
+  directionPart: "3",
   sessionStrategy: null,
   vocabQuiz: { questions: [], index: 0, answers: [] },
   sprintDay: 1,
@@ -1815,6 +1818,66 @@ function updateAvailable(){
   list.forEach(q=>counts[`Part ${q.part}`]=(counts[`Part ${q.part}`]||0)+1);
   $("#filterBreakdown").innerHTML=Object.entries(counts).map(([k,v])=>`<div class="mini-item"><strong>${k}</strong><span style="float:right">${v} 題</span></div>`).join("")||'<div class="empty">沒有符合條件的題目</div>';
 }
+const DIRECTION_TABS = ["3", "4", "reading", "5", "6", "7"];
+function directionData(key){
+  if(key==="reading"){
+    return {
+      title: READING_INTRODUCTION.title || "READING TEST",
+      english: READING_INTRODUCTION.english || "",
+      chinese: READING_INTRODUCTION.chinese || "",
+      metrics: ["75 分鐘", "Part 5–7", "答案劃記於答案卡"]
+    };
+  }
+  return PART_DIRECTIONS[key] || null;
+}
+function directionTabLabel(key){ return key==="reading"?"Reading":"Part "+key; }
+function directionBody(data,{compact=false}={}){
+  if(!data) return "";
+  return `<div class="direction-title-row"><div><span class="eyebrow">DIRECTIONS</span><h${compact?"3":"2"}>${safe(data.title)}</h${compact?"3":"2"}></div></div>
+    <div class="direction-metrics">${(data.metrics||[]).map(metric=>`<span>${safe(metric)}</span>`).join("")}</div>
+    <p class="direction-chinese">${safe(data.chinese)}</p>
+    <details class="direction-english" ${compact&&state.sessionMode!=="mock"?"":"open"}>
+      <summary>English Directions｜英文作答指示</summary>
+      <p lang="en">${safe(data.english)}</p>
+    </details>`;
+}
+function renderDirectionReference(key=state.directionPart,{focus=false}={}){
+  if(!directionData(key)) key="3";
+  state.directionPart=key;
+  const tabs=$("#directionTabs");
+  const content=$("#directionReferenceContent");
+  if(!tabs||!content) return;
+  tabs.innerHTML=DIRECTION_TABS.map(tab=>`<button type="button" class="direction-tab ${tab===key?"active":""}" role="tab" aria-selected="${tab===key}" data-direction-tab="${tab}">${directionTabLabel(tab)}</button>`).join("");
+  content.innerHTML=directionBody(directionData(key));
+  const buttons=$$("[data-direction-tab]");
+  buttons.forEach((button,index)=>{
+    button.onclick=()=>renderDirectionReference(button.dataset.directionTab);
+    button.onkeydown=event=>{
+      if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+      event.preventDefault();
+      let next=index;
+      if(event.key==="ArrowLeft") next=(index-1+buttons.length)%buttons.length;
+      if(event.key==="ArrowRight") next=(index+1)%buttons.length;
+      if(event.key==="Home") next=0;
+      if(event.key==="End") next=buttons.length-1;
+      renderDirectionReference(buttons[next].dataset.directionTab,{focus:true});
+    };
+  });
+  if(focus) requestAnimationFrame(()=>$("[data-direction-tab].active")?.focus({preventScroll:true}));
+}
+function isFirstQuestionOfPart(index=state.currentIndex){
+  const current=state.session[index];
+  const previous=state.session[index-1];
+  return !!current&&(!previous||previous.part!==current.part);
+}
+function renderPartDirectionCue(q){
+  const data=PART_DIRECTIONS[q.part];
+  if(!isFirstQuestionOfPart()||!data) return "";
+  const reading=q.part==="5"&&READING_INTRODUCTION.title
+    ? `<div class="reading-intro-strip"><strong>${safe(READING_INTRODUCTION.title)}</strong><span>${safe(READING_INTRODUCTION.chinese)}</span></div>`
+    : "";
+  return `<section class="part-direction-cue" aria-label="Part ${safe(q.part)} 作答指示">${reading}${directionBody(data,{compact:true})}</section>`;
+}
 function prepareSessionQuestion(source,unit,index,shuffleChoices){
   const item=clone(source);
   item._groupKey=unit.questions.length>1?unit.key:null;
@@ -2179,6 +2242,7 @@ function renderQuestion(){
   $("#quizProgressTrack")?.setAttribute("aria-valuenow",String(progress));
   $("#quizProgressTrack")?.setAttribute("aria-valuetext",`第 ${state.currentIndex+1} 題，共 ${state.session.length} 題`);
   let stimulus="";
+  stimulus+=renderPartDirectionCue(q);
   if(grouped){
     const groupType=q.part==="3"?"conversation":q.part==="4"?"talk":q.part==="6"?"text":"passage";
     stimulus+=`<div class="group-banner">Questions ${groupStart+1}–${groupEnd+1} refer to the same ${groupType}。完成整個題組前不揭曉正解或內容解析。</div>`;
@@ -2198,7 +2262,10 @@ function renderQuestion(){
     const countLabel=limit>0?`${used}/${limit}`:`${used}/∞`;
     const prepActive=state.listeningPrep?.key===audioKey;
     const prepLabel=mockAudio?(prepActive?`讀題倒數 ${state.listeningPrep.remaining}s`:"模考 10 秒讀題"):"專項即時播放";
-    const audioHint=mockAudio?"模考會先給 10 秒讀題時間，再自動播放一次。":"專項練習可點擊立即播放，並自由調整速度與常考口音。";
+    const includesDirections=mockAudio&&isFirstQuestionOfPart()&&["3","4"].includes(q.part);
+    const audioHint=mockAudio
+      ? includesDirections?"本 Part 首次播放會先念 Directions；10 秒讀題後接續播放題組一次。":"模考會先給 10 秒讀題時間，再自動播放一次。"
+      :"專項練習可點擊立即播放，並自由調整速度與常考口音。";
     stimulus+=`<div class="listen-box"><div><strong>Listening Audio</strong><div style="color:var(--muted);font-size:13px;margin-top:4px">${audioHint}</div></div><div class="listen-controls">${speedControl}${accentControl}<span class="badge ${prepActive?"amber":"gray"}">${prepLabel}</span><button class="btn primary" id="listenBtn" ${exhausted||prepActive?"disabled":""}>▶ 播放 ${countLabel}</button></div></div>`;
   }
   stimulus+=renderGroupQuestionOverview(q);
@@ -2333,7 +2400,12 @@ function playQuestionAudio(q,options={}){
   state.audioPlays[key]=used+1;
   if(q.part==="1") speakPart1Choices(q.choices,state.currentIndex+1);
   else if(q.part==="2") speakPart2Question(q,state.currentIndex+1);
-  else speakDialogue(q.audioText);
+  else {
+    const directions=state.sessionMode==="mock"&&isFirstQuestionOfPart()&&["3","4"].includes(q.part)
+      ? `Narrator: Part ${q.part}. Directions. ${PART_DIRECTIONS[q.part]?.english||""}\n`
+      : "";
+    speakDialogue(`${directions}${q.audioText}`);
+  }
   renderQuestion();
 }
 function availableEnglishVoices(){
@@ -3272,7 +3344,16 @@ $("#part1ImageDialog").addEventListener("close",()=>{
   part1ImageReturnFocus?.focus({preventScroll:true});
   part1ImageReturnFocus=null;
 });
-$("#partSelect").onchange=updateAvailable; $("#difficultySelect").onchange=updateAvailable;
+$("#partSelect").onchange=()=>{
+  updateAvailable();
+  const selected=$("#partSelect").value;
+  if(PART_DIRECTIONS[selected]) renderDirectionReference(selected);
+};
+$("#difficultySelect").onchange=updateAvailable;
+$("#speakDirection").onclick=()=>{
+  const data=directionData(state.directionPart);
+  if(data?.english) speak(data.english);
+};
 $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;
 $("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});
@@ -3382,4 +3463,4 @@ document.addEventListener("keydown",e=>{
 });
 
 updateVisitCookie();
-renderDashboard(); updateAvailable(); renderResumeBanner(); resetVocabReview();
+renderDashboard(); updateAvailable(); renderDirectionReference(); renderResumeBanner(); resetVocabReview();

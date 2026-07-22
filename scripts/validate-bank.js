@@ -57,9 +57,24 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 945) errors.push(`Expected 945 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 965) errors.push(`Expected 965 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
+if (Array.isArray(bank)) {
+  ["3", "4"].forEach((part) => {
+    const groups = new Map();
+    bank.filter((question) => String(question.part) === part).forEach((question) => {
+      if (!question.groupId) {
+        errors.push(`${question.id}: Part ${part} question must belong to a three-question group`);
+        return;
+      }
+      groups.set(question.groupId, (groups.get(question.groupId) || 0) + 1);
+    });
+    groups.forEach((size, groupId) => {
+      if (size !== 3) errors.push(`${groupId}: Part ${part} group must contain exactly 3 questions, received ${size}`);
+    });
+  });
+}
 if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v3.1 annotations, applied ${sandbox.window.TOEIC_V31_ANNOTATION_COUNT}`);
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))

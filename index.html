@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 945 題、Part 1–7、五天衝刺、官方示範節奏聽力、分級單字、閱讀素養與題目品質稽核。" />
+  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 965 題、Part 1–7、英文 Directions、三題式聽力題組、分級單字、閱讀素養與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.0.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.1.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -95,9 +95,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v4.0.0</span><span class="badge gray">945 題</span><span class="badge gray">五類導覽</span><span class="badge gray">Part 1／2 節奏升級</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">精簡導覽與官方示範節奏聽力</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">側欄收斂為五個主分類；Part 1／2 依官方公開示範的題號、題幹與選項停頓結構分段播放，另增 20 題原創 Part 2。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v4.1.0</span><span class="badge gray">965 題</span><span class="badge gray">Part 3–7 Directions</span><span class="badge gray">聽力三題題組</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">Part 3–7 Directions 與完整三題題組</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">加入可播放的英文 Directions、Reading 75 分鐘提醒與題型入口提示；另增 20 題原創 Part 3／4，並稽核所有聽力題組皆為三題。</p>
         </article>
 
         <div class="stats-grid">
@@ -158,6 +158,15 @@
             <div class="mini-list" id="filterBreakdown"></div>
           </article>
         </div>
+
+        <article class="card directions-reference" aria-labelledby="directionsReferenceTitle">
+          <div class="directions-reference-head">
+            <div><span class="eyebrow">TEST DIRECTIONS</span><h3 id="directionsReferenceTitle">先熟悉正式作答指示</h3><p>專項練習前可切換 Part 3–7；進入題型第一題時也會再次顯示重點。</p></div>
+            <button class="btn" id="speakDirection">▶ 播放英文指示</button>
+          </div>
+          <div class="direction-tabs" id="directionTabs" role="tablist" aria-label="選擇作答指示"></div>
+          <div id="directionReferenceContent" class="direction-reference-content" aria-live="polite"></div>
+        </article>
 
         <article class="card mock-card">
           <div class="badges"><span class="badge">Mock Exam</span><span class="badge gray">Part 1–7</span><span class="badge gray">自動交卷</span></div>
@@ -727,6 +736,7 @@
 <script src="./question-bank-v33.js"></script>
 <script src="./question-bank-v34.js"></script>
 <script src="./question-bank-v40.js"></script>
+<script src="./question-bank-v41.js"></script>
 <script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./vocab-lexicon-v35.js"></script>
