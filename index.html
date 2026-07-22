@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 977 題、Part 1–7、完整聽力播報、長期解析紀錄、分級單字與題目品質稽核。" />
+  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 987 題、Part 1–7、題目來源標示、完整聽力播報、長期解析紀錄與題目品質稽核。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.2.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.3.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -95,7 +95,7 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v4.2.0</span><span class="badge gray">977 題</span><span class="badge gray">完整聽力播報</span><span class="badge gray">解析長期保存</span></div>
+          <div class="badges" id="releaseBadges"><span class="badge">v4.3.0</span><span class="badge gray">987 題</span><span class="badge gray">來源透明化</span><span class="badge gray">獵頓／abceed 外連</span></div>
           <h3 id="releaseTitle" style="margin:13px 0 7px">完整聽力播報與長期解析紀錄</h3>
           <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">聽力加入暖機防截音、Part 1–4 Directions、題號與題組後五秒作答節奏；逐題答案與詳解改用 Local Storage 長期保存。</p>
         </article>
@@ -457,7 +457,7 @@
             <div class="section-head"><div><h2 id="sprintLogTitle">練習紀錄</h2><p>外部題目只記數據與主要錯因。</p></div></div>
             <form class="card sprint-log-form" id="sprintLogForm">
               <div class="form-grid">
-                <label><span>練習來源</span><select id="sprintLogSource"><option value="ets">ETS 官方</option><option value="abceed">abceed</option><option value="xdf">新東方</option><option value="other">其他合法素材</option></select></label>
+                <label><span>練習來源</span><select id="sprintLogSource"><option value="ets">ETS 官方</option><option value="abceed">abceed</option><option value="leaton">獵頓英語</option><option value="xdf">新東方</option><option value="other">其他合法素材</option></select></label>
                 <label><span>題數</span><input id="sprintLogTotal" type="number" min="1" max="200" value="20" required></label>
                 <label><span>答對</span><input id="sprintLogCorrect" type="number" min="0" max="200" value="0" required></label>
                 <label><span>主要錯因</span><select id="sprintLogError"></select></label>
@@ -665,7 +665,8 @@
   "explanation": "中文解析",
   "translation": "中文翻譯",
   "passage": "",
-  "audioText": ""
+  "audioText": "",
+  "sourceLabel": "自行填寫的來源名稱（會標示為個人匯入）"
 }</pre>
           </article>
         </div>
@@ -749,6 +750,7 @@
 <script src="./question-bank-v40.js"></script>
 <script src="./question-bank-v41.js"></script>
 <script src="./question-bank-v42.js"></script>
+<script src="./question-bank-v43.js"></script>
 <script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./vocab-lexicon-v35.js"></script>
@@ -757,6 +759,7 @@
 <script src="./modules/toeic-learning-hub.js"></script>
 <script src="./modules/learning-command-center.js"></script>
 <script src="./modules/legal-practice-sources.js"></script>
+<script src="./modules/question-provenance.js"></script>
 <script src="./modules/question-quality-audit.js"></script>
 <script src="./modules/five-day-sprint.js"></script>
 <script src="./app.js" defer></script>

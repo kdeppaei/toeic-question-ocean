@@ -15,12 +15,23 @@ vm.runInContext(
   sandbox,
   { filename: "question-annotations-v31.js" }
 );
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "question-provenance.js"), "utf8"),
+  sandbox,
+  { filename: "question-provenance.js" }
+);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "legal-practice-sources.js"), "utf8"),
+  sandbox,
+  { filename: "legal-practice-sources.js" }
+);
 
 const bank = sandbox.window.BUILTIN_BANK;
 const validParts = new Set(["1", "2", "3", "4", "5", "6", "7"]);
 const validDifficulties = new Set(["400", "600", "800"]);
 const seen = new Set();
 const errors = [];
+const provenance = sandbox.window.TOEIC_QUESTION_PROVENANCE;
 
 if (!Array.isArray(bank)) {
   errors.push("Question bank is not an array.");
@@ -35,6 +46,11 @@ if (!Array.isArray(bank)) {
     if (!validDifficulties.has(String(question.difficulty))) errors.push(`${label}: invalid difficulty`);
     if (!Array.isArray(question.choices) || question.choices.length < 2 || question.choices.length > 4) errors.push(`${label}: choices must have 2-4 items`);
     if (!Number.isInteger(question.answer) || question.answer < 0 || question.answer >= (question.choices || []).length) errors.push(`${label}: invalid answer index`);
+    const source = provenance?.resolve(question);
+    if (!source || !source.label || !source.type || !source.detail) errors.push(`${label}: missing resolved provenance`);
+    if (/^(?:ETS|abceed|獵頓|猎顿|Leaton)/i.test(source?.label || "") && question.sourceType !== "licensed" && question.sourceType !== "official") {
+      errors.push(`${label}: restricted provider label requires verified official or licensed provenance`);
+    }
     ["prompt", "explanation"].forEach((field) => {
       if (typeof question[field] !== "string" || !question[field].trim()) errors.push(`${label}: missing ${field}`);
     });
@@ -57,7 +73,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 977) errors.push(`Expected 977 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 987) errors.push(`Expected 987 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
@@ -79,7 +95,19 @@ if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))
   : [];
-if (humanReviewed.length !== 68) errors.push(`Expected 68 human-reviewed literacy questions, received ${humanReviewed.length}`);
+if (humanReviewed.length !== 74) errors.push(`Expected 74 human-reviewed literacy questions, received ${humanReviewed.length}`);
+
+const v43Items = Array.isArray(bank) ? bank.filter((question) => /^P5-32[1-4]$|^P7-R7[78]-Q[1-3]$/.test(question.id)) : [];
+if (v43Items.length !== 10) errors.push(`Expected 10 v4.3 questions, received ${v43Items.length}`);
+v43Items.forEach((question) => {
+  if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
+});
+
+const legalSources = sandbox.window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
+["ets-official-prep", "abceed-platform", "leaton-platform"].forEach((id) => {
+  const source = legalSources.find((entry) => entry.id === id);
+  if (!source || !/^https:\/\//.test(source.url || "")) errors.push(`${id}: legal external source entry is missing`);
+});
 
 const correctedInversion = Array.isArray(bank) ? bank.find((question) => question.id === "P5-073") : null;
 if (!correctedInversion) {

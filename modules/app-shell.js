@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.2.0",
+  version: "4.3.0",
   release: {
-    title: "完整聽力播報與長期解析紀錄",
-    summary: "聽力加入暖機防截音、Part 1–4 Directions、題號與題組後五秒作答節奏；逐題答案與詳解改用 Local Storage 長期保存。",
-    badges: ["v4.2.0", "977 題", "完整聽力播報", "解析長期保存"]
+    title: "題目來源透明化與素養題擴充",
+    summary: "每題在作答、詳解、錯題與品質後台顯示可追溯來源；新增獵頓、abceed 與官方資源入口，但未授權題目只外連不搬運。",
+    badges: ["v4.3.0", "987 題", "來源透明化", "10 題新素養題"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

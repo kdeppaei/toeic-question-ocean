@@ -26,8 +26,8 @@ async function navigate(page, view) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.2.0");
-  await expect(page.locator("#totalBank")).toHaveText("977");
+  await page.goto("/?v=4.3.0");
+  await expect(page.locator("#totalBank")).toHaveText("987");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -318,23 +318,45 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await page.locator("#partSelect").selectOption("5");
   await page.locator("#countSelect").selectOption("5");
   await page.locator("#startPractice").click();
+  await expect(page.locator("#quizBadges .source-badge")).toHaveText("本站原創模擬");
   for(let index=0;index<5;index++){
     await page.locator('[data-choice="0"]').click();
     await page.locator("#nextQuestion").click();
   }
   await expect(page.locator("#resultView")).toHaveClass(/active/);
+  await expect(page.locator("#answerReviewList .source-badge")).toHaveCount(5);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.answerArchive.v1") || "[]").length)).toBe(5);
 
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
+  await expect(page.locator("#answerArchiveList .source-badge")).toHaveCount(5);
   await expect(page.locator("#answerArchiveList").first()).toContainText("詳解：");
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("977");
+  await expect(page.locator("#totalBank")).toHaveText("987");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
+});
+
+test("question provenance is complete and external platforms remain link-only", async ({ page }) => {
+  const audit = await page.evaluate(() => {
+    const resolve = window.TOEIC_QUESTION_PROVENANCE.resolve;
+    const rows = window.BUILTIN_BANK.map((question) => ({ id: question.id, ...resolve(question) }));
+    return {
+      total: rows.length,
+      incomplete: rows.filter((row) => !row.label || !row.type || !row.detail).map((row) => row.id),
+      mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
+    };
+  });
+  expect(audit).toEqual({ total: 987, incomplete: [], mislabeled: [] });
+
+  await navigate(page, "bankView");
+  await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);
+  await expect(page.locator("#legalSourceList")).toContainText("abceed / Globee");
+  await expect(page.locator("#legalSourceList")).toContainText("獵頓英語 / Leaton");
+  await expect(page.locator("#legalSourceList")).toContainText("不收錄其題文、音檔、答案或解析");
 });
 
 test("mock exam starts with Part 1 without exposing spoken descriptions", async ({ page }) => {

@@ -5,6 +5,9 @@ const APP_SHELL = window.TOEIC_APP_SHELL || {};
 const LEARNING_HUB = window.TOEIC_LEARNING_HUB || { grammarTopics: [], collocations: [], collocationCategories: {}, resources: [] };
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
+const QUESTION_PROVENANCE = window.TOEIC_QUESTION_PROVENANCE || {
+  resolve: () => ({ type: "original", label: "本站原創模擬", provider: "TOEIC Question Ocean", url: "", detail: "本站自行撰寫的模擬題。" })
+};
 const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId:{}, issues:[], errors:[], warnings:[], checked:0 }) };
 const FIVE_DAY_SPRINT = window.TOEIC_FIVE_DAY_SPRINT || { days: [], sources: [], errorTags: [], handbookUrl: "" };
 const PART_DIRECTIONS = APP_SHELL.partDirections || {};
@@ -297,6 +300,11 @@ const PART34_QUESTION_PAUSE_MS = 5000;
 const buildPart1AudioText = (choices=[]) => choices.map((choice,index)=>`${letter(index)}. ${choice}`).join(" ");
 const nowLabel = () => new Intl.DateTimeFormat("zh-TW",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(new Date());
 const safe = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+function questionSourceMeta(question){ return QUESTION_PROVENANCE.resolve(question||{}); }
+function renderQuestionSourceBadge(question){
+  const source=questionSourceMeta(question);
+  return `<span class="source-badge source-${safe(source.type)}" title="${safe(source.detail)}" aria-label="題目來源：${safe(source.label)}">${safe(source.label)}</span>`;
+}
 function renderQuestionImage(question, context="practice"){
   const image=String(question?.image||"");
   if(!/^assets\/part1\/[a-z0-9-]+\.(?:jpg|png|webp)$/i.test(image)) return "";
@@ -481,6 +489,7 @@ function archiveResults(results,mode="自由練習"){
   const answeredAt=new Date().toISOString();
   results.forEach(result=>{
     const q=result.question;
+    const source=questionSourceMeta(q);
     const previous=map.get(q.id)||{};
     const attempt={
       answeredAt,
@@ -504,6 +513,11 @@ function archiveResults(results,mode="自由練習"){
       translation:q.translation||"",
       answerTranslation:q.answerTranslation||"",
       evidence:q.evidence||"",
+      sourceType:source.type,
+      sourceLabel:source.label,
+      sourceProvider:source.provider,
+      sourceUrl:source.url,
+      sourceDetail:source.detail,
       attempts,
       attemptCount:(previous.attemptCount||0)+1,
       correctCount:(previous.correctCount||0)+(result.correct?1:0),
@@ -2301,7 +2315,7 @@ function renderQuestion(){
   const revealAnswer=answered && state.options.instant;
   const groupStart=grouped?state.currentIndex-q._groupIndex:state.currentIndex;
   const groupEnd=grouped?groupStart+q._groupSize-1:state.currentIndex;
-  $("#quizBadges").innerHTML=`<span class="badge">Q${state.currentIndex+1}/${state.session.length}</span><span class="badge gray">Part ${q.part}</span><span class="badge gray">${safe(q.difficulty)}+</span><span class="badge gray">${safe(q.category)}</span>${grouped?`<span class="badge gray">題組 ${q._groupIndex+1}/${q._groupSize}</span>`:""}`;
+  $("#quizBadges").innerHTML=`<span class="badge">Q${state.currentIndex+1}/${state.session.length}</span><span class="badge gray">Part ${q.part}</span><span class="badge gray">${safe(q.difficulty)}+</span><span class="badge gray">${safe(q.category)}</span>${renderQuestionSourceBadge(q)}${grouped?`<span class="badge gray">題組 ${q._groupIndex+1}/${q._groupSize}</span>`:""}`;
   const progress=Math.round(((state.currentIndex+1)/state.session.length)*100);
   $("#quizProgress").style.width=`${progress}%`;
   $("#quizProgressTrack")?.setAttribute("aria-valuenow",String(progress));
@@ -2931,6 +2945,7 @@ function renderAnswerReview(results){
         <span class="badge gray">Q${index+1}</span>
         <span class="badge gray">Part ${safe(q.part)}</span>
         <span class="badge gray">${safe(q.category)}</span>
+        ${renderQuestionSourceBadge(q)}
       </div>
       <h3>${safe(q.prompt)}</h3>
       ${renderQuestionImage(q,"compact")}
@@ -3027,7 +3042,7 @@ function renderSavedQuestionItems(items,type,schedule={},now=Date.now()){
         : "<span class=\"badge gray\">未排程</span>"
       : `<span class="badge">★ 收藏</span>`;
     const removeAttr=type==="wrong"?`data-remove-wrong="${safe(q.id)}"`:`data-remove-favorite="${safe(q.id)}"`;
-    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${reviewBadges}</div><h3>${safe(q.prompt)}</h3>${renderQuestionImage(q,"compact")}${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}${q.audioText?`<details><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" ${removeAttr}>移除</button></article>`;
+    return `<article class="wrong-item"><div class="badges"><span class="badge">Part ${q.part}</span><span class="badge gray">${safe(q.category)}</span>${renderQuestionSourceBadge(q)}${reviewBadges}</div><h3>${safe(q.prompt)}</h3>${renderQuestionImage(q,"compact")}${q.passage?`<details><summary>查看文章</summary><div class="passage">${safe(q.passage)}</div></details>`:""}${q.audioText?`<details><summary>查看聽力逐字稿</summary><div class="passage">${safe(q.audioText)}</div></details>`:""}<p><b>正解：</b>${letter(q.answer)} ${safe(q.choices[q.answer])}</p><p style="color:var(--muted)">${safe(q.explanation)}</p><button class="btn danger" ${removeAttr}>移除</button></article>`;
   }).join("");
 }
 function renderWrongBook(){
@@ -3259,7 +3274,7 @@ function renderAnswerArchive(){
     const attempts=[...(entry.attempts||[])].reverse();
     return `<article class="answer-archive-card">
       <div class="answer-archive-head">
-        <div class="badges"><span class="badge">Part ${safe(entry.part)}</span><span class="badge gray">${safe(entry.category)}</span><span class="badge ${entry.lastCorrect?"":"amber"}">${entry.lastCorrect?"最近答對":"最近答錯／未答"}</span></div>
+        <div class="badges"><span class="badge">Part ${safe(entry.part)}</span><span class="badge gray">${safe(entry.category)}</span>${renderQuestionSourceBadge(entry)}<span class="badge ${entry.lastCorrect?"":"amber"}">${entry.lastCorrect?"最近答對":"最近答錯／未答"}</span></div>
         <span>${new Date(entry.lastAnsweredAt).toLocaleString("zh-TW")}</span>
       </div>
       <h3>${safe(entry.prompt)}</h3>
@@ -3305,6 +3320,7 @@ function sourceCategoryLabel(category){
   return {
     official:"官方來源",
     license:"授權政策",
+    platform:"外部練習平台",
     "free-practice":"免費練習"
   }[category]||"外部來源";
 }
@@ -3377,6 +3393,7 @@ function renderQualityDashboard(){
           <span class="badge">Part ${safe(q.part)}</span>
           <span class="badge gray">${safe(q.id)}</span>
           <span class="badge gray">${safe(q.category)}</span>
+          ${renderQuestionSourceBadge(q)}
           ${qState.disabled?'<span class="badge gray">已停用</span>':""}
           ${qState.disputed?'<span class="badge">爭議答案</span>':""}
           ${qState.review?'<span class="badge">待複查</span>':""}
@@ -3439,7 +3456,12 @@ function normalizeImportedQuestion(q){
     audioText:String(q.audioText??"").trim(),
     audioTranslation:String(q.audioTranslation??"").trim(),
     answerTranslation:String(q.answerTranslation??"").trim(),
-    tags:Array.isArray(q.tags)?q.tags.map(tag=>String(tag??"").trim()).filter(Boolean).slice(0,12):[]
+    tags:Array.isArray(q.tags)?q.tags.map(tag=>String(tag??"").trim()).filter(Boolean).slice(0,12):[],
+    sourceType:"user",
+    sourceLabel:String(q.sourceLabel??q.sourceProvider??"").trim().slice(0,80),
+    sourceProvider:"使用者",
+    sourceUrl:"",
+    sourceDetail:String(q.sourceDetail??"此題由使用者匯入，來源未經本站授權驗證。").trim().slice(0,500)
   };
   if(image){
     item.image=image;
