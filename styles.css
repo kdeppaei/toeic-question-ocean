@@ -397,11 +397,44 @@
       margin-top:12px; padding:12px 14px; border-radius:12px;
       background:var(--amber-soft); color:var(--amber); line-height:1.65; font-size:13px;
     }
+    .mock-blueprint-note {
+      display:flex; align-items:flex-start; gap:9px; margin-top:12px; padding:11px 13px;
+      border-radius:8px; border:1px solid var(--line); background:var(--surface);
+      color:var(--muted); font-size:12px; line-height:1.55;
+    }
+    .mock-blueprint-note strong { flex:0 0 auto; color:var(--primary); }
     .section-clock {
       padding:13px; border-radius:12px; background:var(--primary-soft);
       border:1px solid color-mix(in srgb,var(--primary) 30%,var(--line));
     }
     .section-clock strong { display:block; margin-top:5px; color:var(--primary); font-size:25px; font-variant-numeric:tabular-nums; }
+    .section-clock small { display:block; margin-top:5px; line-height:1.45; }
+    #mockBlueprintStatus { color:var(--muted); font-size:11px; }
+    .mock-section-dialog {
+      width:min(560px,calc(100vw - 24px)); max-width:none; padding:0;
+      border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text);
+      box-shadow:0 24px 70px rgba(9,17,31,.3);
+    }
+    .mock-section-dialog::backdrop { background:rgba(9,17,31,.72); backdrop-filter:blur(3px); }
+    .mock-section-dialog-body { padding:26px; }
+    .mock-section-dialog h2 { margin:16px 0 7px; font-size:27px; letter-spacing:0; }
+    .mock-section-dialog p { margin:0; color:var(--muted); line-height:1.65; }
+    .mock-section-score-grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:20px 0;
+    }
+    .mock-section-score-grid > div {
+      padding:16px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2);
+    }
+    .mock-section-score-grid span { display:block; color:var(--muted); font-size:12px; font-weight:800; }
+    .mock-section-score-grid strong {
+      display:block; margin-top:7px; color:var(--primary); font-size:25px; font-variant-numeric:tabular-nums;
+    }
+    .mock-section-break {
+      display:grid; gap:5px; margin-bottom:18px; padding:13px 14px; border-left:4px solid var(--green);
+      background:var(--green-soft); color:var(--text); line-height:1.55;
+    }
+    .mock-section-break span { color:var(--muted); font-size:13px; }
+    .mock-section-action { width:100%; min-height:48px; }
     .nav-q:disabled { cursor:not-allowed; opacity:.34; }
     .resume-banner {
       display:none; margin-top:18px; padding:17px; border-radius:16px;
@@ -434,6 +467,10 @@
     .estimate-note { padding:12px 14px; border-radius:12px; background:var(--amber-soft); color:var(--amber); line-height:1.65; font-size:13px; }
     @media (max-width:700px){
       .mock-grid,.analytics-grid,.estimate-grid,.storage-grid,.storage-map,.auto-vocab-grid,.strategy-grid,.mastery-grid,.quality-list{grid-template-columns:1fr;}
+      .mock-section-dialog-body { padding:20px 16px; }
+      .mock-section-dialog h2 { font-size:23px; }
+      .mock-section-score-grid { grid-template-columns:1fr; }
+      .mock-blueprint-note { display:grid; gap:3px; }
     }
     .quiz-actions { display:flex; justify-content:space-between; gap:10px; margin-top:20px; }
     .progress { height:10px; background:var(--surface-2); border-radius:999px; overflow:hidden; border:1px solid var(--line); }

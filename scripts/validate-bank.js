@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const { auditBank } = require("../modules/question-quality-audit.js");
+const mockExamBuilder = require("../modules/mock-exam-builder.js");
 
 const root = path.resolve(__dirname, "..");
 const sandbox = { window: {} };
@@ -73,7 +74,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 987) errors.push(`Expected 987 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 1010) errors.push(`Expected 1010 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
@@ -95,13 +96,54 @@ if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))
   : [];
-if (humanReviewed.length !== 74) errors.push(`Expected 74 human-reviewed literacy questions, received ${humanReviewed.length}`);
+if (humanReviewed.length !== 80) errors.push(`Expected 80 human-reviewed literacy questions, received ${humanReviewed.length}`);
 
 const v43Items = Array.isArray(bank) ? bank.filter((question) => /^P5-32[1-4]$|^P7-R7[78]-Q[1-3]$/.test(question.id)) : [];
 if (v43Items.length !== 10) errors.push(`Expected 10 v4.3 questions, received ${v43Items.length}`);
 v43Items.forEach((question) => {
   if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
 });
+
+const v44Items = Array.isArray(bank) ? bank.filter((question) =>
+  /^P2-10[7-9]$|^P3-G24-Q[1-3]$|^P4-G21-Q[1-3]$|^P5-32[5-8]$|^P6-G28-Q[1-4]$|^P7-R(?:79|80)-Q[1-3]$/.test(question.id)
+) : [];
+if (v44Items.length !== 23) errors.push(`Expected 23 v4.4 questions, received ${v44Items.length}`);
+v44Items.forEach((question) => {
+  if (question.difficulty !== "800") errors.push(`${question.id}: v4.4 expansion item must be difficulty 800`);
+  if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
+});
+
+function seededRandom(seed) {
+  let value = seed >>> 0;
+  return () => {
+    value = (value * 1664525 + 1013904223) >>> 0;
+    return value / 4294967296;
+  };
+}
+
+if (Array.isArray(bank)) {
+  for (let seed = 1; seed <= 12; seed += 1) {
+    const plan = mockExamBuilder.build(bank, { random: seededRandom(seed) });
+    const diagnostics = plan.diagnostics;
+    if (diagnostics.total !== 200) errors.push(`Mock seed ${seed}: expected 200 questions, received ${diagnostics.total}`);
+    if (diagnostics.duplicateIds.length) errors.push(`Mock seed ${seed}: duplicate IDs ${diagnostics.duplicateIds.join(", ")}`);
+    mockExamBuilder.PART_ORDER.forEach((part) => {
+      const config = mockExamBuilder.DEFAULT_BLUEPRINT[part];
+      if (diagnostics.partCounts[part] !== config.count) {
+        errors.push(`Mock seed ${seed}: Part ${part} expected ${config.count}, received ${diagnostics.partCounts[part]}`);
+      }
+      Object.entries(config.difficulty).forEach(([level, target]) => {
+        if (diagnostics.difficultyCounts[part][level] !== target) {
+          errors.push(`Mock seed ${seed}: Part ${part} difficulty ${level} expected ${target}, received ${diagnostics.difficultyCounts[part][level]}`);
+        }
+      });
+      plan.unitsByPart[part].forEach((unit) => {
+        const sourceSize = bank.filter((question) => (question.groupId || question.id) === unit.key).length;
+        if (unit.questions.length !== sourceSize) errors.push(`Mock seed ${seed}: split group ${unit.key}`);
+      });
+    });
+  }
+}
 
 const legalSources = sandbox.window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
 ["ets-official-prep", "abceed-platform", "leaton-platform"].forEach((id) => {

@@ -26,8 +26,8 @@ async function navigate(page, view) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.3.0");
-  await expect(page.locator("#totalBank")).toHaveText("987");
+  await page.goto("/?v=4.4.0");
+  await expect(page.locator("#totalBank")).toHaveText("1010");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -334,7 +334,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("987");
+  await expect(page.locator("#totalBank")).toHaveText("1010");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
@@ -350,7 +350,7 @@ test("question provenance is complete and external platforms remain link-only", 
       mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
     };
   });
-  expect(audit).toEqual({ total: 987, incomplete: [], mislabeled: [] });
+  expect(audit).toEqual({ total: 1010, incomplete: [], mislabeled: [] });
 
   await navigate(page, "bankView");
   await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);
@@ -375,6 +375,58 @@ test("mock exam starts with Part 1 without exposing spoken descriptions", async 
   await expect(page.locator("#quizBadges")).toContainText("Part 2");
   await expect(page.locator(".choice")).toHaveCount(3);
   await expect(page.locator(".choice").first()).toContainText("聆聽回應後選擇");
+});
+
+test("mock exam uses stratified quotas and pauses between section scores", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await navigate(page, "setupView");
+  await page.locator("#startMockExam").click();
+
+  const blueprint = await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.activeSession.v1")).mockBlueprint);
+  expect(blueprint.partCounts).toEqual({ "1": 6, "2": 25, "3": 39, "4": 30, "5": 30, "6": 16, "7": 54 });
+  expect(blueprint.difficultyCounts).toEqual({
+    "1": { "400": 2, "600": 2, "800": 2 },
+    "2": { "400": 7, "600": 10, "800": 8 },
+    "3": { "400": 0, "600": 21, "800": 18 },
+    "4": { "400": 0, "600": 18, "800": 12 },
+    "5": { "400": 6, "600": 12, "800": 12 },
+    "6": { "400": 0, "600": 8, "800": 8 },
+    "7": { "400": 0, "600": 24, "800": 30 }
+  });
+  await expect(page.locator("#mockBlueprintStatus")).toContainText("800+ 90 題");
+
+  await page.evaluate(() => completeListeningSection("manual"));
+  await expect(page.locator("#mockSectionResultDialog")).toBeVisible();
+  await expect(page.locator("#mockSectionResultTitle")).toHaveText("Listening 已完成");
+  await expect(page.locator("#mockSectionRawScore")).toHaveText("0 / 100");
+  await expect(page.locator("#mockSectionResultDescription")).toContainText("Reading 計時尚未開始");
+  const dialogBounds = await page.locator("#mockSectionResultDialog").evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { left: box.left, right: box.right, viewport: innerWidth, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
+  });
+  expect(dialogBounds.left).toBeGreaterThanOrEqual(0);
+  expect(dialogBounds.right).toBeLessThanOrEqual(dialogBounds.viewport);
+  expect(dialogBounds.scrollWidth).toBe(dialogBounds.clientWidth);
+
+  const breakSnapshot = await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.activeSession.v1")));
+  expect(breakSnapshot.mockSection).toBe("break");
+  expect(breakSnapshot.sectionEndsAt).toBeNull();
+  await page.waitForTimeout(1100);
+  await expect(page.locator("#mockSectionTime")).toHaveText("Reading 未計時");
+
+  await page.locator("#mockSectionResultAction").click();
+  await expect(page.locator("#quizBadges")).toContainText("Part 5");
+  await expect(page.locator("#mockSectionLabel")).toHaveText("Reading Section");
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.locator("#quitPractice").click();
+  await expect(page.locator("#mockSectionResultDialog")).toBeVisible();
+  await expect(page.locator("#mockSectionResultTitle")).toHaveText("Reading 已完成");
+  await expect(page.locator("#mockSectionRawScore")).toHaveText("0 / 100");
+  await page.locator("#mockSectionResultAction").click();
+  await expect(page.locator("#resultView")).toHaveClass(/active/);
+  await expect(page.locator("#estimateGrid .estimate-card").nth(0)).toContainText("0/100 題");
+  await expect(page.locator("#estimateGrid .estimate-card").nth(1)).toContainText("0/100 題");
 });
 
 test("home and setup views have no serious automated accessibility violations", async ({ page }) => {

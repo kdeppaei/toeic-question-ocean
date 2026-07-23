@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 987 題、Part 1–7、題目來源標示、完整聽力播報、長期解析紀錄與題目品質稽核。" />
+  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 1,010 題、Part 1–7、兩段式模考、分層出卷、完整聽力播報與長期解析紀錄。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.3.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.4.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -95,7 +95,7 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v4.3.0</span><span class="badge gray">987 題</span><span class="badge gray">來源透明化</span><span class="badge gray">獵頓／abceed 外連</span></div>
+          <div class="badges" id="releaseBadges"><span class="badge">v4.4.0</span><span class="badge gray">1,010 題</span><span class="badge gray">分段出分</span><span class="badge gray">分層出卷</span></div>
           <h3 id="releaseTitle" style="margin:13px 0 7px">完整聽力播報與長期解析紀錄</h3>
           <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">聽力加入暖機防截音、Part 1–4 Directions、題號與題組後五秒作答節奏；逐題答案與詳解改用 Local Storage 長期保存。</p>
         </article>
@@ -169,15 +169,16 @@
         </article>
 
         <article class="card mock-card">
-          <div class="badges"><span class="badge">Mock Exam</span><span class="badge gray">Part 1–7</span><span class="badge gray">自動交卷</span></div>
+          <div class="badges"><span class="badge">Mock Exam</span><span class="badge gray">Part 1–7</span><span class="badge gray">兩段式出分</span><span class="badge gray">分層隨機</span></div>
           <h2 style="margin:13px 0 6px">Part 1–7 完整 200 題模考</h2>
-          <p style="color:var(--muted);line-height:1.75;margin:0">依正式題數比例抽取 Part 1–7，共 200 題。Listening 與 Reading 採獨立倒數；模考期間不顯示答案與解析。</p>
+          <p style="color:var(--muted);line-height:1.75;margin:0">依正式題數配置 Part 1–7，共 200 題。Listening 完成後立即出分並暫停，準備好再啟動 75 分鐘 Reading；題目依 Part、難度、題組與考點分層抽取。</p>
           <div class="mock-grid">
             <div class="mock-metric"><strong>100 題</strong><span>Listening・45 分鐘</span></div>
             <div class="mock-metric"><strong>100 題</strong><span>Reading・75 分鐘</span></div>
             <div class="mock-metric"><strong>1 次</strong><span>聽力播放上限</span></div>
           </div>
           <button class="btn primary" id="startMockExam" style="width:100%;padding:14px">開始 200 題模考</button>
+          <div class="mock-blueprint-note"><strong>本次組卷規則</strong><span>固定 Part 配額 · 難度分層 · 題組不拆散 · 同類考點分散 · 近期題目降權</span></div>
           <div class="mock-warning">本網站為自製題庫，並非 ETS 官方試題。Part 1 使用本地化的 Pexels 授權照片或本專案 AI 生成情境圖與原創敘述；模考時選項文字不顯示，請依音訊選擇 A–D。</div>
         </article>
       </section>
@@ -206,7 +207,8 @@
             <article class="card section-clock" id="mockSectionCard" hidden>
               <span id="mockSectionLabel">Listening Section</span>
               <strong id="mockSectionTime">45:00</strong>
-              <small id="mockSectionHint">時間到將自動進入 Reading。</small>
+              <small id="mockSectionHint">時間到將鎖定 Listening 並立即出分。</small>
+              <small id="mockBlueprintStatus"></small>
             </article>
             <article class="card"><h3>本回合</h3><div class="mini-list" id="sessionStats"></div></article>
             <article class="card">
@@ -723,6 +725,22 @@
     <img class="part1-image-preview" id="part1ImagePreview" alt="">
   </div>
 </dialog>
+<dialog class="mock-section-dialog" id="mockSectionResultDialog" aria-labelledby="mockSectionResultTitle" aria-describedby="mockSectionResultDescription">
+  <div class="mock-section-dialog-body">
+    <div class="badges"><span class="badge" id="mockSectionResultBadge">Listening 完成</span><span class="badge gray">非官方換算</span></div>
+    <h2 id="mockSectionResultTitle">Listening 已完成</h2>
+    <p id="mockSectionResultDescription">成績已保存。Reading 計時尚未開始。</p>
+    <div class="mock-section-score-grid">
+      <div><span>答對題數</span><strong id="mockSectionRawScore">0 / 100</strong></div>
+      <div><span>預估分數</span><strong id="mockSectionScaledScore">5 / 495</strong></div>
+    </div>
+    <div class="mock-section-break" id="mockSectionBreakNote">
+      <strong>現在可以安心休息</strong>
+      <span>Reading 的 75 分鐘倒數會在你按下開始後才啟動，重新整理頁面也能回到這個休息點。</span>
+    </div>
+    <button class="btn primary mock-section-action" id="mockSectionResultAction" type="button">開始 Reading 75 分鐘</button>
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="./question-bank.js"></script>
@@ -751,6 +769,7 @@
 <script src="./question-bank-v41.js"></script>
 <script src="./question-bank-v42.js"></script>
 <script src="./question-bank-v43.js"></script>
+<script src="./question-bank-v44.js"></script>
 <script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./vocab-lexicon-v35.js"></script>
@@ -761,6 +780,7 @@
 <script src="./modules/legal-practice-sources.js"></script>
 <script src="./modules/question-provenance.js"></script>
 <script src="./modules/question-quality-audit.js"></script>
+<script src="./modules/mock-exam-builder.js"></script>
 <script src="./modules/five-day-sprint.js"></script>
 <script src="./app.js" defer></script>
 </body>

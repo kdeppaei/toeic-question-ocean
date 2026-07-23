@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.3.0",
+  version: "4.4.0",
   release: {
-    title: "題目來源透明化與素養題擴充",
-    summary: "每題在作答、詳解、錯題與品質後台顯示可追溯來源；新增獵頓、abceed 與官方資源入口，但未授權題目只外連不搬運。",
-    badges: ["v4.3.0", "987 題", "來源透明化", "10 題新素養題"]
+    title: "兩段式模考與分層出卷",
+    summary: "Listening、Reading 可分段出分並在中間安心休息；每份 200 題依 Part、難度、題組與考點平衡抽取，近期考過題目會自動降權。",
+    badges: ["v4.4.0", "1,010 題", "分段出分", "23 題新高難題"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

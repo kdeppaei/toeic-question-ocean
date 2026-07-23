@@ -10,8 +10,9 @@ const viewports = [
 for (const viewport of viewports) {
   test(`home visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.3.0");
-    await expect(page.locator("#totalBank")).toHaveText("987");
+    await page.goto("/?v=4.4.0");
+    await expect(page.locator("#totalBank")).toHaveText("1010");
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.addStyleTag({
       content: `
         *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -52,6 +53,38 @@ for (const viewport of viewports) {
     });
 
     await expect(page).toHaveScreenshot(`home-${viewport.name}.png`, {
+      maxDiffPixelRatio: viewport.width <= 390 ? 0.12 : 0.065
+    });
+  });
+}
+
+const mockDialogViewports = [
+  { name: "phone-320", width: 320, height: 800 },
+  { name: "tablet-834", width: 834, height: 1112 },
+  { name: "desktop-1440", width: 1440, height: 900 }
+];
+
+for (const viewport of mockDialogViewports) {
+  test(`mock section break visual regression ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto("/?v=4.4.0");
+    await page.evaluate(() => showView("setupView"));
+    await page.locator("#startMockExam").click();
+    await page.evaluate(() => completeListeningSection("manual"));
+    await expect(page.locator("#mockSectionResultDialog")).toBeVisible();
+    await page.addStyleTag({
+      content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
+    });
+
+    const bounds = await page.locator("#mockSectionResultDialog").evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        withinViewport: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
+        noHorizontalOverflow: element.scrollWidth === element.clientWidth
+      };
+    });
+    expect(bounds).toEqual({ withinViewport: true, noHorizontalOverflow: true });
+    await expect(page).toHaveScreenshot(`mock-break-${viewport.name}.png`, {
       maxDiffPixelRatio: viewport.width <= 390 ? 0.12 : 0.065
     });
   });

@@ -9,6 +9,7 @@ const QUESTION_PROVENANCE = window.TOEIC_QUESTION_PROVENANCE || {
   resolve: () => ({ type: "original", label: "本站原創模擬", provider: "TOEIC Question Ocean", url: "", detail: "本站自行撰寫的模擬題。" })
 };
 const QUESTION_AUDIT = window.TOEIC_QUESTION_AUDIT || { auditBank: () => ({ byId:{}, issues:[], errors:[], warnings:[], checked:0 }) };
+const MOCK_EXAM_BUILDER = window.TOEIC_MOCK_EXAM_BUILDER || null;
 const FIVE_DAY_SPRINT = window.TOEIC_FIVE_DAY_SPRINT || { days: [], sources: [], errorTags: [], handbookUrl: "" };
 const PART_DIRECTIONS = APP_SHELL.partDirections || {};
 const READING_INTRODUCTION = APP_SHELL.readingIntroduction || {};
@@ -28,7 +29,8 @@ const KEYS = {
   vocabFitProgress: "toeicOcean.vocabFitProgress.v1",
   quality: "toeicOcean.questionQuality.v1",
   audioAccent: "toeicOcean.audioAccent.v1",
-  sprint: "toeicOcean.fiveDaySprint.v1"
+  sprint: "toeicOcean.fiveDaySprint.v1",
+  mockRecent: "toeicOcean.mockRecent.v1"
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
@@ -257,6 +259,7 @@ const state = {
   sessionMode: "practice",
   mockSection: null,
   mockBoundary: 0,
+  mockBlueprint: null,
   sectionRemaining: 0,
   sectionEndsAt: null,
   restored: false,
@@ -1806,6 +1809,7 @@ function activeSnapshot(){
     sessionMode:state.sessionMode,
     mockSection:state.mockSection,
     mockBoundary:state.mockBoundary,
+    mockBlueprint:state.mockBlueprint,
     sectionRemaining:state.sectionRemaining,
     sectionEndsAt:state.sectionEndsAt,
     audioPlays:state.audioPlays,
@@ -1858,6 +1862,7 @@ function restoreActive(){
     sessionMode:snapshot.sessionMode||"practice",
     mockSection:snapshot.mockSection||null,
     mockBoundary:snapshot.mockBoundary||0,
+    mockBlueprint:snapshot.mockBlueprint||null,
     sectionRemaining:snapshot.sectionRemaining||0,
     sectionEndsAt:snapshot.sectionEndsAt||null,
     audioPlays:snapshot.audioPlays||{},
@@ -1867,10 +1872,13 @@ function restoreActive(){
     restored:true
   });
   showView("practiceView");
-  if(state.sessionMode==="mock"){
+  if(state.sessionMode==="mock"&&state.mockSection!=="break"){
     resumeMockClock();
   }
   renderQuestion();
+  if(state.sessionMode==="mock"&&state.mockSection==="break"){
+    requestAnimationFrame(()=>showMockSectionResult("listening",mockSectionResults("listening")));
+  }
   showToast("已恢復上次進度");
 }
 function filteredBank(){
@@ -2046,6 +2054,7 @@ function startSession(list, options={}){
   clearListeningPrep();
   state.mockSection=null;
   state.mockBoundary=0;
+  state.mockBlueprint=null;
   state.questionStartedAt=null;
   state.questionStartedIndex=null;
   state.questionEndsAt=null;
@@ -2094,22 +2103,24 @@ function prepareUnits(units,shuffleChoices=true){
   return output;
 }
 function buildMockSession(){
-  const distribution={"1":6,"2":25,"3":39,"4":30,"5":30,"6":16,"7":54};
+  if(!MOCK_EXAM_BUILDER) throw new Error("模考出卷模組尚未載入");
+  const recentIds=load(KEYS.mockRecent,[]);
+  const plan=MOCK_EXAM_BUILDER.build(getActiveBank(),{recentIds});
   const output=[];
-  for(const part of ["1","2","3","4","5","6","7"]){
-    const units=buildUnits(getActiveBank().filter(q=>q.part===part));
-    const selected=selectUnitsExact(units,distribution[part]);
-    if(!selected) throw new Error(`Part ${part} 題庫無法組成 ${distribution[part]} 題`);
-    output.push(...prepareUnits(shuffle(selected),true));
+  for(const part of MOCK_EXAM_BUILDER.PART_ORDER){
+    output.push(...prepareUnits(plan.unitsByPart[part],true));
   }
-  return output;
+  const selectedIds=output.map(question=>question.id);
+  save(KEYS.mockRecent,[...selectedIds,...recentIds.filter(id=>!selectedIds.includes(id))].slice(0,800));
+  return {session:output,diagnostics:plan.diagnostics};
 }
 function startMockExam(){
   cancelQuestionAudio();
   clearActive();
-  let session;
-  try{ session=buildMockSession(); }
+  let mock;
+  try{ mock=buildMockSession(); }
   catch(error){ showToast(error.message); return; }
+  const {session,diagnostics}=mock;
   clearInterval(state.timerId);
   clearInterval(state.sectionTimerId);
   state.options={instant:false,shuffle:true,seconds:0,playLimit:1};
@@ -2123,6 +2134,7 @@ function startMockExam(){
   state.autoPlayedAudio={};
   state.spokenDirections={};
   state.mockBoundary=session.findIndex(q=>q.part==="5");
+  state.mockBlueprint=diagnostics;
   state.questionStartedAt=null;
   state.questionStartedIndex=null;
   state.questionEndsAt=null;
@@ -2147,12 +2159,28 @@ function updateMockClock(){
   if(!card) return;
   card.hidden=state.sessionMode!=="mock";
   if(state.sessionMode!=="mock") return;
+  const blueprintStatus=$("#mockBlueprintStatus");
+  if(blueprintStatus){
+    const high=Object.values(state.mockBlueprint?.difficultyCounts||{})
+      .reduce((sum,counts)=>sum+Number(counts?.["800"]||0),0);
+    const overlap=Number(state.mockBlueprint?.recentOverlap||0);
+    blueprintStatus.textContent=state.mockBlueprint
+      ?`本卷 800+ ${high} 題 · 近期題目重疊 ${overlap} 題`
+      :"";
+  }
+  if(state.mockSection==="break"){
+    $("#mockSectionLabel").textContent="Section Break";
+    $("#mockSectionTime").textContent="Reading 未計時";
+    $("#mockSectionHint").textContent="準備好後再開始 75 分鐘 Reading。";
+    $("#timerText").textContent="Listening 已出分";
+    return;
+  }
   const listening=state.mockSection==="listening";
   $("#mockSectionLabel").textContent=listening?"Listening Section":"Reading Section";
   $("#mockSectionTime").textContent=formatClock(state.sectionRemaining);
   $("#mockSectionHint").textContent=listening
-    ?"時間到將自動鎖定 Listening 並進入 Reading。"
-    :"時間到將自動交卷。";
+    ?"時間到將鎖定 Listening 並立即出分。"
+    :"時間到將鎖定 Reading 並立即出分。";
   $("#timerText").textContent=`${listening?"Listening":"Reading"} ${formatClock(state.sectionRemaining)}`;
 }
 function fillUnanswered(start,end){
@@ -2163,21 +2191,76 @@ function fillUnanswered(start,end){
     }
   }
 }
+function mockSectionResults(section){
+  const start=section==="listening"?0:state.mockBoundary;
+  const end=section==="listening"?state.mockBoundary:state.session.length;
+  return state.session.slice(start,end).map((question,offset)=>{
+    const answer=state.answers[start+offset]||{id:question.id,selected:null,correct:false,timedOut:true,elapsed:null};
+    return {...answer,question};
+  });
+}
+function showMockSectionResult(section,results){
+  const dialog=$("#mockSectionResultDialog");
+  if(!dialog) return;
+  const correct=results.filter(result=>result.correct).length;
+  const score=estimateSectionScore(correct,results.length);
+  const listening=section==="listening";
+  $("#mockSectionResultBadge").textContent=`${listening?"Listening":"Reading"} 完成`;
+  $("#mockSectionResultTitle").textContent=`${listening?"Listening":"Reading"} 已完成`;
+  $("#mockSectionResultDescription").textContent=listening
+    ?"本段成績已保存。Reading 計時尚未開始，可以先休息再繼續。"
+    :"本段成績已保存。先確認 Reading 表現，再查看完整總成績與逐題詳解。";
+  $("#mockSectionRawScore").textContent=`${correct} / ${results.length}`;
+  $("#mockSectionScaledScore").textContent=`${score} / 495`;
+  $("#mockSectionBreakNote").hidden=!listening;
+  const action=$("#mockSectionResultAction");
+  action.textContent=listening?"開始 Reading 75 分鐘":"查看完整成績與詳解";
+  action.onclick=()=>{
+    if(listening) beginReadingSection();
+    else{
+      dialog.close();
+      requestAnimationFrame(()=>$("#resultScore")?.focus({preventScroll:true}));
+    }
+  };
+  if(!dialog.open) dialog.showModal();
+  requestAnimationFrame(()=>action.focus({preventScroll:true}));
+}
+function completeListeningSection(reason="manual"){
+  if(state.sessionMode!=="mock"||state.mockSection!=="listening") return;
+  clearInterval(state.timerId);
+  clearInterval(state.sectionTimerId);
+  clearListeningPrep();
+  cancelQuestionAudio();
+  fillUnanswered(0,state.mockBoundary);
+  state.reviewFlags=state.reviewFlags.map((flag,index)=>index<state.mockBoundary?false:flag);
+  state.mockSection="break";
+  state.sectionRemaining=0;
+  state.sectionEndsAt=null;
+  state.questionEndsAt=null;
+  updateMockClock();
+  persistActive();
+  showMockSectionResult("listening",mockSectionResults("listening"));
+  if(reason==="expired") showToast("Listening 時間結束，已鎖定答案並出分");
+}
+function beginReadingSection(){
+  if(state.sessionMode!=="mock"||state.mockSection!=="break") return;
+  $("#mockSectionResultDialog")?.close();
+  state.currentIndex=state.mockBoundary;
+  state.reviewFlags=state.reviewFlags.map((flag,index)=>index<state.mockBoundary?false:flag);
+  startMockSection("reading");
+  startQuestionClock();
+  renderQuestion();
+  persistActive();
+  requestAnimationFrame(()=>$("#currentQuestionPrompt")?.focus({preventScroll:true}));
+}
 function handleMockSectionExpired(){
   clearInterval(state.sectionTimerId);
   if(state.mockSection==="listening"){
-    fillUnanswered(0,state.mockBoundary);
-    state.currentIndex=state.mockBoundary;
-    startQuestionClock();
-    state.reviewFlags=state.reviewFlags.map((flag,index)=>index<state.mockBoundary?false:flag);
-    showToast("Listening 時間結束，已自動進入 Reading");
-    startMockSection("reading");
-    renderQuestion();
-    persistActive();
-  }else{
+    completeListeningSection("expired");
+  }else if(state.mockSection==="reading"){
     fillUnanswered(state.mockBoundary,state.session.length);
-    showToast("Reading 時間結束，系統已自動交卷");
-    finishSession();
+    showToast("Reading 時間結束，已鎖定答案並出分");
+    finishSession({showSectionSummary:"reading"});
   }
 }
 function runMockClock(){
@@ -2203,6 +2286,11 @@ function startMockSection(section){
   persistActive();
 }
 function resumeMockClock(){
+  if(state.mockSection==="break"){
+    updateMockClock();
+    showMockSectionResult("listening",mockSectionResults("listening"));
+    return;
+  }
   if(!state.sectionEndsAt){
     state.sectionEndsAt=Date.now()+Math.max(1,state.sectionRemaining)*1000;
   }
@@ -2213,13 +2301,9 @@ function resumeMockClock(){
   }
 }
 function enterReadingSection(){
-  if(state.sessionMode!=="mock") return;
-  if(!confirm("進入 Reading 後將無法返回 Listening。確定繼續嗎？")) return;
-  fillUnanswered(0,state.mockBoundary);
-  state.currentIndex=state.mockBoundary;
-  startQuestionClock();
-  startMockSection("reading");
-  renderQuestion();
+  if(state.sessionMode!=="mock"||state.mockSection!=="listening") return;
+  if(!confirm("完成 Listening 後將鎖定答案並立即出分，且無法返回修改。確定繼續嗎？")) return;
+  completeListeningSection("manual");
 }
 function currentQ(){ return state.session[state.currentIndex]; }
 function groupIndexes(groupKey){
@@ -2381,7 +2465,9 @@ function renderQuestion(){
   $("#questionArea").innerHTML=`${stimulus}<div class="question" id="currentQuestionPrompt" tabindex="-1">${safe(q.prompt)}</div><div class="choices" role="group" aria-labelledby="currentQuestionPrompt">${choices}</div>${feedback}`;
   $("#nextQuestion").disabled=!answered && !hasSelection;
   $("#nextQuestion").textContent=state.sessionMode==="mock"&&state.currentIndex===state.mockBoundary-1
-      ?"進入 Reading"
+      ?"完成 Listening"
+      :state.sessionMode==="mock"&&state.currentIndex===state.session.length-1
+      ?"完成 Reading"
       :state.currentIndex===state.session.length-1?"完成練習":"下一題";
   $("#prevQuestion").disabled=state.currentIndex<=0 || (state.sessionMode==="mock"&&state.mockSection==="reading"&&state.currentIndex<=state.mockBoundary);
   $("#markReview").textContent=state.reviewFlags[state.currentIndex]?"★ 已標記待檢查":"☆ 標記待檢查";
@@ -2726,13 +2812,31 @@ function nextQuestion(){
     enterReadingSection();
     return;
   }
-  if(state.currentIndex>=state.session.length-1) finishSession();
+  if(state.currentIndex>=state.session.length-1){
+    finishSession(state.sessionMode==="mock"&&state.mockSection==="reading"?{showSectionSummary:"reading"}:{});
+  }
   else {
     state.currentIndex++;
     startQuestionClock();
     persistActive();
     renderQuestion();
     requestAnimationFrame(()=>$("#currentQuestionPrompt")?.focus({preventScroll:true}));
+  }
+}
+function requestQuitPractice(){
+  if(state.sessionMode!=="mock"){
+    if(confirm("確定要結束本回合嗎？")) finishSession();
+    return;
+  }
+  if(state.mockSection==="listening"){
+    if(confirm("要提前完成 Listening 嗎？未作答題目會計為錯誤，完成後將立即顯示本段分數。")){
+      completeListeningSection("manual");
+    }
+    return;
+  }
+  if(state.mockSection==="reading"&&confirm("要提前完成 Reading 嗎？未作答題目會計為錯誤，完成後將立即顯示本段分數。")){
+    fillUnanswered(state.mockBoundary,state.session.length);
+    finishSession({showSectionSummary:"reading"});
   }
 }
 function previousQuestion(){
@@ -2821,7 +2925,7 @@ function estimateSectionScore(correct,total){
   return Math.max(5,Math.min(495,Math.round(raw/5)*5));
 }
 function resultEstimates(results){
-  const listening=results.filter(r=>["2","3","4"].includes(r.question.part));
+  const listening=results.filter(r=>["1","2","3","4"].includes(r.question.part));
   const reading=results.filter(r=>["5","6","7"].includes(r.question.part));
   const lCorrect=listening.filter(r=>r.correct).length;
   const rCorrect=reading.filter(r=>r.correct).length;
@@ -2833,7 +2937,7 @@ function resultEstimates(results){
     total:lScore!==null&&rScore!==null?lScore+rScore:null
   };
 }
-function finishSession(){
+function finishSession(options={}){
   clearInterval(state.timerId);
   clearInterval(state.sectionTimerId);
   clearListeningPrep();
@@ -2870,6 +2974,9 @@ function finishSession(){
   state.lastResult=record;
   renderResult();
   showView("resultView");
+  if(options.showSectionSummary==="reading"){
+    showMockSectionResult("reading",results.filter(result=>["5","6","7"].includes(result.question.part)));
+  }
 }
 function renderResult(){
   const r=state.lastResult; if(!r) return;
@@ -3524,6 +3631,9 @@ $("#part1ImageDialog").addEventListener("close",()=>{
   part1ImageReturnFocus?.focus({preventScroll:true});
   part1ImageReturnFocus=null;
 });
+$("#mockSectionResultDialog").addEventListener("cancel",event=>{
+  event.preventDefault();
+});
 $("#partSelect").onchange=()=>{
   updateAvailable();
   const selected=$("#partSelect").value;
@@ -3541,7 +3651,7 @@ $("#heroQuick").onclick=()=>startSession(getActiveBank(),{count:20,seconds:0});
 $("#heroLiteracy").onclick=()=>showViewAndFocus("readingView");
 $("#nextQuestion").onclick=nextQuestion;
 $("#prevQuestion").onclick=previousQuestion;
-$("#quitPractice").onclick=()=>{ if(confirm(state.sessionMode==="mock"?"確定提前交卷嗎？未作答題目將計為錯誤。":"確定要結束本回合嗎？")) finishSession(); };
+$("#quitPractice").onclick=requestQuitPractice;
 $("#addSelectedVocab").onclick=addSelectedVocab;
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
 $("#practiceDue").onclick=startDueReview;
