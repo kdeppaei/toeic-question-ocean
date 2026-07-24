@@ -1,13 +1,14 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.8.0",
+  version: "4.9.0",
   release: {
-    title: "跨裝置選字翻譯",
-    summary: "手機與平板長按單字即可查中文並選擇是否收藏；電腦選取文字後也會開啟相同翻譯選單。",
-    badges: ["v4.8.0", "1,083 題", "行動長按", "翻譯後收藏"]
+    title: "Part 5 十回範本詳解",
+    summary: "Part 5 作答指示新增詳解入口，可依 Exercise 查看答案、中文題意、考點與錯誤選項辨析，並前往來源網站完成原題。",
+    badges: ["v4.9.0", "1,083 題", "10 回詳解", "120 題解析"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
     setupView: "建立練習",
+    part5GuideView: "Part 5 範本詳解",
     sprintView: "五天衝刺工作台",
     practiceView: "作答練習",
     resultView: "成績報告",

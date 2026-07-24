@@ -2,6 +2,7 @@ const BUILTIN_BANK = window.BUILTIN_BANK || [];
 const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
 const DAVINCI_VOCABULARY = window.DAVINCI_VOCABULARY || { entries: [], fitLabels: {} };
 const APP_SHELL = window.TOEIC_APP_SHELL || {};
+const PART5_EXERCISE_GUIDES = window.TOEIC_PART5_EXERCISE_GUIDES || { exercises: [] };
 const LEARNING_HUB = window.TOEIC_LEARNING_HUB || { grammarTopics: [], collocations: [], collocationCategories: {}, resources: [] };
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
@@ -278,6 +279,7 @@ const state = {
   autoVocabVisible: 100,
   learningTab: "vocabulary",
   readingSkill: "all",
+  part5GuideExercise: 1,
   directionPart: "3",
   sessionStrategy: null,
   vocabQuiz: { questions: [], index: 0, answers: [] },
@@ -1921,11 +1923,12 @@ function showView(id){
   });
   const titles=APP_SHELL.viewTitles || {
     homeView:"多益題海學習儀表板",setupView:"建立練習",practiceView:"進行練習",
-    resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"多益學習區",vocabReviewView:"單字複習",sprintView:"五天衝刺工作台",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
+    part5GuideView:"Part 5 範本詳解",resultView:"本次成績",wrongView:"錯題本",vocabView:"個人單字本",autoVocabView:"多益學習區",vocabReviewView:"單字複習",sprintView:"五天衝刺工作台",strategyView:"答題技巧專區",readingView:"閱讀素養專區",historyView:"歷史成績",analyticsView:"弱點分析",storageView:"儲存中心",bankView:"題庫管理"
   };
   $("#viewTitle").textContent=titles[id]||"多益題海";
   if(id==="homeView") renderDashboard();
   if(id==="setupView") updateAvailable();
+  if(id==="part5GuideView") renderPart5Guide();
   if(id==="wrongView") renderWrongBook();
   if(id==="vocabView") renderVocab();
   if(id==="autoVocabView") renderLearningHub();
@@ -2097,9 +2100,12 @@ function directionTabLabel(key){
   if(key==="listening") return "Listening";
   return key==="reading"?"Reading":"Part "+key;
 }
-function directionBody(data,{compact=false}={}){
+function directionBody(data,{compact=false,key=""}={}){
   if(!data) return "";
-  return `<div class="direction-title-row"><div><span class="eyebrow">DIRECTIONS</span><h${compact?"3":"2"}>${safe(data.title)}</h${compact?"3":"2"}></div></div>
+  const guideAction=!compact&&key==="5"
+    ?`<button class="btn primary direction-guide-button" type="button" data-open-part5-guide>查看 10 回範本詳解</button>`
+    :"";
+  return `<div class="direction-title-row"><div><span class="eyebrow">DIRECTIONS</span><h${compact?"3":"2"}>${safe(data.title)}</h${compact?"3":"2"}></div>${guideAction}</div>
     <div class="direction-metrics">${(data.metrics||[]).map(metric=>`<span>${safe(metric)}</span>`).join("")}</div>
     <p class="direction-chinese">${safe(data.chinese)}</p>
     <details class="direction-english" ${compact&&state.sessionMode!=="mock"?"":"open"}>
@@ -2114,7 +2120,8 @@ function renderDirectionReference(key=state.directionPart,{focus=false}={}){
   const content=$("#directionReferenceContent");
   if(!tabs||!content) return;
   tabs.innerHTML=DIRECTION_TABS.map(tab=>`<button type="button" class="direction-tab ${tab===key?"active":""}" role="tab" aria-selected="${tab===key}" data-direction-tab="${tab}">${directionTabLabel(tab)}</button>`).join("");
-  content.innerHTML=directionBody(directionData(key));
+  content.innerHTML=directionBody(directionData(key),{key});
+  $("[data-open-part5-guide]")?.addEventListener("click",openPart5Guide);
   const buttons=$$("[data-direction-tab]");
   buttons.forEach((button,index)=>{
     button.onclick=()=>renderDirectionReference(button.dataset.directionTab);
@@ -2142,7 +2149,105 @@ function renderPartDirectionCue(q){
   const reading=q.part==="5"&&READING_INTRODUCTION.title
     ? `<div class="reading-intro-strip"><strong>${safe(READING_INTRODUCTION.title)}</strong><span>${safe(READING_INTRODUCTION.chinese)}</span></div>`
     : "";
-  return `<section class="part-direction-cue" aria-label="Part ${safe(q.part)} 作答指示">${reading}${directionBody(data,{compact:true})}</section>`;
+  return `<section class="part-direction-cue" aria-label="Part ${safe(q.part)} 作答指示">${reading}${directionBody(data,{compact:true,key:q.part})}</section>`;
+}
+function currentPart5Guide(){
+  return (PART5_EXERCISE_GUIDES.exercises||[]).find(
+    exercise=>Number(exercise.exercise)===Number(state.part5GuideExercise)
+  ) || PART5_EXERCISE_GUIDES.exercises?.[0] || null;
+}
+function openPart5Guide(){
+  state.part5GuideExercise=Number(state.part5GuideExercise)||1;
+  $("#part5GuideSearch").value="";
+  showViewAndFocus("part5GuideView");
+}
+function returnToPart5Directions(){
+  renderDirectionReference("5");
+  showViewAndFocus("setupView");
+  requestAnimationFrame(()=>{
+    $("#directionReferenceContent")?.scrollIntoView({block:"center"});
+    $("[data-direction-tab='5']")?.focus({preventScroll:true});
+  });
+}
+function setPart5GuideExercise(exerciseNumber){
+  state.part5GuideExercise=Number(exerciseNumber)||1;
+  $("#part5GuideSearch").value="";
+  renderPart5Guide();
+  requestAnimationFrame(()=>$("#part5GuideTitle")?.focus({preventScroll:true}));
+}
+function renderPart5Guide(){
+  const exercise=currentPart5Guide();
+  if(!exercise) return;
+  const search=normalizeWord($("#part5GuideSearch")?.value||"").toLowerCase();
+  const questions=(exercise.questions||[]).filter(question=>{
+    if(!search) return true;
+    return [
+      question.answer,
+      question.translation,
+      question.testPoint,
+      question.explanation,
+      question.distractorAnalysis
+    ].some(value=>String(value||"").toLowerCase().includes(search));
+  });
+  $("#part5GuideNotice").textContent=PART5_EXERCISE_GUIDES.notice||"";
+  $("#part5GuideCode").textContent=exercise.code;
+  $("#part5GuideTitle").textContent=`Exercise ${exercise.exercise}`;
+  $("#part5GuideTitle").setAttribute("tabindex","-1");
+  $("#part5GuideFocus").textContent=`Focus: ${exercise.focus}`;
+  const sourceLink=$("#part5GuideSourceLink");
+  sourceLink.href=exercise.sourceUrl;
+  sourceLink.textContent=`開啟 Exercise ${exercise.exercise} 原題 ↗`;
+  $("#part5GuideTabs").innerHTML=(PART5_EXERCISE_GUIDES.exercises||[]).map(item=>`
+    <button class="part5-guide-tab ${item.exercise===exercise.exercise?"active":""}" id="part5-guide-tab-${item.exercise}"
+      type="button" role="tab" aria-controls="part5GuideList" tabindex="${item.exercise===exercise.exercise?"0":"-1"}"
+      aria-selected="${item.exercise===exercise.exercise}" data-part5-exercise="${item.exercise}">
+      <span>Exercise</span><strong>${item.exercise}</strong>
+    </button>`).join("");
+  $("#part5GuideList").setAttribute("aria-labelledby",`part5-guide-tab-${exercise.exercise}`);
+  $("#part5GuideAnswerKey").innerHTML=(exercise.questions||[]).map(question=>`
+    <button type="button" data-part5-answer="${question.number}" title="前往第 ${question.number} 題詳解">
+      <span>${question.number}</span><strong>${safe(question.correctOption)}</strong>
+    </button>`).join("");
+  $("#part5GuideList").innerHTML=questions.length?questions.map(question=>`
+    <article class="part5-guide-item" id="part5-guide-q-${exercise.exercise}-${question.number}" tabindex="-1">
+      <header>
+        <span class="part5-guide-number">Q${question.number}</span>
+        <div class="part5-guide-answer"><b>${safe(question.correctOption)}</b><strong>${safe(question.answer)}</strong></div>
+      </header>
+      <p class="part5-guide-translation"><span>中文題意</span>${safe(question.translation)}</p>
+      <dl>
+        <div><dt>考點</dt><dd>${safe(question.testPoint)}</dd></div>
+        <div><dt>為何選它</dt><dd>${safe(question.explanation)}</dd></div>
+        <div><dt>陷阱辨析</dt><dd>${safe(question.distractorAnalysis)}</dd></div>
+      </dl>
+    </article>`).join("")
+    :`<div class="empty">本回找不到符合「${safe(search)}」的詳解。</div>`;
+  const exerciseTabs=$$("[data-part5-exercise]");
+  exerciseTabs.forEach((button,index)=>{
+    button.onclick=()=>setPart5GuideExercise(button.dataset.part5Exercise);
+    button.onkeydown=event=>{
+      if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+      event.preventDefault();
+      let next=index;
+      if(event.key==="ArrowLeft") next=(index-1+exerciseTabs.length)%exerciseTabs.length;
+      if(event.key==="ArrowRight") next=(index+1)%exerciseTabs.length;
+      if(event.key==="Home") next=0;
+      if(event.key==="End") next=exerciseTabs.length-1;
+      setPart5GuideExercise(exerciseTabs[next].dataset.part5Exercise);
+      requestAnimationFrame(()=>$("[data-part5-exercise].active")?.focus({preventScroll:true}));
+    };
+  });
+  $$("[data-part5-answer]").forEach(button=>{
+    button.onclick=()=>{
+      $("#part5GuideSearch").value="";
+      renderPart5Guide();
+      requestAnimationFrame(()=>{
+        const target=$(`#part5-guide-q-${exercise.exercise}-${button.dataset.part5Answer}`);
+        target?.scrollIntoView({block:"center",behavior:"smooth"});
+        target?.focus({preventScroll:true});
+      });
+    };
+  });
 }
 function renderReadingFormatCue(q){
   if(!["6","7"].includes(q.part)) return "";
@@ -3854,6 +3959,8 @@ $("#speakDirection").onclick=()=>{
   const data=directionData(state.directionPart);
   if(data?.english) speak(data.english);
 };
+$("#backToPart5Directions").onclick=returnToPart5Directions;
+$("#part5GuideSearch").addEventListener("input",renderPart5Guide);
 $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;
 $("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});

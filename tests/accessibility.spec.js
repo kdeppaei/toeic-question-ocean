@@ -50,7 +50,7 @@ async function selectPracticeText(page, phrase, pointerType = "mouse") {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.8.0");
+  await page.goto("/?v=4.9.0");
   await expect(page.locator("#totalBank")).toHaveText("1083");
 });
 
@@ -416,6 +416,70 @@ test("Reading directions show the 75-minute overview and switch by part", async 
   await page.locator("#startPractice").click();
   await expect(page.locator(".reading-intro-strip")).toContainText("閱讀測驗共 75 分鐘");
   await expect(page.locator(".part-direction-cue")).toContainText("PART 5 句子填空");
+});
+
+test("Part 5 directions open ten exercises of source-linked Chinese explanations", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("5");
+  await expect(page.locator("[data-open-part5-guide]")).toBeVisible();
+  await page.locator("[data-open-part5-guide]").click();
+
+  await expect(page.locator("#part5GuideView")).toHaveClass(/active/);
+  await expect(page.locator("#part5GuideTabs .part5-guide-tab")).toHaveCount(10);
+  await expect(page.locator("#part5GuideList .part5-guide-item")).toHaveCount(12);
+  await expect(page.locator("#part5GuideAnswerKey button")).toHaveCount(12);
+  await expect(page.locator("#part5GuideSourceLink")).toHaveAttribute(
+    "href",
+    "https://www.esl-lounge.com/student/toeic/toeic-045-reading-part-five-1.php"
+  );
+
+  const guideAudit = await page.evaluate(() => {
+    const guide = window.TOEIC_PART5_EXERCISE_GUIDES;
+    const questions = guide.exercises.flatMap((exercise) => exercise.questions);
+    return {
+      exercises: guide.exercises.length,
+      questions: questions.length,
+      incomplete: questions.filter((question) =>
+        !question.answer || !question.translation || !question.testPoint ||
+        !question.explanation || !question.distractorAnalysis
+      ).length,
+      includesFullSourceQuestion: questions.some((question) =>
+        "sentence" in question || "completedSentence" in question || "options" in question
+      )
+    };
+  });
+  expect(guideAudit).toEqual({
+    exercises: 10,
+    questions: 120,
+    incomplete: 0,
+    includesFullSourceQuestion: false
+  });
+
+  await page.locator("#part5GuideSearch").fill("副詞");
+  const filteredCount = await page.locator("#part5GuideList .part5-guide-item").count();
+  expect(filteredCount).toBeGreaterThan(0);
+  expect(filteredCount).toBeLessThan(12);
+  await page.locator('[data-part5-exercise="1"]').focus();
+  await page.keyboard.press("End");
+  await expect(page.locator('[data-part5-exercise="10"]')).toBeFocused();
+  await expect(page.locator("#part5GuideCode")).toHaveText("TOEIC054");
+  await expect(page.locator("#part5GuideList .part5-guide-item")).toHaveCount(12);
+  await expect(page.locator("#part5GuideSourceLink")).toHaveAttribute(
+    "href",
+    "https://www.esl-lounge.com/student/toeic/toeic-054-reading-part-five-10.php"
+  );
+
+  const overflow = await page.evaluate(() => ({
+    body: document.body.scrollWidth - document.body.clientWidth,
+    root: document.documentElement.scrollWidth - document.documentElement.clientWidth
+  }));
+  expect(overflow).toEqual({ body: 0, root: 0 });
+  await expectNoSeriousA11yViolations(page, "#part5GuideView");
+
+  await page.locator("#backToPart5Directions").click();
+  await expect(page.locator("#setupView")).toHaveClass(/active/);
+  await expect(page.locator("#directionReferenceContent")).toContainText("PART 5 句子填空");
 });
 
 test("Part 6 completion sets and Part 7 literacy documents remain structurally distinct", async ({ page }) => {

@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.8.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.9.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -95,9 +95,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v4.8.0</span><span class="badge gray">1,083 題</span><span class="badge gray">長按翻譯</span><span class="badge gray">選字收藏</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">完整聽力播報與長期解析紀錄</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">聽力加入暖機防截音、Part 1–4 Directions、題號與題組後五秒作答節奏；逐題答案與詳解改用 Local Storage 長期保存。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v4.9.0</span><span class="badge gray">1,083 題</span><span class="badge gray">10 回詳解</span><span class="badge gray">120 題解析</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">Part 5 十回範本詳解</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">Part 5 作答指示新增詳解入口，可依 Exercise 查看答案、中文題意、考點與錯誤選項辨析，並前往來源網站完成原題。</p>
         </article>
 
         <div class="stats-grid">
@@ -181,6 +181,49 @@
           <div class="mock-blueprint-note"><strong>本次組卷規則</strong><span>固定 Part 配額 · 難度分層 · 題組不拆散 · 同類考點分散 · 近期題目降權</span></div>
           <div class="mock-warning">本網站為自製題庫，並非 ETS 官方試題。Part 1 使用本地化的 Pexels 授權照片或本專案 AI 生成情境圖與原創敘述；模考時選項文字不顯示，請依音訊選擇 A–D。</div>
         </article>
+      </section>
+
+      <section id="part5GuideView" class="view">
+        <div class="part5-guide-heading">
+          <div>
+            <span class="eyebrow">PART 5 STUDY GUIDE</span>
+            <h2>Exercise 1–10 範本詳解</h2>
+            <p>先到來源網站作答，再按題號核對答案、中文題意、考點與陷阱辨析。</p>
+          </div>
+          <button class="btn" id="backToPart5Directions" type="button">← 返回 Part 5 指示</button>
+        </div>
+
+        <div class="part5-guide-metrics" aria-label="詳解資料摘要">
+          <div><strong>10</strong><span>Exercise</span></div>
+          <div><strong>120</strong><span>題中文解析</span></div>
+          <div><strong>5</strong><span>核心解析欄位</span></div>
+        </div>
+
+        <article class="part5-guide-source">
+          <div>
+            <span class="source-badge source-external">外部練習搭配</span>
+            <strong>題目來源：ESL Lounge Student</strong>
+            <p id="part5GuideNotice">詳解由使用者整理；完整題幹與四個選項請至來源網站作答，本站不重製原題。</p>
+          </div>
+          <a class="btn primary" id="part5GuideSourceLink" href="https://www.esl-lounge.com/student/toeic-reading-part-five.php" target="_blank" rel="noopener noreferrer">開啟 Exercise 1 原題 ↗</a>
+        </article>
+
+        <div class="part5-guide-tabs" id="part5GuideTabs" role="tablist" aria-label="選擇 Exercise"></div>
+
+        <div class="part5-guide-toolbar">
+          <div>
+            <span class="eyebrow" id="part5GuideCode">TOEIC045</span>
+            <h3 id="part5GuideTitle">Exercise 1</h3>
+            <p id="part5GuideFocus"></p>
+          </div>
+          <label>
+            <span>搜尋本回詳解</span>
+            <input id="part5GuideSearch" type="search" placeholder="例如：副詞、被動、搭配" autocomplete="off">
+          </label>
+        </div>
+
+        <div class="part5-guide-answer-key" id="part5GuideAnswerKey" aria-label="本回答案總表"></div>
+        <div class="part5-guide-list" id="part5GuideList" role="tabpanel"></div>
       </section>
 
       <section id="practiceView" class="view">
@@ -793,6 +836,7 @@
 <script src="./vocab-lexicon.js"></script>
 <script src="./vocab-lexicon-v35.js"></script>
 <script src="./modules/davinci-vocabulary.js"></script>
+<script src="./modules/part5-exercise-guides.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/toeic-learning-hub.js"></script>
 <script src="./modules/learning-command-center.js"></script>
