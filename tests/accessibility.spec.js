@@ -27,7 +27,7 @@ async function navigate(page, view) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/?v=4.5.0");
-  await expect(page.locator("#totalBank")).toHaveText("1059");
+  await expect(page.locator("#totalBank")).toHaveText("1083");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -334,8 +334,8 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
     };
   });
   expect(structure).toEqual({
-    part6: 100,
-    part7: 329,
+    part6: 108,
+    part7: 345,
     invalidPart6Groups: [],
     invalidPart7Groups: [],
     part6Comprehension: [],
@@ -345,13 +345,13 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
   });
 
   await page.evaluate(() => {
-    const questions = getActiveBank().filter((question) => question.groupId === "P6-G32");
+    const questions = getActiveBank().filter((question) => question.groupId === "P6-G34");
     startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "practice" });
   });
   await expect(page.locator(".reading-format-cue.part6")).toContainText("段落填空");
   await expect(page.locator(".reading-format-cue.part6")).toContainText("4 blanks · 1 text");
   await expect(page.locator(".group-overview .group-question")).toHaveCount(4);
-  await expect(page.locator(".passage")).toContainText("(1) _____");
+  await expect(page.locator(".passage")).toContainText("Supplier Renewal Checks");
 
   await page.evaluate(() => {
     const questions = getActiveBank().filter((question) => question.groupId === "P7-R90");
@@ -363,12 +363,12 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
   await expect(page.locator(".group-overview")).toContainText("In which position marked [1], [2], [3], or [4]");
 
   await page.evaluate(() => {
-    const questions = getActiveBank().filter((question) => question.groupId === "P7-R100");
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R107");
     startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
   });
   await expect(page.locator(".reading-format-cue.part7")).toContainText("雙文件");
   await expect(page.locator(".group-overview .group-question")).toHaveCount(4);
-  await expect(page.locator(".passage")).toContainText("2026 CUSTOMER SUPPORT REPORT");
+  await expect(page.locator(".passage")).toContainText("FIRST-QUARTER LEAD REPORT");
 });
 
 test("completed answers and explanations persist in Local Storage", async ({ page }) => {
@@ -392,7 +392,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("1059");
+  await expect(page.locator("#totalBank")).toHaveText("1083");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
@@ -408,7 +408,7 @@ test("question provenance is complete and external platforms remain link-only", 
       mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
     };
   });
-  expect(audit).toEqual({ total: 1059, incomplete: [], mislabeled: [] });
+  expect(audit).toEqual({ total: 1083, incomplete: [], mislabeled: [] });
 
   await navigate(page, "bankView");
   await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);

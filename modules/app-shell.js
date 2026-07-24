@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.6.0",
+  version: "4.7.0",
   release: {
-    title: "Part 7 資料判讀與題組整頓",
-    summary: "將五組過大的舊閱讀題拆成合理文件組，新增時刻表、帳單、圖表、庫存、議程與差旅報支素養題。",
-    badges: ["v4.6.0", "1,059 題", "10 題結構改寫", "24 題新高難題"]
+    title: "整句填空與複合文件判讀",
+    summary: "新增高難度 Part 6 整句銜接，以及合約、補助表單、行事曆與行銷圖表等跨文件推論題。",
+    badges: ["v4.7.0", "1,083 題", "8 題 Part 6", "16 題 Part 7"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

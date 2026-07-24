@@ -74,7 +74,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 1059) errors.push(`Expected 1059 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 1083) errors.push(`Expected 1083 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
@@ -96,7 +96,7 @@ if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))
   : [];
-if (humanReviewed.length !== 131) errors.push(`Expected 131 human-reviewed literacy questions, received ${humanReviewed.length}`);
+if (humanReviewed.length !== 147) errors.push(`Expected 147 human-reviewed literacy questions, received ${humanReviewed.length}`);
 
 const v43Items = Array.isArray(bank) ? bank.filter((question) => /^P5-32[1-4]$|^P7-R7[78]-Q[1-3]$/.test(question.id)) : [];
 if (v43Items.length !== 10) errors.push(`Expected 10 v4.3 questions, received ${v43Items.length}`);
@@ -139,6 +139,15 @@ v46Items.forEach((question) => {
 
 const correctedPart7Structure = Array.isArray(bank) ? bank.filter((question) => question.structureCorrected === true) : [];
 if (correctedPart7Structure.length !== 10) errors.push(`Expected 10 restructured Part 7 questions, received ${correctedPart7Structure.length}`);
+
+const v47Items = Array.isArray(bank) ? bank.filter((question) =>
+  /^P6-G3[45]-Q[1-4]$|^P7-R10[4-7]-Q[1-4]$/.test(question.id)
+) : [];
+if (v47Items.length !== 24) errors.push(`Expected 24 v4.7 questions, received ${v47Items.length}`);
+v47Items.forEach((question) => {
+  if (question.difficulty !== "800") errors.push(`${question.id}: v4.7 expansion item must be difficulty 800`);
+  if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
+});
 
 if (Array.isArray(bank)) {
   const part7Groups = new Map();

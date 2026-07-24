@@ -10,8 +10,8 @@ const viewports = [
 for (const viewport of viewports) {
   test(`home visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.6.0");
-    await expect(page.locator("#totalBank")).toHaveText("1059");
+    await page.goto("/?v=4.7.0");
+    await expect(page.locator("#totalBank")).toHaveText("1083");
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.addStyleTag({
       content: `
@@ -67,7 +67,7 @@ const mockDialogViewports = [
 for (const viewport of mockDialogViewports) {
   test(`mock section break visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.6.0");
+    await page.goto("/?v=4.7.0");
     await page.evaluate(() => showView("setupView"));
     await page.locator("#startMockExam").click();
     await page.evaluate(() => completeListeningSection("manual"));
@@ -92,7 +92,7 @@ for (const viewport of mockDialogViewports) {
 
 test("Part 6 and Part 7 format cues stay distinct on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?v=4.6.0");
+  await page.goto("/?v=4.7.0");
   await page.addStyleTag({
     content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
   });
@@ -116,7 +116,7 @@ test("Part 6 and Part 7 format cues stay distinct on mobile", async ({ page }) =
 
 test("Part 7 data-literacy documents wrap without mobile overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?v=4.6.0");
+  await page.goto("/?v=4.7.0");
   await page.addStyleTag({
     content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
   });
