@@ -27,7 +27,7 @@ async function navigate(page, view) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/?v=4.5.0");
-  await expect(page.locator("#totalBank")).toHaveText("1035");
+  await expect(page.locator("#totalBank")).toHaveText("1059");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -319,23 +319,29 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
     const part6 = bank.filter((question) => question.part === "6");
     const part7 = bank.filter((question) => question.part === "7");
     const groups = new Map();
+    const part7Groups = new Map();
     part6.forEach((question) => groups.set(question.groupId, (groups.get(question.groupId) || 0) + 1));
+    part7.forEach((question) => part7Groups.set(question.groupId, (part7Groups.get(question.groupId) || 0) + 1));
     return {
       part6: part6.length,
       part7: part7.length,
       invalidPart6Groups: [...groups.entries()].filter(([, size]) => size !== 4),
+      invalidPart7Groups: [...part7Groups.entries()].filter(([, size]) => size < 2 || size > 5),
       part6Comprehension: part6.filter((question) => /^(what|why|who|where|when|how|according|which)/i.test(question.prompt)).map((question) => question.id),
       part7Cloze: part7.filter((question) => /best (?:word|phrase|sentence).+blank/i.test(question.prompt)).map((question) => question.id),
-      corrected: part7.filter((question) => question.correctedFromPart === "6").length
+      corrected: part7.filter((question) => question.correctedFromPart === "6").length,
+      restructured: part7.filter((question) => question.structureCorrected === true).length
     };
   });
   expect(structure).toEqual({
     part6: 100,
-    part7: 305,
+    part7: 329,
     invalidPart6Groups: [],
+    invalidPart7Groups: [],
     part6Comprehension: [],
     part7Cloze: [],
-    corrected: 32
+    corrected: 32,
+    restructured: 10
   });
 
   await page.evaluate(() => {
@@ -355,6 +361,14 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
   await expect(page.locator(".reading-format-cue.part7")).toContainText("單篇文件");
   await expect(page.locator(".group-overview .group-question")).toHaveCount(4);
   await expect(page.locator(".group-overview")).toContainText("In which position marked [1], [2], [3], or [4]");
+
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R100");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
+  });
+  await expect(page.locator(".reading-format-cue.part7")).toContainText("雙文件");
+  await expect(page.locator(".group-overview .group-question")).toHaveCount(4);
+  await expect(page.locator(".passage")).toContainText("2026 CUSTOMER SUPPORT REPORT");
 });
 
 test("completed answers and explanations persist in Local Storage", async ({ page }) => {
@@ -378,7 +392,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("1035");
+  await expect(page.locator("#totalBank")).toHaveText("1059");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
@@ -394,7 +408,7 @@ test("question provenance is complete and external platforms remain link-only", 
       mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
     };
   });
-  expect(audit).toEqual({ total: 1035, incomplete: [], mislabeled: [] });
+  expect(audit).toEqual({ total: 1059, incomplete: [], mislabeled: [] });
 
   await navigate(page, "bankView");
   await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);

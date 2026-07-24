@@ -116,6 +116,7 @@
     const bankIssues = [];
     const part5Prompts = new Map();
     const part6Groups = new Map();
+    const part7Groups = new Map();
 
     questions.forEach((question) => {
       const id = String(question?.id || "(missing id)");
@@ -138,6 +139,11 @@
         if (!part6Groups.has(question.groupId)) part6Groups.set(question.groupId, []);
         part6Groups.get(question.groupId).push(question.id);
       }
+
+      if (String(question?.part) === "7" && question.groupId) {
+        if (!part7Groups.has(question.groupId)) part7Groups.set(question.groupId, []);
+        part7Groups.get(question.groupId).push(question.id);
+      }
     });
 
     part6Groups.forEach((ids, groupId) => {
@@ -146,6 +152,16 @@
         byId[id] = [
           ...(byId[id] || []),
           issue("error", "part6-invalid-group-size", `Part 6 題組 ${groupId} 應恰好包含 4 題，目前為 ${ids.length} 題。`)
+        ];
+      });
+    });
+
+    part7Groups.forEach((ids, groupId) => {
+      if (ids.length >= 2 && ids.length <= 5) return;
+      ids.forEach((id) => {
+        byId[id] = [
+          ...(byId[id] || []),
+          issue("error", "part7-invalid-group-size", `Part 7 題組 ${groupId} 應包含 2 至 5 題，目前為 ${ids.length} 題。`)
         ];
       });
     });

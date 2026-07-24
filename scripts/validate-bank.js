@@ -74,7 +74,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 1035) errors.push(`Expected 1035 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 1059) errors.push(`Expected 1059 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
@@ -96,7 +96,7 @@ if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))
   : [];
-if (humanReviewed.length !== 97) errors.push(`Expected 97 human-reviewed literacy questions, received ${humanReviewed.length}`);
+if (humanReviewed.length !== 131) errors.push(`Expected 131 human-reviewed literacy questions, received ${humanReviewed.length}`);
 
 const v43Items = Array.isArray(bank) ? bank.filter((question) => /^P5-32[1-4]$|^P7-R7[78]-Q[1-3]$/.test(question.id)) : [];
 if (v43Items.length !== 10) errors.push(`Expected 10 v4.3 questions, received ${v43Items.length}`);
@@ -129,6 +129,27 @@ correctedPart7.forEach((question) => {
     errors.push(`${question.id}: Part 6/7 classification correction is incomplete`);
   }
 });
+
+const v46Items = Array.isArray(bank) ? bank.filter((question) => /^P7-R(?:9[8-9]|10[0-3])-Q[1-4]$/.test(question.id)) : [];
+if (v46Items.length !== 24) errors.push(`Expected 24 v4.6 questions, received ${v46Items.length}`);
+v46Items.forEach((question) => {
+  if (question.difficulty !== "800") errors.push(`${question.id}: v4.6 expansion item must be difficulty 800`);
+  if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
+});
+
+const correctedPart7Structure = Array.isArray(bank) ? bank.filter((question) => question.structureCorrected === true) : [];
+if (correctedPart7Structure.length !== 10) errors.push(`Expected 10 restructured Part 7 questions, received ${correctedPart7Structure.length}`);
+
+if (Array.isArray(bank)) {
+  const part7Groups = new Map();
+  bank.filter((question) => question.part === "7").forEach((question) => {
+    if (!question.groupId) errors.push(`${question.id}: Part 7 question is missing a group`);
+    else part7Groups.set(question.groupId, (part7Groups.get(question.groupId) || 0) + 1);
+  });
+  part7Groups.forEach((size, groupId) => {
+    if (size < 2 || size > 5) errors.push(`${groupId}: Part 7 group must contain 2-5 questions, received ${size}`);
+  });
+}
 
 function seededRandom(seed) {
   let value = seed >>> 0;
