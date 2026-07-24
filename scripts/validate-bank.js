@@ -12,6 +12,21 @@ fs.readdirSync(root)
   .sort((a, b) => (a === "question-bank.js" ? -1 : b === "question-bank.js" ? 1 : a.localeCompare(b)))
   .forEach((file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), sandbox, { filename: file }));
 vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "part5-exercise-guides.js"), "utf8"),
+  sandbox,
+  { filename: "modules/part5-exercise-guides.js" }
+);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "toeic-learning-hub.js"), "utf8"),
+  sandbox,
+  { filename: "modules/toeic-learning-hub.js" }
+);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "part5-exercise-bank.js"), "utf8"),
+  sandbox,
+  { filename: "modules/part5-exercise-bank.js" }
+);
+vm.runInContext(
   fs.readFileSync(path.join(root, "question-annotations-v31.js"), "utf8"),
   sandbox,
   { filename: "question-annotations-v31.js" }
@@ -74,7 +89,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 1083) errors.push(`Expected 1083 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 1227) errors.push(`Expected 1227 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
@@ -96,7 +111,7 @@ if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))
   : [];
-if (humanReviewed.length !== 147) errors.push(`Expected 147 human-reviewed literacy questions, received ${humanReviewed.length}`);
+if (humanReviewed.length !== 159) errors.push(`Expected 159 human-reviewed literacy questions, received ${humanReviewed.length}`);
 
 const v43Items = Array.isArray(bank) ? bank.filter((question) => /^P5-32[1-4]$|^P7-R7[78]-Q[1-3]$/.test(question.id)) : [];
 if (v43Items.length !== 10) errors.push(`Expected 10 v4.3 questions, received ${v43Items.length}`);

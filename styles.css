@@ -335,6 +335,7 @@
     }
     .part5-guide-toolbar h3 { margin:3px 0 4px; font-size:24px; }
     .part5-guide-toolbar p { margin:0; color:var(--muted); line-height:1.55; }
+    .part5-guide-practice { margin-top:12px; }
     .part5-guide-toolbar label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:850; }
     .part5-guide-answer-key {
       display:grid; grid-template-columns:repeat(12,minmax(42px,1fr)); gap:6px; margin-bottom:18px;
@@ -363,6 +364,20 @@
       background:var(--green-soft); color:var(--green);
     }
     .part5-guide-answer strong { overflow-wrap:anywhere; text-align:right; }
+    .part5-guide-question { margin-top:14px; padding:13px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .part5-guide-question > p { margin:0 0 11px; color:var(--text); font-weight:800; line-height:1.65; }
+    .part5-guide-choices {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px;
+      margin:0; padding:0; list-style:none;
+    }
+    .part5-guide-choices li {
+      min-width:0; display:grid; grid-template-columns:25px minmax(0,1fr); gap:8px; align-items:center;
+      padding:8px 9px; border-left:3px solid var(--line); background:var(--surface-2);
+      color:var(--muted); font-size:12px;
+    }
+    .part5-guide-choices li span { color:var(--primary); font-weight:950; }
+    .part5-guide-choices li b { min-width:0; overflow-wrap:anywhere; }
+    .part5-guide-choices li.correct { border-left-color:var(--green); background:var(--green-soft); color:var(--text); }
     .part5-guide-translation {
       display:grid; gap:4px; margin:14px 0; padding:12px; border-left:4px solid var(--amber);
       border-radius:6px; background:var(--amber-soft); line-height:1.65;
@@ -1088,8 +1103,10 @@
       .part5-guide-heading h2 { font-size:23px; }
       .part5-guide-source { gap:13px; }
       .part5-guide-toolbar { grid-template-columns:1fr; gap:13px; }
+      .part5-guide-practice { width:100%; }
       .part5-guide-answer-key { grid-template-columns:repeat(6,minmax(36px,1fr)); }
       .part5-guide-item { padding:14px; }
+      .part5-guide-choices { grid-template-columns:1fr; }
       .part5-guide-item dl div { grid-template-columns:1fr; gap:4px; }
       .selection-translate-menu {
         left:12px !important; right:12px; top:auto !important; bottom:76px;

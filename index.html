@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 1,083 題、Part 1–7、兩段式模考、Part 6 段落填空、Part 7 文件素養與完整聽力播報。" />
+  <meta name="description" content="免 API 的 TOEIC 多益題海學習網站，內建 1,227 題、Part 1–7、兩段式模考、Part 5 十回詳解、Part 6 段落填空與 Part 7 文件素養。" />
   <link rel="icon" href="data:," />
   <title>TOEIC Question Ocean｜多益題海練習</title>
   <link rel="stylesheet" href="./styles.css" />
@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.9.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v5.0.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -95,9 +95,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v4.9.0</span><span class="badge gray">1,083 題</span><span class="badge gray">10 回詳解</span><span class="badge gray">120 題解析</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">Part 5 十回範本詳解</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">Part 5 作答指示新增詳解入口，可依 Exercise 查看答案、中文題意、考點與錯誤選項辨析，並前往來源網站完成原題。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v5.0.0</span><span class="badge gray">1,227 題</span><span class="badge gray">10 回可練</span><span class="badge gray">Part 6／7 新題組</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">範本詳解正式接入題庫</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">Part 5 十回可直接練習並逐題對照題幹、選項與詳解；固定搭配同步進入學習區，Part 6、7 各新增三組原創高階題組。</p>
         </article>
 
         <div class="stats-grid">
@@ -188,7 +188,7 @@
           <div>
             <span class="eyebrow">PART 5 STUDY GUIDE</span>
             <h2>Exercise 1–10 範本詳解</h2>
-            <p>先到來源網站作答，再按題號核對答案、中文題意、考點與陷阱辨析。</p>
+            <p>可直接查看題幹與選項，或啟動本回 12 題練習後再逐題核對詳解。</p>
           </div>
           <button class="btn" id="backToPart5Directions" type="button">← 返回 Part 5 指示</button>
         </div>
@@ -203,7 +203,7 @@
           <div>
             <span class="source-badge source-external">外部練習搭配</span>
             <strong>題目來源：ESL Lounge Student</strong>
-            <p id="part5GuideNotice">詳解由使用者整理；完整題幹與四個選項請至來源網站作答，本站不重製原題。</p>
+            <p id="part5GuideNotice">題目與詳解由使用者提供的整理檔匯入；本站保留來源標示與原始練習連結。</p>
           </div>
           <a class="btn primary" id="part5GuideSourceLink" href="https://www.esl-lounge.com/student/toeic-reading-part-five.php" target="_blank" rel="noopener noreferrer">開啟 Exercise 1 原題 ↗</a>
         </article>
@@ -215,6 +215,7 @@
             <span class="eyebrow" id="part5GuideCode">TOEIC045</span>
             <h3 id="part5GuideTitle">Exercise 1</h3>
             <p id="part5GuideFocus"></p>
+            <button class="btn primary part5-guide-practice" id="practicePart5GuideExercise" type="button">▶ 練習本回 12 題</button>
           </div>
           <label>
             <span>搜尋本回詳解</span>
@@ -337,7 +338,7 @@
             <h2 style="margin:0">多益學習區</h2>
             <p style="color:var(--muted);margin:5px 0 0">把題庫單字、核心文法、商務搭配與合法外部資源整理在同一個學習工作台。</p>
           </div>
-          <div class="badges learning-hub-badges"><span class="badge">18 個文法主題</span><span class="badge gray">48 組搭配</span><span class="badge gray">170 詞廣域補庫</span></div>
+          <div class="badges learning-hub-badges"><span class="badge">18 個文法主題</span><span class="badge gray">79 組搭配</span><span class="badge gray">170 詞廣域補庫</span></div>
         </div>
 
         <div class="learning-tabs" role="tablist" aria-label="多益學習內容">
@@ -832,6 +833,7 @@
 <script src="./question-bank-v45.js"></script>
 <script src="./question-bank-v46.js"></script>
 <script src="./question-bank-v47.js"></script>
+<script src="./question-bank-v50.js"></script>
 <script src="./question-annotations-v31.js"></script>
 <script src="./vocab-lexicon.js"></script>
 <script src="./vocab-lexicon-v35.js"></script>
@@ -839,6 +841,7 @@
 <script src="./modules/part5-exercise-guides.js"></script>
 <script src="./modules/app-shell.js"></script>
 <script src="./modules/toeic-learning-hub.js"></script>
+<script src="./modules/part5-exercise-bank.js"></script>
 <script src="./modules/learning-command-center.js"></script>
 <script src="./modules/legal-practice-sources.js"></script>
 <script src="./modules/question-provenance.js"></script>

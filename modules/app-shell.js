@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.9.0",
+  version: "5.0.0",
   release: {
-    title: "Part 5 十回範本詳解",
-    summary: "Part 5 作答指示新增詳解入口，可依 Exercise 查看答案、中文題意、考點與錯誤選項辨析，並前往來源網站完成原題。",
-    badges: ["v4.9.0", "1,083 題", "10 回詳解", "120 題解析"]
+    title: "範本詳解正式接入題庫",
+    summary: "Part 5 十回可直接練習並逐題對照題幹、選項與詳解；固定搭配同步進入學習區，Part 6、7 各新增三組原創高階題組。",
+    badges: ["v5.0.0", "1,227 題", "10 回可練", "Part 6／7 新題組"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

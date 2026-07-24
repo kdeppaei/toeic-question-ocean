@@ -2104,6 +2104,8 @@ function directionBody(data,{compact=false,key=""}={}){
   if(!data) return "";
   const guideAction=!compact&&key==="5"
     ?`<button class="btn primary direction-guide-button" type="button" data-open-part5-guide>查看 10 回範本詳解</button>`
+    :!compact&&["6","7"].includes(key)
+    ?`<button class="btn primary direction-guide-button" type="button" data-start-curated-part="${key}">練 3 組自製範本</button>`
     :"";
   return `<div class="direction-title-row"><div><span class="eyebrow">DIRECTIONS</span><h${compact?"3":"2"}>${safe(data.title)}</h${compact?"3":"2"}></div>${guideAction}</div>
     <div class="direction-metrics">${(data.metrics||[]).map(metric=>`<span>${safe(metric)}</span>`).join("")}</div>
@@ -2122,6 +2124,7 @@ function renderDirectionReference(key=state.directionPart,{focus=false}={}){
   tabs.innerHTML=DIRECTION_TABS.map(tab=>`<button type="button" class="direction-tab ${tab===key?"active":""}" role="tab" aria-selected="${tab===key}" data-direction-tab="${tab}">${directionTabLabel(tab)}</button>`).join("");
   content.innerHTML=directionBody(directionData(key),{key});
   $("[data-open-part5-guide]")?.addEventListener("click",openPart5Guide);
+  $("[data-start-curated-part]")?.addEventListener("click",event=>startCuratedDirectionSet(event.currentTarget.dataset.startCuratedPart));
   const buttons=$$("[data-direction-tab]");
   buttons.forEach((button,index)=>{
     button.onclick=()=>renderDirectionReference(button.dataset.directionTab);
@@ -2175,6 +2178,34 @@ function setPart5GuideExercise(exerciseNumber){
   renderPart5Guide();
   requestAnimationFrame(()=>$("#part5GuideTitle")?.focus({preventScroll:true}));
 }
+function startCurrentPart5GuideExercise(){
+  const exercise=currentPart5Guide();
+  if(!exercise) return;
+  const questions=getActiveBank().filter(question=>
+    question.part==="5"&&Number(question.exerciseSet)===Number(exercise.exercise)
+  );
+  startSession(questions,{
+    count:questions.length,
+    seconds:0,
+    shuffle:false,
+    instant:true,
+    mode:"practice",
+    strategyTitle:`Part 5 Exercise ${exercise.exercise}`
+  });
+}
+function startCuratedDirectionSet(part){
+  const questions=getActiveBank().filter(question=>
+    question.part===String(part)&&(question.tags||[]).includes("v5-guide-set")
+  );
+  startSession(questions,{
+    count:questions.length,
+    seconds:0,
+    shuffle:false,
+    instant:true,
+    mode:"practice",
+    strategyTitle:`Part ${part} 自製範本`
+  });
+}
 function renderPart5Guide(){
   const exercise=currentPart5Guide();
   if(!exercise) return;
@@ -2183,6 +2214,8 @@ function renderPart5Guide(){
     if(!search) return true;
     return [
       question.answer,
+      question.prompt,
+      ...(question.choices||[]),
       question.translation,
       question.testPoint,
       question.explanation,
@@ -2194,6 +2227,8 @@ function renderPart5Guide(){
   $("#part5GuideTitle").textContent=`Exercise ${exercise.exercise}`;
   $("#part5GuideTitle").setAttribute("tabindex","-1");
   $("#part5GuideFocus").textContent=`Focus: ${exercise.focus}`;
+  $("#practicePart5GuideExercise").textContent=`▶ 練習本回 ${exercise.questions.length} 題`;
+  $("#practicePart5GuideExercise").onclick=startCurrentPart5GuideExercise;
   const sourceLink=$("#part5GuideSourceLink");
   sourceLink.href=exercise.sourceUrl;
   sourceLink.textContent=`開啟 Exercise ${exercise.exercise} 原題 ↗`;
@@ -2214,6 +2249,15 @@ function renderPart5Guide(){
         <span class="part5-guide-number">Q${question.number}</span>
         <div class="part5-guide-answer"><b>${safe(question.correctOption)}</b><strong>${safe(question.answer)}</strong></div>
       </header>
+      <div class="part5-guide-question">
+        <p lang="en">${safe(question.prompt)}</p>
+        <ol class="part5-guide-choices">
+          ${(question.choices||[]).map((choice,index)=>{
+            const choiceLetter=letter(index);
+            return `<li class="${choiceLetter===question.correctOption?"correct":""}"><span>${choiceLetter}</span><b>${safe(choice)}</b></li>`;
+          }).join("")}
+        </ol>
+      </div>
       <p class="part5-guide-translation"><span>中文題意</span>${safe(question.translation)}</p>
       <dl>
         <div><dt>考點</dt><dd>${safe(question.testPoint)}</dd></div>

@@ -3,10 +3,14 @@ const path = require("path");
 const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
-const sandbox = { window: {} };
+const sandbox = { window: { BUILTIN_BANK: [] } };
 vm.createContext(sandbox);
+const guideFile = path.join(root, "modules", "part5-exercise-guides.js");
 const moduleFile = path.join(root, "modules", "toeic-learning-hub.js");
+const exerciseBankFile = path.join(root, "modules", "part5-exercise-bank.js");
+vm.runInContext(fs.readFileSync(guideFile, "utf8"), sandbox, { filename: guideFile });
 vm.runInContext(fs.readFileSync(moduleFile, "utf8"), sandbox, { filename: moduleFile });
+vm.runInContext(fs.readFileSync(exerciseBankFile, "utf8"), sandbox, { filename: exerciseBankFile });
 
 const hub = sandbox.window.TOEIC_LEARNING_HUB || {};
 const topics = hub.grammarTopics || [];

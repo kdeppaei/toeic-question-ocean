@@ -50,8 +50,8 @@ async function selectPracticeText(page, phrase, pointerType = "mouse") {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.9.0");
-  await expect(page.locator("#totalBank")).toHaveText("1083");
+  await page.goto("/?v=5.0.0");
+  await expect(page.locator("#totalBank")).toHaveText("1227");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -418,7 +418,7 @@ test("Reading directions show the 75-minute overview and switch by part", async 
   await expect(page.locator(".part-direction-cue")).toContainText("PART 5 句子填空");
 });
 
-test("Part 5 directions open ten exercises of source-linked Chinese explanations", async ({ page }) => {
+test("Part 5 directions open ten complete exercises with questions, choices, and explanations", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("5");
@@ -428,7 +428,10 @@ test("Part 5 directions open ten exercises of source-linked Chinese explanations
   await expect(page.locator("#part5GuideView")).toHaveClass(/active/);
   await expect(page.locator("#part5GuideTabs .part5-guide-tab")).toHaveCount(10);
   await expect(page.locator("#part5GuideList .part5-guide-item")).toHaveCount(12);
+  await expect(page.locator("#part5GuideList .part5-guide-question")).toHaveCount(12);
+  await expect(page.locator("#part5GuideList .part5-guide-choices li")).toHaveCount(48);
   await expect(page.locator("#part5GuideAnswerKey button")).toHaveCount(12);
+  await expect(page.locator("#practicePart5GuideExercise")).toContainText("12 題");
   await expect(page.locator("#part5GuideSourceLink")).toHaveAttribute(
     "href",
     "https://www.esl-lounge.com/student/toeic/toeic-045-reading-part-five-1.php"
@@ -441,19 +444,20 @@ test("Part 5 directions open ten exercises of source-linked Chinese explanations
       exercises: guide.exercises.length,
       questions: questions.length,
       incomplete: questions.filter((question) =>
-        !question.answer || !question.translation || !question.testPoint ||
-        !question.explanation || !question.distractorAnalysis
+        !question.prompt || question.choices?.length !== 4 || !question.answer ||
+        !question.translation || !question.testPoint || !question.explanation ||
+        !question.distractorAnalysis
       ).length,
-      includesFullSourceQuestion: questions.some((question) =>
-        "sentence" in question || "completedSentence" in question || "options" in question
-      )
+      completeQuestionCount: questions.filter((question) =>
+        question.prompt && question.choices?.length === 4 && question.completedSentence
+      ).length
     };
   });
   expect(guideAudit).toEqual({
     exercises: 10,
     questions: 120,
     incomplete: 0,
-    includesFullSourceQuestion: false
+    completeQuestionCount: 120
   });
 
   await page.locator("#part5GuideSearch").fill("副詞");
@@ -482,6 +486,34 @@ test("Part 5 directions open ten exercises of source-linked Chinese explanations
   await expect(page.locator("#directionReferenceContent")).toContainText("PART 5 句子填空");
 });
 
+test("Part 5 exercise sets and new Part 6-7 guided sets start from directions", async ({ page }) => {
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("5");
+  await page.locator("[data-open-part5-guide]").click();
+  await page.locator("#practicePart5GuideExercise").click();
+  await expect(page.locator("#practiceView")).toHaveClass(/active/);
+  await expect(page.locator("#quizBadges")).toContainText("Q1/12");
+  await expect(page.locator("#quizBadges")).toContainText("Part 5");
+  await expect(page.locator("#quizBadges")).toContainText("使用者整理");
+  await expect(page.locator("#currentQuestionPrompt")).toContainText("______");
+
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("6");
+  await expect(page.locator('[data-start-curated-part="6"]')).toBeVisible();
+  await page.locator('[data-start-curated-part="6"]').click();
+  await expect(page.locator("#practiceView")).toHaveClass(/active/);
+  await expect(page.locator("#quizBadges")).toContainText("Part 6");
+  await expect(page.locator("#questionArea")).toContainText(/Meeting-Notes Pilot|REUSABLE SHIPPING|INTERNAL MEMORANDUM/);
+
+  await navigate(page, "setupView");
+  await page.locator("#partSelect").selectOption("7");
+  await expect(page.locator('[data-start-curated-part="7"]')).toBeVisible();
+  await page.locator('[data-start-curated-part="7"]').click();
+  await expect(page.locator("#practiceView")).toHaveClass(/active/);
+  await expect(page.locator("#quizBadges")).toContainText("Part 7");
+  await expect(page.locator("#questionArea")).toContainText(/SMART ACCESS PILOT|TRAVEL POLICY EXCERPT|PILOT RESULTS/);
+});
+
 test("Part 6 completion sets and Part 7 literacy documents remain structurally distinct", async ({ page }) => {
   const structure = await page.evaluate(() => {
     const bank = window.BUILTIN_BANK;
@@ -503,8 +535,8 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
     };
   });
   expect(structure).toEqual({
-    part6: 108,
-    part7: 345,
+    part6: 120,
+    part7: 357,
     invalidPart6Groups: [],
     invalidPart7Groups: [],
     part6Comprehension: [],
@@ -545,7 +577,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await page.locator("#partSelect").selectOption("5");
   await page.locator("#countSelect").selectOption("5");
   await page.locator("#startPractice").click();
-  await expect(page.locator("#quizBadges .source-badge")).toHaveText("本站原創模擬");
+  await expect(page.locator("#quizBadges .source-badge")).toBeVisible();
   for(let index=0;index<5;index++){
     await page.locator('[data-choice="0"]').click();
     await page.locator("#nextQuestion").click();
@@ -561,7 +593,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("1083");
+  await expect(page.locator("#totalBank")).toHaveText("1227");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
@@ -577,7 +609,7 @@ test("question provenance is complete and external platforms remain link-only", 
       mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
     };
   });
-  expect(audit).toEqual({ total: 1083, incomplete: [], mislabeled: [] });
+  expect(audit).toEqual({ total: 1227, incomplete: [], mislabeled: [] });
 
   await navigate(page, "bankView");
   await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);
@@ -726,8 +758,8 @@ test("learning hub keeps vocabulary and adds grammar, collocations, and resource
 
   await page.keyboard.press("ArrowRight");
   await expect(page.locator('[data-learning-tab="collocations"]')).toBeFocused();
-  await expect(page.locator("#learningCollocationShown")).toHaveText("48");
-  await expect(page.locator(".collocation-item")).toHaveCount(48);
+  await expect(page.locator("#learningCollocationShown")).toHaveText("79");
+  await expect(page.locator(".collocation-item")).toHaveCount(79);
 
   await page.keyboard.press("ArrowRight");
   await expect(page.locator('[data-learning-tab="resources"]')).toBeFocused();

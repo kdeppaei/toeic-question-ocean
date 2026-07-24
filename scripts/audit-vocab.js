@@ -10,6 +10,17 @@ fs.readdirSync(root)
   .filter((file) => /^question-bank.*\.js$/.test(file))
   .sort((a, b) => (a === "question-bank.js" ? -1 : b === "question-bank.js" ? 1 : a.localeCompare(b)))
   .forEach((file) => vm.runInContext(fs.readFileSync(path.join(root, file), "utf8"), sandbox, { filename: file }));
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "part5-exercise-guides.js"), "utf8"),
+  sandbox,
+  { filename: "modules/part5-exercise-guides.js" }
+);
+sandbox.window.TOEIC_LEARNING_HUB = { collocations: [] };
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "part5-exercise-bank.js"), "utf8"),
+  sandbox,
+  { filename: "modules/part5-exercise-bank.js" }
+);
 fs.readdirSync(root)
   .filter((file) => /^vocab-lexicon.*\.js$/.test(file))
   .sort((a, b) => (a === "vocab-lexicon.js" ? -1 : b === "vocab-lexicon.js" ? 1 : a.localeCompare(b)))
