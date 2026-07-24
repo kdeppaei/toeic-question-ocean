@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "5.1.0",
+  version: "5.2.0",
   release: {
-    title: "Part 6／7 全題詳解完成",
-    summary: "新增 Part 6 十回 120 題與 Part 7 八回 96 題；可按回閱讀文件、核對選項與解析，或直接啟動完整題組練習。",
-    badges: ["v5.1.0", "1,443 題", "Part 6 十回", "Part 7 八回"]
+    title: "加密跨裝置同步",
+    summary: "收藏、錯題、單字、複習排程、歷史成績與逐題詳解可加密上雲，透過同步代碼在手機、平板與電腦預覽後合併或覆蓋。",
+    badges: ["v5.2.0", "1,443 題", "跨裝置同步", "裝置端加密"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
@@ -125,6 +125,7 @@ window.TOEIC_APP_SHELL = {
   storageContracts: [
     { area: "Cookie", owner: "dailyGoal", description: "每日目標與最後造訪日期" },
     { area: "Local Storage", owner: "learningState", description: "題庫、錯題、成績、逐題解析、單字、品質標記" },
-    { area: "Session Storage", owner: "scratchpad", description: "單一分頁的暫存筆記" }
+    { area: "Session Storage", owner: "scratchpad", description: "單一分頁的暫存筆記" },
+    { area: "Cloud Sync", owner: "encryptedLearningState", description: "裝置端加密後的跨裝置收藏與學習紀錄" }
   ]
 };

@@ -50,8 +50,96 @@ async function selectPracticeText(page, phrase, pointerType = "mouse") {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=5.1.0");
+  await page.goto("/?v=5.2.0");
   await expect(page.locator("#totalBank")).toHaveText("1443");
+});
+
+test("encrypted cloud codes preview, merge, and overwrite learning records across devices", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await navigate(page, "storageView");
+  await page.evaluate(() => {
+    window.__cloudRecords = new Map();
+    window.TOEIC_CLOUD_SYNC.test.setTransport({
+      async create(recordId, record) {
+        window.__cloudRecords.set(recordId, structuredClone(record));
+        return record;
+      },
+      async read(recordId) {
+        const record = window.__cloudRecords.get(recordId);
+        if (!record) throw new Error("找不到這組同步代碼");
+        return structuredClone(record);
+      }
+    });
+    localStorage.setItem("toeicOcean.favoriteQuestions.v1", JSON.stringify(["P5-001"]));
+    localStorage.setItem("toeicOcean.wrong.v1", JSON.stringify(["P7-001"]));
+    localStorage.setItem("toeicOcean.history.v1", JSON.stringify([{
+      id: "RESULT-CLOUD-1",
+      date: "2026-07-25T08:00:00.000Z",
+      mode: "practice",
+      total: 10,
+      correct: 8,
+      accuracy: 80,
+      parts: "Part 5"
+    }]));
+    localStorage.setItem("toeicOcean.answerArchive.v1", JSON.stringify([{
+      id: "P5-001",
+      part: "5",
+      prompt: "Cloud-only practice question",
+      choices: ["A", "B", "C", "D"],
+      answer: 0,
+      correctText: "A",
+      attempts: [],
+      attemptCount: 1,
+      correctCount: 1,
+      lastCorrect: true,
+      lastAnsweredAt: "2026-07-25T08:00:00.000Z"
+    }]));
+    localStorage.setItem("toeicOcean.vocab.v1", JSON.stringify([{
+      id: "VOC-CLOUD",
+      key: "invoice",
+      word: "invoice",
+      meaning: "發票",
+      familiarity: 2,
+      nextReviewAt: 1,
+      createdAt: 1,
+      updatedAt: 1
+    }]));
+    localStorage.setItem("toeicOcean.reviewSchedule.v1", JSON.stringify({
+      "P7-001": { id: "P7-001", intervalIndex: 1, streak: 1, lapses: 0, lastReviewedAt: 1, nextReviewAt: 2 }
+    }));
+  });
+
+  await page.locator("#createCloudBackup").click();
+  const code = await page.locator("#cloudGeneratedCode").textContent();
+  expect(code).toMatch(/^TQ1-[A-Z2-9]{20}-[A-Za-z0-9_-]{43}$/);
+  const encryptedRecord = await page.evaluate(() => JSON.stringify([...window.__cloudRecords.values()][0]));
+  expect(encryptedRecord).not.toContain("Cloud-only practice question");
+  expect(encryptedRecord).not.toContain("invoice");
+
+  await page.evaluate(() => {
+    localStorage.setItem("toeicOcean.favoriteQuestions.v1", JSON.stringify(["LOCAL-KEEP"]));
+    localStorage.setItem("toeicOcean.wrong.v1", "[]");
+    localStorage.setItem("toeicOcean.history.v1", "[]");
+    localStorage.setItem("toeicOcean.answerArchive.v1", "[]");
+    localStorage.setItem("toeicOcean.vocab.v1", "[]");
+    localStorage.setItem("toeicOcean.reviewSchedule.v1", "{}");
+  });
+  await page.locator("#previewCloudBackup").click();
+  await expect(page.locator("#cloudBackupPreview")).toContainText("題目收藏");
+  await expect(page.locator("#cloudBackupPreview")).toContainText("逐題詳解");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.favoriteQuestions.v1")))).toEqual(["LOCAL-KEEP"]);
+
+  await page.locator("#mergeCloudBackup").click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.favoriteQuestions.v1")).sort())).toEqual(["LOCAL-KEEP", "P5-001"]);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.vocab.v1"))[0].word)).toBe("invoice");
+
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator("#overwriteCloudBackup").click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.favoriteQuestions.v1")))).toEqual(["P5-001"]);
+  await expect(page.locator("#cloudSyncStatus")).toContainText("已覆蓋");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBe(0);
+  await expectNoSeriousA11yViolations(page, "#storageView");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {

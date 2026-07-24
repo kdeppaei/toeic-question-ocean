@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v5.1.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v5.2.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -52,8 +52,8 @@
       </div>
     </nav>
     <div class="side-note">
-      <strong>純前端・零 API 費用</strong><br>
-      題庫、錯題與成績主要儲存在 localStorage；單頁暫存用 sessionStorage；每日目標等小偏好用 Cookie。<br><br>本題庫為自製練習內容，非 ETS 官方試題。
+      <strong>靜態前端・雲端同步可選</strong><br>
+      題庫、錯題與成績預設保存在本機；選用雲端同步時，只會上傳裝置端加密後的密文。<br><br>本題庫為自製練習內容，非 ETS 官方試題。
     </div>
   </aside>
   <button class="mobile-scrim" id="mobileScrim" aria-label="關閉選單"></button>
@@ -95,9 +95,9 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v5.1.0</span><span class="badge gray">1,443 題</span><span class="badge gray">Part 6 十回</span><span class="badge gray">Part 7 八回</span></div>
-          <h3 id="releaseTitle" style="margin:13px 0 7px">Part 6／7 全題詳解完成</h3>
-          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">新增 Part 6 十回 120 題與 Part 7 八回 96 題；可按回閱讀文件、核對選項與解析，或直接啟動完整題組練習。</p>
+          <div class="badges" id="releaseBadges"><span class="badge">v5.2.0</span><span class="badge gray">1,443 題</span><span class="badge gray">跨裝置同步</span><span class="badge gray">裝置端加密</span></div>
+          <h3 id="releaseTitle" style="margin:13px 0 7px">加密跨裝置同步</h3>
+          <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">收藏、錯題、單字、複習排程、歷史成績與逐題詳解可加密上雲，透過同步代碼在手機、平板與電腦預覽後合併或覆蓋。</p>
         </article>
 
         <div class="stats-grid">
@@ -691,7 +691,46 @@
       </section>
 
       <section id="storageView" class="view">
-        <div class="section-head"><div><h2>儲存中心</h2><p>把 Cookie、Local Storage、Session Storage 用在各自最適合的資料。</p></div></div>
+        <div class="section-head"><div><h2>儲存中心</h2><p>本機資料各自分工，需要跨裝置時再建立加密雲端備份。</p></div></div>
+        <article class="card cloud-sync-card">
+          <div class="cloud-sync-head">
+            <div>
+              <div class="badges"><span class="badge">Cloud Sync</span><span class="badge gray">跨裝置</span><span class="badge green">裝置端加密</span></div>
+              <h3>同步收藏與學習紀錄</h3>
+              <p>收藏、錯題、個人單字、複習排程、歷史成績與逐題詳解會先在本機加密，再保存到雲端。持有完整代碼的裝置才能解密。</p>
+            </div>
+            <div class="cloud-sync-security" aria-label="同步安全說明"><strong>AES-256-GCM</strong><span>雲端只保存密文</span></div>
+          </div>
+          <div class="cloud-sync-grid">
+            <section class="cloud-sync-pane" aria-labelledby="cloudCreateTitle">
+              <span class="cloud-sync-step">1</span>
+              <h4 id="cloudCreateTitle">建立同步代碼</h4>
+              <p>每次建立都會產生一組新代碼；舊代碼不會被改寫。</p>
+              <button class="btn primary" id="createCloudBackup">建立加密備份</button>
+              <div class="cloud-code-result" id="cloudCodeResult" hidden>
+                <label for="cloudGeneratedCode">本次同步代碼</label>
+                <div class="cloud-code-row">
+                  <output id="cloudGeneratedCode" for="createCloudBackup"></output>
+                  <button class="icon-btn" id="copyCloudCode" type="button" title="複製同步代碼" aria-label="複製同步代碼">⧉</button>
+                </div>
+                <small>請妥善保存；遺失代碼後，本站也無法解開雲端密文。</small>
+              </div>
+            </section>
+            <section class="cloud-sync-pane" aria-labelledby="cloudRestoreTitle">
+              <span class="cloud-sync-step">2</span>
+              <h4 id="cloudRestoreTitle">在其他裝置讀取</h4>
+              <label for="cloudSyncCode">貼上同步代碼</label>
+              <input id="cloudSyncCode" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="TQ1-...">
+              <button class="btn" id="previewCloudBackup">讀取並預覽</button>
+              <div class="cloud-preview" id="cloudBackupPreview" hidden aria-live="polite"></div>
+              <div class="storage-actions cloud-import-actions" id="cloudImportActions" hidden>
+                <button class="btn primary" id="mergeCloudBackup">補入本機缺少資料</button>
+                <button class="btn danger" id="overwriteCloudBackup">以雲端完整覆蓋</button>
+              </div>
+            </section>
+          </div>
+          <p class="cloud-sync-status" id="cloudSyncStatus" role="status" aria-live="polite"></p>
+        </article>
         <div class="storage-grid">
           <article class="card storage-card">
             <div class="badges"><span class="badge">Cookie</span><span class="badge gray">小型偏好</span></div>
@@ -894,6 +933,7 @@
 <script src="./modules/question-quality-audit.js"></script>
 <script src="./modules/mock-exam-builder.js"></script>
 <script src="./modules/five-day-sprint.js"></script>
+<script src="./modules/cloud-learning-sync.js"></script>
 <script src="./app.js" defer></script>
 </body>
 </html>

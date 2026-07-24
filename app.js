@@ -16,6 +16,7 @@ const FIVE_DAY_SPRINT = window.TOEIC_FIVE_DAY_SPRINT || { days: [], sources: [],
 const PART_DIRECTIONS = APP_SHELL.partDirections || {};
 const READING_INTRODUCTION = APP_SHELL.readingIntroduction || {};
 const LISTENING_INTRODUCTION = APP_SHELL.listeningIntroduction || {};
+const CLOUD_SYNC = window.TOEIC_CLOUD_SYNC || null;
 
 const KEYS = {
   wrong: "toeicOcean.wrong.v1",
@@ -289,7 +290,8 @@ const state = {
   sprintDay: 1,
   sprintCards: [],
   sprintCardsLoaded: false,
-  sprintReady: false
+  sprintReady: false,
+  cloudPreview: null
 };
 
 const $ = (s) => document.querySelector(s);
@@ -3849,6 +3851,277 @@ function exportLearningState(){
   };
   download(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),`toeic-ocean-learning-backup-${Date.now()}.json`);
 }
+function cloudString(value,max=6000){ return String(value??"").slice(0,max); }
+function cloudNumber(value,fallback=0){ const number=Number(value); return Number.isFinite(number)?number:fallback; }
+function cloudIdList(value){
+  return [...new Set((Array.isArray(value)?value:[]).map(item=>cloudString(item,120)).filter(Boolean))].slice(0,10000);
+}
+function sanitizeCloudHistory(value){
+  return (Array.isArray(value)?value:[]).slice(0,100).map(item=>({
+    id:cloudString(item?.id,120),
+    date:cloudString(item?.date,40),
+    mode:cloudString(item?.mode,80),
+    total:Math.max(0,cloudNumber(item?.total)),
+    correct:Math.max(0,cloudNumber(item?.correct)),
+    accuracy:Math.max(0,Math.min(100,cloudNumber(item?.accuracy))),
+    parts:cloudString(item?.parts,120)
+  })).filter(item=>item.id||item.date);
+}
+function sanitizeCloudAttempts(value){
+  return (Array.isArray(value)?value:[]).slice(-20).map(item=>({
+    answeredAt:cloudString(item?.answeredAt,40),
+    selected:Number.isInteger(item?.selected)?item.selected:null,
+    selectedText:cloudString(item?.selectedText,1000),
+    correct:!!item?.correct,
+    mode:cloudString(item?.mode,80)
+  })).filter(item=>item.answeredAt);
+}
+function sanitizeCloudArchive(value){
+  return (Array.isArray(value)?value:[]).slice(0,5000).map(item=>({
+    id:cloudString(item?.id,120),
+    part:cloudString(item?.part,8),
+    groupId:item?.groupId?cloudString(item.groupId,120):null,
+    category:cloudString(item?.category,200),
+    difficulty:cloudString(item?.difficulty,40),
+    prompt:cloudString(item?.prompt,8000),
+    choices:(Array.isArray(item?.choices)?item.choices:[]).slice(0,4).map(choice=>cloudString(choice,3000)),
+    answer:Math.max(0,Math.min(3,cloudNumber(item?.answer))),
+    correctText:cloudString(item?.correctText,3000),
+    explanation:cloudString(item?.explanation,10000),
+    translation:cloudString(item?.translation,10000),
+    answerTranslation:cloudString(item?.answerTranslation,6000),
+    evidence:cloudString(item?.evidence,6000),
+    sourceType:cloudString(item?.sourceType,80),
+    sourceLabel:cloudString(item?.sourceLabel,200),
+    sourceProvider:cloudString(item?.sourceProvider,200),
+    sourceUrl:/^https?:\/\//i.test(String(item?.sourceUrl||""))?cloudString(item.sourceUrl,1000):"",
+    sourceDetail:cloudString(item?.sourceDetail,1000),
+    attempts:sanitizeCloudAttempts(item?.attempts),
+    attemptCount:Math.max(0,cloudNumber(item?.attemptCount)),
+    correctCount:Math.max(0,cloudNumber(item?.correctCount)),
+    lastSelected:Number.isInteger(item?.lastSelected)?item.lastSelected:null,
+    lastSelectedText:cloudString(item?.lastSelectedText,3000),
+    lastCorrect:!!item?.lastCorrect,
+    lastAnsweredAt:cloudString(item?.lastAnsweredAt,40)
+  })).filter(item=>item.id);
+}
+function sanitizeCloudVocab(value){
+  return (Array.isArray(value)?value:[]).slice(0,5000).map(item=>{
+    const word=cloudString(item?.word,200).trim();
+    return {
+      id:cloudString(item?.id,120)||`VOC-${Date.now()}`,
+      key:cloudString(item?.key,200).toLowerCase()||word.toLowerCase(),
+      word,
+      meaning:cloudString(item?.meaning,2000),
+      example:cloudString(item?.example,4000),
+      part:cloudString(item?.part,20),
+      familiarity:Math.max(1,Math.min(5,cloudNumber(item?.familiarity,2))),
+      nextReviewAt:Math.max(0,cloudNumber(item?.nextReviewAt)),
+      sourceQuestionId:cloudString(item?.sourceQuestionId,120),
+      createdAt:Math.max(0,cloudNumber(item?.createdAt)),
+      updatedAt:Math.max(0,cloudNumber(item?.updatedAt))
+    };
+  }).filter(item=>item.word);
+}
+function sanitizeCloudSchedule(value){
+  if(!value||typeof value!=="object"||Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).slice(0,5000).map(([id,item])=>[
+    cloudString(id,120),
+    {
+      id:cloudString(item?.id||id,120),
+      intervalIndex:Math.max(0,Math.min(REVIEW_INTERVAL_DAYS.length-1,cloudNumber(item?.intervalIndex))),
+      streak:Math.max(0,cloudNumber(item?.streak)),
+      lapses:Math.max(0,cloudNumber(item?.lapses)),
+      lastReviewedAt:Math.max(0,cloudNumber(item?.lastReviewedAt)),
+      nextReviewAt:Math.max(0,cloudNumber(item?.nextReviewAt))
+    }
+  ]).filter(([id])=>id));
+}
+function sanitizeCloudLearningPayload(value){
+  const data=value?.data&&typeof value.data==="object"?value.data:{};
+  return {
+    schema:1,
+    exportedAt:cloudString(value?.exportedAt,40)||new Date().toISOString(),
+    appVersion:cloudString(value?.appVersion,30)||"unknown",
+    data:{
+      favorites:cloudIdList(data.favorites),
+      wrong:cloudIdList(data.wrong),
+      history:sanitizeCloudHistory(data.history),
+      answerArchive:sanitizeCloudArchive(data.answerArchive),
+      vocab:sanitizeCloudVocab(data.vocab),
+      reviewSchedule:sanitizeCloudSchedule(data.reviewSchedule)
+    }
+  };
+}
+function buildCloudLearningPayload(){
+  return sanitizeCloudLearningPayload({
+    exportedAt:new Date().toISOString(),
+    appVersion:APP_SHELL.version||"unknown",
+    data:{
+      favorites:getFavoriteIds(),
+      wrong:getWrongIds(),
+      history:getHistory(),
+      answerArchive:getAnswerArchive(),
+      vocab:getVocab(),
+      reviewSchedule:getReviewSchedule()
+    }
+  });
+}
+function setCloudSyncStatus(message,type=""){
+  const element=$("#cloudSyncStatus");
+  if(!element) return;
+  element.textContent=message;
+  element.className=`cloud-sync-status${type?` ${type}`:""}`;
+}
+function setCloudSyncBusy(busy){
+  ["createCloudBackup","previewCloudBackup","mergeCloudBackup","overwriteCloudBackup"].forEach(id=>{
+    const button=$(`#${id}`);
+    if(button) button.disabled=busy;
+  });
+}
+function cloudPreviewCounts(payload){
+  const data=payload.data;
+  return [
+    ["題目收藏",data.favorites.length],
+    ["錯題紀錄",data.wrong.length],
+    ["個人單字",data.vocab.length],
+    ["歷史成績",data.history.length],
+    ["逐題詳解",data.answerArchive.length],
+    ["複習排程",Object.keys(data.reviewSchedule).length]
+  ];
+}
+function renderCloudPreview(payload){
+  const preview=$("#cloudBackupPreview");
+  if(!preview) return;
+  const exportedAt=new Date(payload.exportedAt);
+  preview.innerHTML=[
+    ...cloudPreviewCounts(payload).map(([label,count])=>`<div><span>${safe(label)}</span><strong>${count}</strong></div>`),
+    `<div><span>建立時間</span><strong>${Number.isNaN(exportedAt.getTime())?"未知":exportedAt.toLocaleString("zh-TW")}</strong></div>`,
+    `<div><span>來源版本</span><strong>v${safe(payload.appVersion)}</strong></div>`
+  ].join("");
+  preview.hidden=false;
+  $("#cloudImportActions").hidden=false;
+}
+async function copyCloudCode(){
+  const code=$("#cloudGeneratedCode").textContent.trim();
+  if(!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+  } catch {
+    const input=document.createElement("textarea");
+    input.value=code;
+    input.style.position="fixed";
+    input.style.opacity="0";
+    document.body.append(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
+  showToast("同步代碼已複製");
+}
+async function createCloudBackup(){
+  if(!CLOUD_SYNC){ setCloudSyncStatus("雲端同步模組未載入，請重新整理頁面。","error"); return; }
+  setCloudSyncBusy(true);
+  setCloudSyncStatus("正在本機加密並上傳密文…");
+  try {
+    const result=await CLOUD_SYNC.createBackup(buildCloudLearningPayload());
+    $("#cloudGeneratedCode").textContent=result.code;
+    $("#cloudCodeResult").hidden=false;
+    $("#cloudSyncCode").value=result.code;
+    setCloudSyncStatus("加密備份已建立；請保存完整同步代碼。","success");
+  } catch(error) {
+    setCloudSyncStatus(error?.message||"建立雲端備份失敗，請稍後再試。","error");
+  } finally {
+    setCloudSyncBusy(false);
+  }
+}
+async function previewCloudBackup(){
+  if(!CLOUD_SYNC){ setCloudSyncStatus("雲端同步模組未載入，請重新整理頁面。","error"); return; }
+  state.cloudPreview=null;
+  $("#cloudBackupPreview").hidden=true;
+  $("#cloudImportActions").hidden=true;
+  setCloudSyncBusy(true);
+  setCloudSyncStatus("正在下載密文並於本機解密…");
+  try {
+    const result=await CLOUD_SYNC.readBackup($("#cloudSyncCode").value);
+    state.cloudPreview=sanitizeCloudLearningPayload(result.payload);
+    renderCloudPreview(state.cloudPreview);
+    setCloudSyncStatus("預覽完成；尚未更動本機資料。","success");
+  } catch(error) {
+    setCloudSyncStatus(error?.message||"讀取雲端備份失敗，請稍後再試。","error");
+  } finally {
+    setCloudSyncBusy(false);
+  }
+}
+function mergeCloudHistory(local,cloud){
+  const map=new Map();
+  [...local,...cloud].forEach(item=>{
+    const key=item.id||`${item.date}|${item.mode}|${item.parts}`;
+    if(key&&!map.has(key)) map.set(key,item);
+  });
+  return [...map.values()].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,50);
+}
+function mergeCloudArchive(local,cloud){
+  const map=new Map(local.map(item=>[item.id,item]));
+  cloud.forEach(remote=>{
+    const current=map.get(remote.id);
+    if(!current){ map.set(remote.id,remote); return; }
+    const attemptMap=new Map();
+    [...(current.attempts||[]),...(remote.attempts||[])].forEach(attempt=>{
+      const key=`${attempt.answeredAt}|${attempt.selected}|${attempt.mode}`;
+      if(!attemptMap.has(key)) attemptMap.set(key,attempt);
+    });
+    const attempts=[...attemptMap.values()].sort((a,b)=>String(a.answeredAt).localeCompare(String(b.answeredAt))).slice(-20);
+    map.set(remote.id,{
+      ...remote,
+      ...current,
+      attempts,
+      attemptCount:Math.max(current.attemptCount||0,remote.attemptCount||0,attempts.length),
+      correctCount:Math.max(current.correctCount||0,remote.correctCount||0,attempts.filter(attempt=>attempt.correct).length)
+    });
+  });
+  return [...map.values()].sort((a,b)=>String(b.lastAnsweredAt).localeCompare(String(a.lastAnsweredAt)));
+}
+function mergeCloudVocab(local,cloud){
+  const map=new Map(local.map(item=>[item.key||item.word.toLowerCase(),item]));
+  cloud.forEach(item=>{
+    const key=item.key||item.word.toLowerCase();
+    if(!map.has(key)) map.set(key,item);
+  });
+  return [...map.values()];
+}
+function refreshAfterCloudImport(){
+  renderDashboard();
+  renderWrongBook();
+  renderHistory();
+  renderVocab();
+  renderAnalytics();
+  renderStorageCenter();
+}
+function importCloudBackup(mode){
+  if(!state.cloudPreview){ setCloudSyncStatus("請先讀取並預覽雲端紀錄。","error"); return; }
+  if(mode==="overwrite"&&!confirm("確定以雲端紀錄完整覆蓋本機收藏、錯題、單字、歷史、詳解與複習排程？")) return;
+  const remote=state.cloudPreview.data;
+  if(mode==="overwrite"){
+    setFavoriteIds(remote.favorites);
+    setWrongIds(remote.wrong);
+    save(KEYS.history,remote.history.slice(0,50));
+    saveAnswerArchive(remote.answerArchive);
+    saveVocab(remote.vocab);
+    saveReviewSchedule(remote.reviewSchedule);
+  } else {
+    setFavoriteIds([...getFavoriteIds(),...remote.favorites]);
+    setWrongIds([...getWrongIds(),...remote.wrong]);
+    save(KEYS.history,mergeCloudHistory(getHistory(),remote.history));
+    saveAnswerArchive(mergeCloudArchive(getAnswerArchive(),remote.answerArchive));
+    saveVocab(mergeCloudVocab(getVocab(),remote.vocab));
+    saveReviewSchedule({...remote.reviewSchedule,...getReviewSchedule()});
+  }
+  refreshAfterCloudImport();
+  const action=mode==="overwrite"?"覆蓋":"補入";
+  setCloudSyncStatus(`已${action}雲端學習紀錄。`,"success");
+  showToast(`雲端紀錄已${action}`);
+}
 function saveSessionScratchpad(){
   const value=$("#sessionScratchpad").value;
   sessionSet(SESSION_KEYS.scratchpad,value);
@@ -3876,6 +4149,9 @@ function renderStorageCenter(){
   const scratch=sessionGet(SESSION_KEYS.scratchpad,"");
   if($("#sessionScratchpad").value!==scratch) $("#sessionScratchpad").value=scratch;
   renderSessionStorageSummary();
+  if(!$("#cloudSyncStatus").textContent){
+    setCloudSyncStatus(CLOUD_SYNC?"尚未建立或讀取雲端備份。":"此瀏覽器未載入雲端同步模組。",CLOUD_SYNC?"":"error");
+  }
 }
 function renderHistory(){
   const h=getHistory();
@@ -4240,6 +4516,11 @@ $("#saveCookieGoal").onclick=saveCookieGoal;
 $("#clearCookieGoal").onclick=clearCookieGoal;
 $("#exportLearningState").onclick=exportLearningState;
 $("#refreshStorageSummary").onclick=renderStorageCenter;
+$("#createCloudBackup").onclick=createCloudBackup;
+$("#copyCloudCode").onclick=copyCloudCode;
+$("#previewCloudBackup").onclick=previewCloudBackup;
+$("#mergeCloudBackup").onclick=()=>importCloudBackup("merge");
+$("#overwriteCloudBackup").onclick=()=>importCloudBackup("overwrite");
 $("#sessionScratchpad").addEventListener("input",saveSessionScratchpad);
 $("#clearSessionScratchpad").onclick=clearSessionScratchpad;
 $("#saveVocab").onclick=saveVocabFromForm;

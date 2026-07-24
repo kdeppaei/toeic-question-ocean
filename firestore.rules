@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /syncRecords/{recordId} {
+      allow get: if recordId.matches('^[A-Z2-9]{20}$');
+      allow list: if false;
+      allow create: if recordId.matches('^[A-Z2-9]{20}$')
+        && request.resource.data.keys().hasOnly([
+          'schema',
+          'cipher',
+          'compression',
+          'iv',
+          'payload',
+          'createdAt',
+          'originalBytes'
+        ])
+        && request.resource.data.schema == 1
+        && request.resource.data.cipher == 'AES-256-GCM'
+        && request.resource.data.compression in ['gzip', 'none']
+        && request.resource.data.iv is string
+        && request.resource.data.iv.size() <= 32
+        && request.resource.data.payload is string
+        && request.resource.data.payload.size() <= 780000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.originalBytes is int
+        && request.resource.data.originalBytes >= 0
+        && request.resource.data.originalBytes <= 5000000;
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

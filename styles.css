@@ -680,6 +680,49 @@
     .storage-card h3 { margin:0; }
     .storage-card p { margin:0; color:var(--muted); line-height:1.65; font-size:14px; }
     .storage-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; }
+    .cloud-sync-card { margin-bottom:15px; padding:0; overflow:hidden; }
+    .cloud-sync-head {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:22px; padding:20px;
+      border-bottom:1px solid var(--line); background:var(--surface);
+    }
+    .cloud-sync-head h3 { margin:12px 0 6px; font-size:20px; }
+    .cloud-sync-head p, .cloud-sync-pane p { margin:0; color:var(--muted); line-height:1.65; font-size:14px; }
+    .badge.green { color:var(--green); background:var(--green-soft); }
+    .cloud-sync-security {
+      flex:0 0 auto; min-width:150px; padding:12px 14px; border-left:4px solid var(--green);
+      background:var(--green-soft);
+    }
+    .cloud-sync-security strong, .cloud-sync-security span { display:block; }
+    .cloud-sync-security strong { color:var(--green); font-size:13px; }
+    .cloud-sync-security span { margin-top:4px; color:var(--muted); font-size:12px; }
+    .cloud-sync-grid { display:grid; grid-template-columns:1fr 1fr; }
+    .cloud-sync-pane { position:relative; display:grid; align-content:start; gap:12px; min-width:0; padding:20px; }
+    .cloud-sync-pane + .cloud-sync-pane { border-left:1px solid var(--line); }
+    .cloud-sync-pane h4 { margin:0; padding-right:40px; font-size:17px; }
+    .cloud-sync-pane label, .cloud-code-result label { color:var(--muted); font-size:12px; font-weight:850; }
+    .cloud-sync-step {
+      position:absolute; top:18px; right:20px; width:28px; height:28px; display:grid; place-items:center;
+      border-radius:50%; color:var(--primary); background:var(--primary-soft); font-size:13px; font-weight:950;
+    }
+    .cloud-code-result, .cloud-preview {
+      min-width:0; padding:13px; border:1px solid var(--line); background:var(--surface-2);
+    }
+    .cloud-code-row { display:grid; grid-template-columns:minmax(0,1fr) 42px; gap:8px; margin-top:7px; }
+    .cloud-code-row output {
+      min-width:0; padding:10px 11px; overflow-wrap:anywhere; border:1px solid var(--line);
+      background:var(--surface); color:var(--text); font:700 12px/1.55 ui-monospace,Consolas,monospace;
+    }
+    .cloud-code-result small { display:block; margin-top:8px; color:var(--red); line-height:1.5; }
+    .cloud-preview { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .cloud-preview > div { min-width:0; padding:8px 9px; border-left:3px solid var(--primary); background:var(--surface); }
+    .cloud-preview span, .cloud-preview strong { display:block; }
+    .cloud-preview span { color:var(--muted); font-size:11px; }
+    .cloud-preview strong { margin-top:3px; overflow-wrap:anywhere; font-size:14px; }
+    .cloud-sync-status { min-height:20px; margin:0; padding:0 20px 16px; color:var(--muted); font-size:13px; }
+    .cloud-sync-status.error { color:var(--red); }
+    .cloud-sync-status.success { color:var(--green); }
+    .cloud-sync-pane .btn { justify-self:start; }
+    .cloud-import-actions { margin-top:0; }
     .storage-map { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
     .storage-map div { padding:13px; border-radius:12px; background:var(--surface-2); border:1px solid var(--line); }
     .storage-map strong { display:block; color:var(--primary); margin-bottom:5px; }
@@ -697,6 +740,12 @@
     .estimate-note { padding:12px 14px; border-radius:12px; background:var(--amber-soft); color:var(--amber); line-height:1.65; font-size:13px; }
     @media (max-width:700px){
       .mock-grid,.analytics-grid,.estimate-grid,.storage-grid,.storage-map,.auto-vocab-grid,.strategy-grid,.mastery-grid,.quality-list{grid-template-columns:1fr;}
+      .cloud-sync-head { display:grid; gap:14px; }
+      .cloud-sync-security { width:100%; min-width:0; }
+      .cloud-sync-grid { grid-template-columns:1fr; }
+      .cloud-sync-pane + .cloud-sync-pane { border-left:0; border-top:1px solid var(--line); }
+      .cloud-sync-pane .btn { width:100%; }
+      .cloud-import-actions { display:grid; width:100%; }
       .mock-section-dialog-body { padding:20px 16px; }
       .mock-section-dialog h2 { font-size:23px; }
       .mock-section-score-grid { grid-template-columns:1fr; }
