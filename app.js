@@ -1963,6 +1963,28 @@ function renderPartDirectionCue(q){
     : "";
   return `<section class="part-direction-cue" aria-label="Part ${safe(q.part)} 作答指示">${reading}${directionBody(data,{compact:true})}</section>`;
 }
+function renderReadingFormatCue(q){
+  if(!["6","7"].includes(q.part)) return "";
+  if(q.part==="6"){
+    return `<section class="reading-format-cue part6" aria-label="Part 6 題型">
+      <div><span>PART 6</span><strong>段落填空</strong></div>
+      <p>同一篇短文固定 4 題；依上下文選入字詞、片語或完整句子。</p>
+      <b>4 blanks · 1 text</b>
+    </section>`;
+  }
+  const tags=new Set(q.tags||[]);
+  const documentCount=tags.has("triple-passage")||q.category?.includes("三篇")
+    ?3
+    :tags.has("double-passage")||q.category?.includes("雙篇")
+    ?2
+    :1;
+  const documentLabel=documentCount===3?"三文件":documentCount===2?"雙文件":"單篇文件";
+  return `<section class="reading-format-cue part7" aria-label="Part 7 題型">
+    <div><span>PART 7</span><strong>文件閱讀理解</strong></div>
+    <p>先讀完整文件，再判斷細節、目的、語意、推論${documentCount>1?"與跨文件關係":""}。</p>
+    <b>${documentLabel}${q.literacySkill?` · ${safe(q.literacySkill)}`:""}</b>
+  </section>`;
+}
 function prepareSessionQuestion(source,unit,index,shuffleChoices){
   const item=clone(source);
   item._groupKey=unit.questions.length>1?unit.key:null;
@@ -2406,9 +2428,15 @@ function renderQuestion(){
   $("#quizProgressTrack")?.setAttribute("aria-valuetext",`第 ${state.currentIndex+1} 題，共 ${state.session.length} 題`);
   let stimulus="";
   stimulus+=renderPartDirectionCue(q);
+  stimulus+=renderReadingFormatCue(q);
   if(grouped){
-    const groupType=q.part==="3"?"conversation":q.part==="4"?"talk":q.part==="6"?"text":"passage";
-    stimulus+=`<div class="group-banner">Questions ${groupStart+1}–${groupEnd+1} refer to the same ${groupType}。完成整個題組前不揭曉正解或內容解析。</div>`;
+    const groupType=q.part==="3"?"conversation":q.part==="4"?"talk":q.part==="6"?"text":"set of documents";
+    const groupInstruction=q.part==="6"
+      ?"四個空格都屬於同一篇短文；完成整組後再看解析。"
+      :q.part==="7"
+      ?"所有題目共用上方文件；完成整組後再核對線索與詳解。"
+      :"完成整個題組前不揭曉正解或內容解析。";
+    stimulus+=`<div class="group-banner">Questions ${groupStart+1}–${groupEnd+1} refer to the same ${groupType}。${groupInstruction}</div>`;
   }
   stimulus+=renderQuestionImage(q);
   if(q.passage) stimulus+=`<div class="passage ${revealAnswer&&q.evidence?"has-evidence":""}">${renderPassageText(q,revealAnswer)}</div>`;

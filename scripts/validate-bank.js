@@ -74,7 +74,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 1010) errors.push(`Expected 1010 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 1035) errors.push(`Expected 1035 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {
@@ -96,7 +96,7 @@ if (sandbox.window.TOEIC_V31_ANNOTATION_COUNT !== 44) errors.push(`Expected 44 v
 const humanReviewed = Array.isArray(bank)
   ? bank.filter((question) => (question.tags || []).includes("literacy-core") && (question.tags || []).includes("human-reviewed"))
   : [];
-if (humanReviewed.length !== 80) errors.push(`Expected 80 human-reviewed literacy questions, received ${humanReviewed.length}`);
+if (humanReviewed.length !== 97) errors.push(`Expected 97 human-reviewed literacy questions, received ${humanReviewed.length}`);
 
 const v43Items = Array.isArray(bank) ? bank.filter((question) => /^P5-32[1-4]$|^P7-R7[78]-Q[1-3]$/.test(question.id)) : [];
 if (v43Items.length !== 10) errors.push(`Expected 10 v4.3 questions, received ${v43Items.length}`);
@@ -111,6 +111,23 @@ if (v44Items.length !== 23) errors.push(`Expected 23 v4.4 questions, received ${
 v44Items.forEach((question) => {
   if (question.difficulty !== "800") errors.push(`${question.id}: v4.4 expansion item must be difficulty 800`);
   if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
+});
+
+const v45Items = Array.isArray(bank) ? bank.filter((question) =>
+  /^P6-G(?:32|33)-Q[1-4]$|^P7-R89-Q[1-3]$|^P7-R90-Q[1-4]$|^P7-R9[12]-Q[1-5]$/.test(question.id)
+) : [];
+if (v45Items.length !== 25) errors.push(`Expected 25 v4.5 questions, received ${v45Items.length}`);
+v45Items.forEach((question) => {
+  if (question.difficulty !== "800") errors.push(`${question.id}: v4.5 expansion item must be difficulty 800`);
+  if (question.sourceType !== "original" || question.sourceLabel !== "本站原創模擬") errors.push(`${question.id}: explicit original provenance is missing`);
+});
+
+const correctedPart7 = Array.isArray(bank) ? bank.filter((question) => question.correctedFromPart === "6") : [];
+if (correctedPart7.length !== 32) errors.push(`Expected 32 corrected Part 7 questions, received ${correctedPart7.length}`);
+correctedPart7.forEach((question) => {
+  if (question.part !== "7" || !/^P7-R8[1-8]$/.test(question.groupId || "")) {
+    errors.push(`${question.id}: Part 6/7 classification correction is incomplete`);
+  }
 });
 
 function seededRandom(seed) {

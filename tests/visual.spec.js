@@ -10,8 +10,8 @@ const viewports = [
 for (const viewport of viewports) {
   test(`home visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.4.0");
-    await expect(page.locator("#totalBank")).toHaveText("1010");
+    await page.goto("/?v=4.5.0");
+    await expect(page.locator("#totalBank")).toHaveText("1035");
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.addStyleTag({
       content: `
@@ -67,7 +67,7 @@ const mockDialogViewports = [
 for (const viewport of mockDialogViewports) {
   test(`mock section break visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.4.0");
+    await page.goto("/?v=4.5.0");
     await page.evaluate(() => showView("setupView"));
     await page.locator("#startMockExam").click();
     await page.evaluate(() => completeListeningSection("manual"));
@@ -89,3 +89,27 @@ for (const viewport of mockDialogViewports) {
     });
   });
 }
+
+test("Part 6 and Part 7 format cues stay distinct on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?v=4.5.0");
+  await page.addStyleTag({
+    content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
+  });
+
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P6-G32");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "practice" });
+    window.scrollTo(0, 0);
+  });
+  await expect(page.locator(".reading-format-cue.part6")).toBeVisible();
+  await expect(page).toHaveScreenshot("part6-format-phone-390.png", { maxDiffPixelRatio: 0.12 });
+
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R90");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
+    window.scrollTo(0, 0);
+  });
+  await expect(page.locator(".reading-format-cue.part7")).toBeVisible();
+  await expect(page).toHaveScreenshot("part7-format-phone-390.png", { maxDiffPixelRatio: 0.12 });
+});

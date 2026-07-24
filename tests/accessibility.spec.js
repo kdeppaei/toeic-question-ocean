@@ -26,8 +26,8 @@ async function navigate(page, view) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.4.0");
-  await expect(page.locator("#totalBank")).toHaveText("1010");
+  await page.goto("/?v=4.5.0");
+  await expect(page.locator("#totalBank")).toHaveText("1035");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -313,6 +313,50 @@ test("Reading directions show the 75-minute overview and switch by part", async 
   await expect(page.locator(".part-direction-cue")).toContainText("PART 5 句子填空");
 });
 
+test("Part 6 completion sets and Part 7 literacy documents remain structurally distinct", async ({ page }) => {
+  const structure = await page.evaluate(() => {
+    const bank = window.BUILTIN_BANK;
+    const part6 = bank.filter((question) => question.part === "6");
+    const part7 = bank.filter((question) => question.part === "7");
+    const groups = new Map();
+    part6.forEach((question) => groups.set(question.groupId, (groups.get(question.groupId) || 0) + 1));
+    return {
+      part6: part6.length,
+      part7: part7.length,
+      invalidPart6Groups: [...groups.entries()].filter(([, size]) => size !== 4),
+      part6Comprehension: part6.filter((question) => /^(what|why|who|where|when|how|according|which)/i.test(question.prompt)).map((question) => question.id),
+      part7Cloze: part7.filter((question) => /best (?:word|phrase|sentence).+blank/i.test(question.prompt)).map((question) => question.id),
+      corrected: part7.filter((question) => question.correctedFromPart === "6").length
+    };
+  });
+  expect(structure).toEqual({
+    part6: 100,
+    part7: 305,
+    invalidPart6Groups: [],
+    part6Comprehension: [],
+    part7Cloze: [],
+    corrected: 32
+  });
+
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P6-G32");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "practice" });
+  });
+  await expect(page.locator(".reading-format-cue.part6")).toContainText("段落填空");
+  await expect(page.locator(".reading-format-cue.part6")).toContainText("4 blanks · 1 text");
+  await expect(page.locator(".group-overview .group-question")).toHaveCount(4);
+  await expect(page.locator(".passage")).toContainText("(1) _____");
+
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R90");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
+  });
+  await expect(page.locator(".reading-format-cue.part7")).toContainText("文件閱讀理解");
+  await expect(page.locator(".reading-format-cue.part7")).toContainText("單篇文件");
+  await expect(page.locator(".group-overview .group-question")).toHaveCount(4);
+  await expect(page.locator(".group-overview")).toContainText("In which position marked [1], [2], [3], or [4]");
+});
+
 test("completed answers and explanations persist in Local Storage", async ({ page }) => {
   await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("5");
@@ -334,7 +378,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("1010");
+  await expect(page.locator("#totalBank")).toHaveText("1035");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
@@ -350,7 +394,7 @@ test("question provenance is complete and external platforms remain link-only", 
       mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
     };
   });
-  expect(audit).toEqual({ total: 1010, incomplete: [], mislabeled: [] });
+  expect(audit).toEqual({ total: 1035, incomplete: [], mislabeled: [] });
 
   await navigate(page, "bankView");
   await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);

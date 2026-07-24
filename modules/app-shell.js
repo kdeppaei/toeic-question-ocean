@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.4.0",
+  version: "4.5.0",
   release: {
-    title: "兩段式模考與分層出卷",
-    summary: "Listening、Reading 可分段出分並在中間安心休息；每份 200 題依 Part、難度、題組與考點平衡抽取，近期考過題目會自動降權。",
-    badges: ["v4.4.0", "1,010 題", "分段出分", "23 題新高難題"]
+    title: "Part 6／7 題型校正與文件素養",
+    summary: "Part 6 回歸每篇 4 題的段落填空，誤分類的閱讀理解移回 Part 7；新增訊息串、公告規範、雙篇與三篇文件素養題。",
+    badges: ["v4.5.0", "1,035 題", "32 題分類校正", "25 題新高難題"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

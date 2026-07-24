@@ -70,6 +70,27 @@
       }
     }
 
+    if (String(question.part) === "6") {
+      const prompt = String(question.prompt || "");
+      const passage = String(question.passage || "");
+      if (!question.groupId) {
+        issues.push(issue("error", "part6-missing-group", "Part 6 題目必須屬於同篇四題的段落填空題組。"));
+      }
+      if (!/_{3,}/.test(prompt) && !/(?:blank|空格)/i.test(prompt)) {
+        issues.push(issue("error", "part6-comprehension-question", "Part 6 只能測驗段落中的字詞、片語或整句空格，不應使用一般閱讀理解問句。"));
+      }
+      if (!/_{3,}/.test(passage)) {
+        issues.push(issue("error", "part6-passage-missing-blank", "Part 6 文章必須保留可辨識的填答空格。"));
+      }
+    }
+
+    if (String(question.part) === "7") {
+      const prompt = String(question.prompt || "");
+      if (/(?:best (?:answer|word|phrase|sentence).*(?:blank)|complete the text|填入空格)/i.test(prompt)) {
+        issues.push(issue("error", "part7-cloze-question", "Part 7 應為文件閱讀理解，不應混入 Part 6 的段落填空指令。"));
+      }
+    }
+
     if ((question.tags || []).includes("literacy-core")) {
       const evidence = String(question.evidence || "").trim();
       const passage = String(question.passage || "");
@@ -94,6 +115,7 @@
     const byId = {};
     const bankIssues = [];
     const part5Prompts = new Map();
+    const part6Groups = new Map();
 
     questions.forEach((question) => {
       const id = String(question?.id || "(missing id)");
@@ -111,6 +133,21 @@
           part5Prompts.set(key, id);
         }
       }
+
+      if (String(question?.part) === "6" && question.groupId) {
+        if (!part6Groups.has(question.groupId)) part6Groups.set(question.groupId, []);
+        part6Groups.get(question.groupId).push(question.id);
+      }
+    });
+
+    part6Groups.forEach((ids, groupId) => {
+      if (ids.length === 4) return;
+      ids.forEach((id) => {
+        byId[id] = [
+          ...(byId[id] || []),
+          issue("error", "part6-invalid-group-size", `Part 6 題組 ${groupId} 應恰好包含 4 題，目前為 ${ids.length} 題。`)
+        ];
+      });
     });
 
     Object.entries(byId).forEach(([id, issues]) => {
