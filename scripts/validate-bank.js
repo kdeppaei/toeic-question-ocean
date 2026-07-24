@@ -27,6 +27,16 @@ vm.runInContext(
   { filename: "modules/part5-exercise-bank.js" }
 );
 vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "reading-exercise-guides.js"), "utf8"),
+  sandbox,
+  { filename: "modules/reading-exercise-guides.js" }
+);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "reading-exercise-bank.js"), "utf8"),
+  sandbox,
+  { filename: "modules/reading-exercise-bank.js" }
+);
+vm.runInContext(
   fs.readFileSync(path.join(root, "question-annotations-v31.js"), "utf8"),
   sandbox,
   { filename: "question-annotations-v31.js" }
@@ -89,7 +99,7 @@ if (!Array.isArray(bank)) {
   });
 }
 
-if (Array.isArray(bank) && bank.length !== 1227) errors.push(`Expected 1227 questions, received ${bank.length}`);
+if (Array.isArray(bank) && bank.length !== 1443) errors.push(`Expected 1443 questions, received ${bank.length}`);
 const part1 = Array.isArray(bank) ? bank.filter((question) => String(question.part) === "1") : [];
 if (part1.length !== 25) errors.push(`Expected 25 Part 1 questions, received ${part1.length}`);
 if (Array.isArray(bank)) {

@@ -390,6 +390,122 @@
     }
     .part5-guide-item dt { color:var(--primary); font-size:12px; font-weight:950; }
     .part5-guide-item dd { min-width:0; margin:0; color:var(--muted); font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
+    .reading-guide-heading {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:18px;
+    }
+    .reading-guide-heading h2 { margin:4px 0 6px; font-size:28px; }
+    .reading-guide-heading p { margin:0; color:var(--muted); line-height:1.7; }
+    .reading-guide-metrics {
+      display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; margin-bottom:16px;
+      overflow:hidden; border:1px solid var(--line); border-radius:8px; background:var(--line);
+    }
+    .reading-guide-metrics div { display:grid; gap:3px; padding:15px 17px; background:var(--surface); }
+    .reading-guide-metrics strong { color:var(--primary); font-size:25px; }
+    .reading-guide-metrics span { color:var(--muted); font-size:12px; font-weight:850; }
+    .reading-guide-source {
+      display:flex; align-items:center; justify-content:space-between; gap:18px; padding:16px 18px;
+      border:1px solid color-mix(in srgb,var(--cyan) 42%,var(--line)); border-left:5px solid var(--cyan);
+      border-radius:8px; background:color-mix(in srgb,var(--cyan-soft) 34%,var(--surface));
+    }
+    .reading-guide-source > div { min-width:0; }
+    .reading-guide-source strong { display:block; margin-top:8px; }
+    .reading-guide-source p { margin:4px 0 0; color:var(--muted); font-size:13px; line-height:1.65; }
+    .reading-guide-source .btn { flex:0 0 auto; }
+    .reading-guide-tabs {
+      display:flex; gap:6px; margin:18px 0; padding-bottom:5px; overflow-x:auto; scrollbar-width:thin;
+    }
+    .reading-guide-tab {
+      flex:0 0 82px; min-height:56px; display:grid; place-items:center; align-content:center; gap:1px;
+      border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--muted);
+    }
+    .reading-guide-tab span { font-size:9px; font-weight:850; text-transform:uppercase; }
+    .reading-guide-tab strong { font-size:18px; }
+    .reading-guide-tab:hover, .reading-guide-tab.active {
+      border-color:var(--primary); background:var(--primary-soft); color:var(--primary);
+    }
+    .reading-guide-toolbar {
+      display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,360px); gap:18px; align-items:end;
+      margin-bottom:14px; padding-bottom:16px; border-bottom:1px solid var(--line);
+    }
+    .reading-guide-toolbar h3 { margin:3px 0 4px; font-size:24px; }
+    .reading-guide-toolbar p { margin:0; color:var(--muted); line-height:1.55; }
+    .reading-guide-toolbar label { display:grid; gap:6px; color:var(--muted); font-size:12px; font-weight:850; }
+    .reading-guide-practice { margin-top:12px; }
+    .reading-guide-answer-key {
+      display:grid; grid-template-columns:repeat(12,minmax(42px,1fr)); gap:6px; margin-bottom:20px;
+    }
+    .reading-guide-answer-key button {
+      min-width:0; min-height:47px; display:grid; place-items:center; align-content:center; gap:1px;
+      border:1px solid var(--line); border-radius:6px; background:var(--surface-2); color:var(--muted);
+    }
+    .reading-guide-answer-key button:hover { border-color:var(--primary); color:var(--primary); }
+    .reading-guide-answer-key span { font-size:9px; }
+    .reading-guide-answer-key strong { font-size:16px; }
+    .reading-guide-documents { display:grid; gap:28px; }
+    .reading-guide-document { min-width:0; padding:0 0 28px; border-bottom:2px solid var(--line); }
+    .reading-guide-document > header {
+      display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px; align-items:start; margin-bottom:14px;
+    }
+    .reading-guide-document > header > span {
+      padding:7px 9px; border-radius:6px; background:var(--primary-soft); color:var(--primary);
+      font-size:12px; font-weight:950;
+    }
+    .reading-guide-document h3 { margin:0; font-size:20px; overflow-wrap:anywhere; }
+    .reading-guide-document header p { margin:4px 0 0; color:var(--muted); font-size:12px; font-weight:800; }
+    .reading-guide-passage, .reading-guide-completed div {
+      white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.8;
+    }
+    .reading-guide-passage {
+      padding:17px 18px; border-left:4px solid var(--primary); border-radius:6px;
+      background:var(--surface-2); color:var(--text);
+    }
+    .reading-guide-completed { margin-top:10px; border:1px solid var(--line); border-radius:7px; background:var(--surface); }
+    .reading-guide-completed summary { padding:12px 14px; cursor:pointer; color:var(--primary); font-weight:900; }
+    .reading-guide-completed div { padding:0 14px 15px; color:var(--muted); }
+    .reading-guide-summary {
+      display:grid; gap:5px; margin:10px 0 0; padding:12px 14px; border-left:4px solid var(--amber);
+      border-radius:6px; background:var(--amber-soft); line-height:1.65;
+    }
+    .reading-guide-summary strong { color:var(--amber); font-size:11px; }
+    .reading-guide-question-list {
+      display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px;
+    }
+    .reading-guide-question {
+      min-width:0; padding:15px; border:1px solid var(--line); border-radius:8px; background:var(--surface);
+    }
+    .reading-guide-question:focus { outline:3px solid var(--primary-soft); border-color:var(--primary); }
+    .reading-guide-question > header { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .reading-guide-question > header > span {
+      display:grid; place-items:center; width:38px; height:38px; border-radius:7px;
+      background:var(--primary-soft); color:var(--primary); font-weight:950;
+    }
+    .reading-guide-question > header div {
+      min-width:0; display:flex; align-items:center; justify-content:flex-end; gap:7px;
+    }
+    .reading-guide-question > header b {
+      display:grid; place-items:center; width:28px; height:28px; flex:0 0 28px;
+      border-radius:6px; background:var(--green-soft); color:var(--green);
+    }
+    .reading-guide-question > header strong { text-align:right; overflow-wrap:anywhere; }
+    .reading-guide-question h4 { margin:13px 0 6px; line-height:1.65; }
+    .reading-guide-prompt-zh { margin:0 0 11px; color:var(--muted); font-size:13px; line-height:1.65; }
+    .reading-guide-choices { display:grid; gap:6px; margin:0; padding:0; list-style:none; }
+    .reading-guide-choices li {
+      min-width:0; display:grid; grid-template-columns:25px minmax(0,1fr); gap:8px; align-items:start;
+      padding:8px 9px; border-left:3px solid var(--line); background:var(--surface-2);
+      color:var(--muted); font-size:12px; line-height:1.5;
+    }
+    .reading-guide-choices li span { color:var(--primary); font-weight:950; }
+    .reading-guide-choices li b { min-width:0; overflow-wrap:anywhere; }
+    .reading-guide-choices li.correct { border-left-color:var(--green); background:var(--green-soft); color:var(--text); }
+    .reading-guide-question dl { margin:13px 0 0; }
+    .reading-guide-question dl div {
+      display:grid; grid-template-columns:72px minmax(0,1fr); gap:9px; padding:9px 0; border-top:1px solid var(--line);
+    }
+    .reading-guide-question dt { color:var(--primary); font-size:12px; font-weight:950; }
+    .reading-guide-question dd {
+      min-width:0; margin:0; color:var(--muted); font-size:13px; line-height:1.65; overflow-wrap:anywhere;
+    }
     .part-direction-cue {
       margin:0 0 18px; padding:15px; border:1px solid color-mix(in srgb,var(--primary) 36%,var(--line));
       border-left:5px solid var(--primary); border-radius:8px;
@@ -1086,6 +1202,7 @@
       .stats-grid, .module-grid { grid-template-columns:repeat(2,1fr); }
       .practice-layout, .setup-grid, .storage-grid, .storage-map, .quality-item, .mission-grid { grid-template-columns:1fr; }
       .part5-guide-list { grid-template-columns:1fr; }
+      .reading-guide-question-list { grid-template-columns:1fr; }
       .auto-vocab-grid, .strategy-grid, .mastery-grid, .source-grid, .literacy-skill-grid,
       .learning-topic-grid, .collocation-grid, .learning-resource-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .sprint-overview { grid-template-columns:1fr; }
@@ -1097,17 +1214,20 @@
       body { padding-bottom:66px; }
       .content, .topbar-inner { padding-left:12px; padding-right:12px; }
       .content { padding-top:14px; padding-bottom:86px; }
-      .direction-title-row, .part5-guide-heading, .part5-guide-source { align-items:stretch; flex-direction:column; }
-      .direction-guide-button, .part5-guide-heading .btn, .part5-guide-source .btn { width:100%; }
-      .part5-guide-heading { gap:14px; }
-      .part5-guide-heading h2 { font-size:23px; }
-      .part5-guide-source { gap:13px; }
-      .part5-guide-toolbar { grid-template-columns:1fr; gap:13px; }
-      .part5-guide-practice { width:100%; }
-      .part5-guide-answer-key { grid-template-columns:repeat(6,minmax(36px,1fr)); }
+      .direction-title-row, .part5-guide-heading, .part5-guide-source, .reading-guide-heading, .reading-guide-source { align-items:stretch; flex-direction:column; }
+      .direction-guide-button, .part5-guide-heading .btn, .part5-guide-source .btn, .reading-guide-heading .btn, .reading-guide-source .btn { width:100%; }
+      .part5-guide-heading, .reading-guide-heading { gap:14px; }
+      .part5-guide-heading h2, .reading-guide-heading h2 { font-size:23px; }
+      .part5-guide-source, .reading-guide-source { gap:13px; }
+      .part5-guide-toolbar, .reading-guide-toolbar { grid-template-columns:1fr; gap:13px; }
+      .part5-guide-practice, .reading-guide-practice { width:100%; }
+      .part5-guide-answer-key, .reading-guide-answer-key { grid-template-columns:repeat(6,minmax(36px,1fr)); }
       .part5-guide-item { padding:14px; }
       .part5-guide-choices { grid-template-columns:1fr; }
       .part5-guide-item dl div { grid-template-columns:1fr; gap:4px; }
+      .reading-guide-passage { padding:14px; font-size:14px; }
+      .reading-guide-question { padding:13px; }
+      .reading-guide-question dl div { grid-template-columns:1fr; gap:4px; }
       .selection-translate-menu {
         left:12px !important; right:12px; top:auto !important; bottom:76px;
         width:auto; max-height:min(52vh,390px); overflow:auto;

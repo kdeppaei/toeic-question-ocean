@@ -1,14 +1,15 @@
 window.TOEIC_APP_SHELL = {
-  version: "5.0.0",
+  version: "5.1.0",
   release: {
-    title: "範本詳解正式接入題庫",
-    summary: "Part 5 十回可直接練習並逐題對照題幹、選項與詳解；固定搭配同步進入學習區，Part 6、7 各新增三組原創高階題組。",
-    badges: ["v5.0.0", "1,227 題", "10 回可練", "Part 6／7 新題組"]
+    title: "Part 6／7 全題詳解完成",
+    summary: "新增 Part 6 十回 120 題與 Part 7 八回 96 題；可按回閱讀文件、核對選項與解析，或直接啟動完整題組練習。",
+    badges: ["v5.1.0", "1,443 題", "Part 6 十回", "Part 7 八回"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",
     setupView: "建立練習",
     part5GuideView: "Part 5 範本詳解",
+    readingExerciseGuideView: "Part 6／7 全題詳解",
     sprintView: "五天衝刺工作台",
     practiceView: "作答練習",
     resultView: "成績報告",

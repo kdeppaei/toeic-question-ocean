@@ -21,6 +21,16 @@ vm.runInContext(
   sandbox,
   { filename: "modules/part5-exercise-bank.js" }
 );
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "reading-exercise-guides.js"), "utf8"),
+  sandbox,
+  { filename: "modules/reading-exercise-guides.js" }
+);
+vm.runInContext(
+  fs.readFileSync(path.join(root, "modules", "reading-exercise-bank.js"), "utf8"),
+  sandbox,
+  { filename: "modules/reading-exercise-bank.js" }
+);
 fs.readdirSync(root)
   .filter((file) => /^vocab-lexicon.*\.js$/.test(file))
   .sort((a, b) => (a === "vocab-lexicon.js" ? -1 : b === "vocab-lexicon.js" ? 1 : a.localeCompare(b)))

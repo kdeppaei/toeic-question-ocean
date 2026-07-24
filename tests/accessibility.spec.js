@@ -50,8 +50,8 @@ async function selectPracticeText(page, phrase, pointerType = "mouse") {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=5.0.0");
-  await expect(page.locator("#totalBank")).toHaveText("1227");
+  await page.goto("/?v=5.1.0");
+  await expect(page.locator("#totalBank")).toHaveText("1443");
 });
 
 test("skip link, navigation, and module cards work from the keyboard", async ({ page }) => {
@@ -486,7 +486,8 @@ test("Part 5 directions open ten complete exercises with questions, choices, and
   await expect(page.locator("#directionReferenceContent")).toContainText("PART 5 句子填空");
 });
 
-test("Part 5 exercise sets and new Part 6-7 guided sets start from directions", async ({ page }) => {
+test("Part 5 and complete Part 6-7 exercise guides start from directions", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("5");
   await page.locator("[data-open-part5-guide]").click();
@@ -499,19 +500,64 @@ test("Part 5 exercise sets and new Part 6-7 guided sets start from directions", 
 
   await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("6");
-  await expect(page.locator('[data-start-curated-part="6"]')).toBeVisible();
-  await page.locator('[data-start-curated-part="6"]').click();
+  await page.locator('[data-open-reading-guide="6"]').click();
+  await expect(page.locator("#readingExerciseGuideView")).toHaveClass(/active/);
+  await expect(page.locator("#readingGuideTabs .reading-guide-tab")).toHaveCount(10);
+  await expect(page.locator("#readingGuideDocuments .reading-guide-document")).toHaveCount(3);
+  await expect(page.locator("#readingGuideDocuments .reading-guide-question")).toHaveCount(12);
+  await expect(page.locator("#readingGuideDocuments .reading-guide-choices li")).toHaveCount(48);
+  await expect(page.locator("#readingGuideSourceLink")).toHaveAttribute(
+    "href",
+    "https://www.esl-lounge.com/student/toeic/toeic-055-reading-part-six-1.php"
+  );
+  await page.locator("#practiceReadingGuideExercise").click();
   await expect(page.locator("#practiceView")).toHaveClass(/active/);
+  await expect(page.locator("#quizBadges")).toContainText("Q1/12");
   await expect(page.locator("#quizBadges")).toContainText("Part 6");
-  await expect(page.locator("#questionArea")).toContainText(/Meeting-Notes Pilot|REUSABLE SHIPPING|INTERNAL MEMORANDUM/);
+  await expect(page.locator("#quizBadges")).toContainText("使用者整理");
+  await expect(page.locator("#questionArea .passage")).toContainText("__________");
+  await expect(page.locator("#questionArea .group-question")).toHaveCount(4);
 
   await navigate(page, "setupView");
   await page.locator("#partSelect").selectOption("7");
-  await expect(page.locator('[data-start-curated-part="7"]')).toBeVisible();
-  await page.locator('[data-start-curated-part="7"]').click();
+  await page.locator('[data-open-reading-guide="7"]').click();
+  await expect(page.locator("#readingGuideTabs .reading-guide-tab")).toHaveCount(8);
+  await expect(page.locator("#readingGuideDocuments .reading-guide-document")).toHaveCount(4);
+  await expect(page.locator("#readingGuideDocuments .reading-guide-question")).toHaveCount(12);
+  await expect(page.locator("#readingGuideDocuments .reading-guide-choices li")).toHaveCount(48);
+  await page.locator('[data-reading-exercise="1"]').focus();
+  await page.keyboard.press("End");
+  await expect(page.locator('[data-reading-exercise="8"]')).toBeFocused();
+  await expect(page.locator("#readingGuideDocuments .reading-guide-document")).toHaveCount(3);
+  await expect(page.locator("#readingGuideSourceLink")).toHaveAttribute(
+    "href",
+    "https://www.esl-lounge.com/student/toeic/toeic-072-reading-part-seven-8.php"
+  );
+  const overflow = await page.evaluate(() => ({
+    body: document.body.scrollWidth - document.body.clientWidth,
+    root: document.documentElement.scrollWidth - document.documentElement.clientWidth
+  }));
+  expect(overflow).toEqual({ body: 0, root: 0 });
+  await expectNoSeriousA11yViolations(page, "#readingExerciseGuideView");
+  await page.locator("#practiceReadingGuideExercise").click();
   await expect(page.locator("#practiceView")).toHaveClass(/active/);
+  await expect(page.locator("#quizBadges")).toContainText("Q1/12");
   await expect(page.locator("#quizBadges")).toContainText("Part 7");
-  await expect(page.locator("#questionArea")).toContainText(/SMART ACCESS PILOT|TRAVEL POLICY EXCERPT|PILOT RESULTS/);
+  await expect(page.locator("#quizBadges")).toContainText("使用者整理");
+
+  const guideAudit = await page.evaluate(() => {
+    const guides = window.TOEIC_READING_EXERCISE_GUIDES;
+    const questions = Object.values(guides).flatMap((guide) =>
+      guide.exercises.flatMap((exercise) => exercise.documents.flatMap((document) => document.questions))
+    );
+    return {
+      part6: guides["6"].totalQuestions,
+      part7: guides["7"].totalQuestions,
+      invalidChoices: questions.filter((question) => question.choices?.length !== 4).length,
+      invalidAnswers: questions.filter((question) => !/^[A-D]$/.test(question.correctOption)).length
+    };
+  });
+  expect(guideAudit).toEqual({ part6: 120, part7: 96, invalidChoices: 0, invalidAnswers: 0 });
 });
 
 test("Part 6 completion sets and Part 7 literacy documents remain structurally distinct", async ({ page }) => {
@@ -535,8 +581,8 @@ test("Part 6 completion sets and Part 7 literacy documents remain structurally d
     };
   });
   expect(structure).toEqual({
-    part6: 120,
-    part7: 357,
+    part6: 240,
+    part7: 453,
     invalidPart6Groups: [],
     invalidPart7Groups: [],
     part6Comprehension: [],
@@ -593,7 +639,7 @@ test("completed answers and explanations persist in Local Storage", async ({ pag
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
 
   await page.reload();
-  await expect(page.locator("#totalBank")).toHaveText("1227");
+  await expect(page.locator("#totalBank")).toHaveText("1443");
   await navigate(page, "historyView");
   await expect(page.locator("#answerArchiveList .answer-archive-card")).toHaveCount(5);
   await expect(page.locator("#answerArchiveSummary")).toContainText("5 題已保存");
@@ -609,7 +655,7 @@ test("question provenance is complete and external platforms remain link-only", 
       mislabeled: rows.filter((row) => /^(ETS|abceed|獵頓|猎顿|Leaton)/i.test(row.label)).map((row) => row.id)
     };
   });
-  expect(audit).toEqual({ total: 1227, incomplete: [], mislabeled: [] });
+  expect(audit).toEqual({ total: 1443, incomplete: [], mislabeled: [] });
 
   await navigate(page, "bankView");
   await expect(page.locator("#legalSourceList .source-card")).toHaveCount(8);

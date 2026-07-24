@@ -3,6 +3,7 @@ const TOEIC_VOCAB_LEXICON = window.TOEIC_VOCAB_LEXICON || {};
 const DAVINCI_VOCABULARY = window.DAVINCI_VOCABULARY || { entries: [], fitLabels: {} };
 const APP_SHELL = window.TOEIC_APP_SHELL || {};
 const PART5_EXERCISE_GUIDES = window.TOEIC_PART5_EXERCISE_GUIDES || { exercises: [] };
+const READING_EXERCISE_GUIDES = window.TOEIC_READING_EXERCISE_GUIDES || {};
 const LEARNING_HUB = window.TOEIC_LEARNING_HUB || { grammarTopics: [], collocations: [], collocationCategories: {}, resources: [] };
 const LEARNING_COMMAND_CENTER = window.TOEIC_LEARNING_COMMAND_CENTER || { buildStudyMissions: () => [] };
 const LEGAL_PRACTICE_SOURCES = window.TOEIC_LEGAL_PRACTICE_SOURCES || [];
@@ -280,6 +281,8 @@ const state = {
   learningTab: "vocabulary",
   readingSkill: "all",
   part5GuideExercise: 1,
+  readingGuidePart: "6",
+  readingGuideExercise: 1,
   directionPart: "3",
   sessionStrategy: null,
   vocabQuiz: { questions: [], index: 0, answers: [] },
@@ -1929,6 +1932,7 @@ function showView(id){
   if(id==="homeView") renderDashboard();
   if(id==="setupView") updateAvailable();
   if(id==="part5GuideView") renderPart5Guide();
+  if(id==="readingExerciseGuideView") renderReadingExerciseGuide();
   if(id==="wrongView") renderWrongBook();
   if(id==="vocabView") renderVocab();
   if(id==="autoVocabView") renderLearningHub();
@@ -2105,7 +2109,7 @@ function directionBody(data,{compact=false,key=""}={}){
   const guideAction=!compact&&key==="5"
     ?`<button class="btn primary direction-guide-button" type="button" data-open-part5-guide>查看 10 回範本詳解</button>`
     :!compact&&["6","7"].includes(key)
-    ?`<button class="btn primary direction-guide-button" type="button" data-start-curated-part="${key}">練 3 組自製範本</button>`
+    ?`<button class="btn primary direction-guide-button" type="button" data-open-reading-guide="${key}">查看 ${key==="6"?"10":"8"} 回全題詳解</button>`
     :"";
   return `<div class="direction-title-row"><div><span class="eyebrow">DIRECTIONS</span><h${compact?"3":"2"}>${safe(data.title)}</h${compact?"3":"2"}></div>${guideAction}</div>
     <div class="direction-metrics">${(data.metrics||[]).map(metric=>`<span>${safe(metric)}</span>`).join("")}</div>
@@ -2124,7 +2128,7 @@ function renderDirectionReference(key=state.directionPart,{focus=false}={}){
   tabs.innerHTML=DIRECTION_TABS.map(tab=>`<button type="button" class="direction-tab ${tab===key?"active":""}" role="tab" aria-selected="${tab===key}" data-direction-tab="${tab}">${directionTabLabel(tab)}</button>`).join("");
   content.innerHTML=directionBody(directionData(key),{key});
   $("[data-open-part5-guide]")?.addEventListener("click",openPart5Guide);
-  $("[data-start-curated-part]")?.addEventListener("click",event=>startCuratedDirectionSet(event.currentTarget.dataset.startCuratedPart));
+  $("[data-open-reading-guide]")?.addEventListener("click",event=>openReadingExerciseGuide(event.currentTarget.dataset.openReadingGuide));
   const buttons=$$("[data-direction-tab]");
   buttons.forEach((button,index)=>{
     button.onclick=()=>renderDirectionReference(button.dataset.directionTab);
@@ -2287,6 +2291,176 @@ function renderPart5Guide(){
       renderPart5Guide();
       requestAnimationFrame(()=>{
         const target=$(`#part5-guide-q-${exercise.exercise}-${button.dataset.part5Answer}`);
+        target?.scrollIntoView({block:"center",behavior:"smooth"});
+        target?.focus({preventScroll:true});
+      });
+    };
+  });
+}
+function currentReadingGuide(){
+  const guide=READING_EXERCISE_GUIDES[state.readingGuidePart]||READING_EXERCISE_GUIDES["6"];
+  const exercise=(guide?.exercises||[]).find(
+    item=>Number(item.exercise)===Number(state.readingGuideExercise)
+  )||guide?.exercises?.[0]||null;
+  return {guide,exercise};
+}
+function openReadingExerciseGuide(part){
+  state.readingGuidePart=String(part)==="7"?"7":"6";
+  state.readingGuideExercise=1;
+  if($("#readingGuideSearch")) $("#readingGuideSearch").value="";
+  showViewAndFocus("readingExerciseGuideView");
+}
+function returnToReadingDirections(){
+  const part=state.readingGuidePart;
+  renderDirectionReference(part);
+  showViewAndFocus("setupView");
+  requestAnimationFrame(()=>{
+    $("#directionReferenceContent")?.scrollIntoView({block:"center"});
+    $(`[data-direction-tab="${part}"]`)?.focus({preventScroll:true});
+  });
+}
+function setReadingGuideExercise(exerciseNumber){
+  state.readingGuideExercise=Number(exerciseNumber)||1;
+  if($("#readingGuideSearch")) $("#readingGuideSearch").value="";
+  renderReadingExerciseGuide();
+  requestAnimationFrame(()=>$("#readingGuideHeading")?.focus({preventScroll:true}));
+}
+function startCurrentReadingGuideExercise(){
+  const {guide,exercise}=currentReadingGuide();
+  if(!guide||!exercise) return;
+  const questions=getActiveBank().filter(question=>
+    question.part===String(guide.part)&&Number(question.exerciseSet)===Number(exercise.exercise)
+  );
+  startSession(questions,{
+    count:questions.length,
+    seconds:0,
+    shuffle:false,
+    instant:true,
+    mode:"practice",
+    strategyTitle:`Part ${guide.part} Exercise ${exercise.exercise}`
+  });
+}
+function readingGuideQuestionCard(question,part,exerciseNumber){
+  const detailRows=[
+    question.testPoint?["考點",question.testPoint]:null,
+    question.evidenceNote?["答案證據",question.evidenceNote]:null,
+    question.completedSentence?["完整句",question.completedSentence]:null,
+    question.translation?["中文題意",question.translation]:null,
+    question.explanation?["為何選它",question.explanation]:null,
+    question.distractorAnalysis?["陷阱解析",question.distractorAnalysis]:null
+  ].filter(Boolean);
+  return `<article class="reading-guide-question" id="reading-guide-q-${part}-${exerciseNumber}-${question.number}" tabindex="-1">
+    <header>
+      <span>Q${question.number}</span>
+      <div><b>${safe(question.correctOption)}</b><strong>${safe(question.answer)}</strong></div>
+    </header>
+    <h4 lang="en">${safe(question.prompt)}</h4>
+    ${question.promptZh?`<p class="reading-guide-prompt-zh">${safe(question.promptZh)}</p>`:""}
+    <ol class="reading-guide-choices">
+      ${(question.choices||[]).map((choice,index)=>{
+        const choiceLetter=letter(index);
+        return `<li class="${choiceLetter===question.correctOption?"correct":""}"><span>${choiceLetter}</span><b>${safe(choice)}</b></li>`;
+      }).join("")}
+    </ol>
+    <dl>${detailRows.map(([label,value])=>`<div><dt>${safe(label)}</dt><dd>${safe(value)}</dd></div>`).join("")}</dl>
+  </article>`;
+}
+function renderReadingExerciseGuide(){
+  const {guide,exercise}=currentReadingGuide();
+  if(!guide||!exercise) return;
+  state.readingGuidePart=String(guide.part);
+  state.readingGuideExercise=Number(exercise.exercise);
+  const part=String(guide.part);
+  const search=String($("#readingGuideSearch")?.value||"").trim().toLowerCase();
+  const documents=(exercise.documents||[]).filter(document=>{
+    if(!search) return true;
+    return [
+      document.title,
+      document.sourceType,
+      document.text,
+      document.completedText,
+      document.summary,
+      ...(document.questions||[]).flatMap(question=>[
+        question.prompt,
+        question.promptZh,
+        question.answer,
+        question.testPoint,
+        question.evidenceNote,
+        question.explanation,
+        question.distractorAnalysis,
+        ...(question.choices||[])
+      ])
+    ].some(value=>String(value||"").toLowerCase().includes(search));
+  });
+  $("#readingGuideEyebrow").textContent=`PART ${part} STUDY GUIDE`;
+  $("#readingGuideHeading").textContent=`Part ${part} Exercise 1-${guide.totalExercises} 全題詳解`;
+  $("#readingGuideHeading").setAttribute("tabindex","-1");
+  $("#readingGuideDescription").textContent=part==="6"
+    ?"依原文脈絡完成空格，對照完整文章、文法考點與選項陷阱。"
+    :"依單篇與多篇文件定位證據，練習細節、推論、字義與跨文件整合。";
+  $("#backToReadingDirections").textContent=`返回 Part ${part} 作答指示`;
+  $("#readingGuideExerciseCount").textContent=guide.totalExercises;
+  $("#readingGuideDocumentCount").textContent=guide.totalDocuments;
+  $("#readingGuideQuestionCount").textContent=guide.totalQuestions;
+  $("#readingGuideSourceName").textContent=guide.sourceName;
+  $("#readingGuideNotice").textContent=guide.notice;
+  const sourceLink=$("#readingGuideSourceLink");
+  sourceLink.href=exercise.sourceUrl||guide.sourceIndex;
+  sourceLink.textContent=`開啟 Exercise ${exercise.exercise} 原始練習`;
+  $("#readingGuideCode").textContent=exercise.code;
+  $("#readingGuideTitle").textContent=`Exercise ${exercise.exercise}`;
+  const questionCount=exercise.documents.reduce((sum,document)=>sum+(document.questions||[]).length,0);
+  $("#readingGuideFocus").textContent=`${exercise.documents.length} 組文件 · ${questionCount} 題`;
+  $("#practiceReadingGuideExercise").textContent=`練習本回 ${questionCount} 題`;
+  $("#practiceReadingGuideExercise").onclick=startCurrentReadingGuideExercise;
+  $("#readingGuideTabs").innerHTML=(guide.exercises||[]).map(item=>`
+    <button class="reading-guide-tab ${Number(item.exercise)===Number(exercise.exercise)?"active":""}"
+      id="reading-guide-tab-${part}-${item.exercise}" type="button" role="tab"
+      aria-controls="readingGuideDocuments" tabindex="${Number(item.exercise)===Number(exercise.exercise)?"0":"-1"}"
+      aria-selected="${Number(item.exercise)===Number(exercise.exercise)}" data-reading-exercise="${item.exercise}">
+      <span>Exercise</span><strong>${item.exercise}</strong>
+    </button>`).join("");
+  $("#readingGuideDocuments").setAttribute("aria-labelledby",`reading-guide-tab-${part}-${exercise.exercise}`);
+  const allQuestions=(exercise.documents||[]).flatMap(document=>document.questions||[]);
+  $("#readingGuideAnswerKey").innerHTML=allQuestions.map(question=>`
+    <button type="button" data-reading-answer="${question.number}" title="前往第 ${question.number} 題詳解">
+      <span>${question.number}</span><strong>${safe(question.correctOption)}</strong>
+    </button>`).join("");
+  $("#readingGuideDocuments").innerHTML=documents.length?documents.map(document=>`
+    <section class="reading-guide-document">
+      <header>
+        <span>文件 ${document.document}</span>
+        <div><h3>${safe(document.title)}</h3>${document.sourceType?`<p>${safe(document.sourceType)}</p>`:""}</div>
+      </header>
+      <div class="reading-guide-passage" lang="en">${safe(document.text)}</div>
+      ${document.completedText?`<details class="reading-guide-completed"><summary>查看完成後全文</summary><div lang="en">${safe(document.completedText)}</div></details>`:""}
+      ${document.summary?`<p class="reading-guide-summary"><strong>文件摘要</strong>${safe(document.summary)}</p>`:""}
+      <div class="reading-guide-question-list">
+        ${(document.questions||[]).map(question=>readingGuideQuestionCard(question,part,exercise.exercise)).join("")}
+      </div>
+    </section>`).join("")
+    :`<div class="empty">找不到符合「${safe(search)}」的文件或詳解。</div>`;
+  const exerciseTabs=$$("[data-reading-exercise]");
+  exerciseTabs.forEach((button,index)=>{
+    button.onclick=()=>setReadingGuideExercise(button.dataset.readingExercise);
+    button.onkeydown=event=>{
+      if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key)) return;
+      event.preventDefault();
+      let next=index;
+      if(event.key==="ArrowLeft") next=(index-1+exerciseTabs.length)%exerciseTabs.length;
+      if(event.key==="ArrowRight") next=(index+1)%exerciseTabs.length;
+      if(event.key==="Home") next=0;
+      if(event.key==="End") next=exerciseTabs.length-1;
+      setReadingGuideExercise(exerciseTabs[next].dataset.readingExercise);
+      requestAnimationFrame(()=>$("[data-reading-exercise].active")?.focus({preventScroll:true}));
+    };
+  });
+  $$("[data-reading-answer]").forEach(button=>{
+    button.onclick=()=>{
+      if($("#readingGuideSearch")) $("#readingGuideSearch").value="";
+      renderReadingExerciseGuide();
+      requestAnimationFrame(()=>{
+        const target=$(`#reading-guide-q-${part}-${exercise.exercise}-${button.dataset.readingAnswer}`);
         target?.scrollIntoView({block:"center",behavior:"smooth"});
         target?.focus({preventScroll:true});
       });
@@ -4005,6 +4179,8 @@ $("#speakDirection").onclick=()=>{
 };
 $("#backToPart5Directions").onclick=returnToPart5Directions;
 $("#part5GuideSearch").addEventListener("input",renderPart5Guide);
+$("#backToReadingDirections").onclick=returnToReadingDirections;
+$("#readingGuideSearch").addEventListener("input",renderReadingExerciseGuide);
 $("#startPractice").onclick=startConfigured;
 $("#startMockExam").onclick=startMockExam;
 $("#quick10").onclick=()=>startSession(getActiveBank(),{count:10,seconds:0});
