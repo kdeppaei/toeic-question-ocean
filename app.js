@@ -30,7 +30,8 @@ const KEYS = {
   quality: "toeicOcean.questionQuality.v1",
   audioAccent: "toeicOcean.audioAccent.v1",
   sprint: "toeicOcean.fiveDaySprint.v1",
-  mockRecent: "toeicOcean.mockRecent.v1"
+  mockRecent: "toeicOcean.mockRecent.v1",
+  translationCache: "toeicOcean.translationCache.v1"
 };
 
 const REVIEW_INTERVAL_DAYS = [1, 3, 7, 14, 30];
@@ -634,21 +635,9 @@ function saveVocabFromForm(){
   if(ok){ resetVocabForm(); renderVocab(); showToast("單字已儲存"); }
 }
 function addSelectedVocab(){
-  const q=currentQ();
-  const selected=normalizeWord(window.getSelection?.().toString()||"");
-  if(!selected){ showToast("請先在題目或文章中選取單字"); return; }
-  const meaning=prompt(`為「${selected}」加入中文或筆記：`,"");
-  if(meaning===null) return;
-  const ok=upsertVocab({
-    word:selected,
-    meaning,
-    example:q?.prompt||q?.passage||"",
-    part:q?.part||"other",
-    familiarity:1,
-    sourceQuestionId:q?.id||"",
-    nextReviewAt:dateAfterDays(3)
-  });
-  if(ok){ showToast("已加入個人單字本"); renderVocab(); }
+  const details=currentSelectionDetails();
+  if(!details){ showToast("請先在題目、文章或選項中選取英文"); return; }
+  openSelectionLookup(details.text,details.rect);
 }
 function removeVocab(id){
   saveVocab(getVocab().filter(item=>item.id!==id));
@@ -751,6 +740,197 @@ function findExampleForWord(q, word){
     if(sentence) return sentence;
   }
   return q.prompt || "";
+}
+const SELECTION_TRANSLATION_ENDPOINT="https://api.mymemory.translated.net/get";
+const SELECTION_TRANSLATION_CACHE_LIMIT=120;
+const selectionLookupState={
+  text:"",
+  meaning:"",
+  kk:"",
+  pos:"",
+  source:"",
+  question:null,
+  requestId:0,
+  controller:null
+};
+let selectionLookupTimer=null;
+
+function normalizeLookupText(text){
+  const normalized=normalizeWord(text)
+    .replace(/^[^A-Za-z]+|[^A-Za-z]+$/g,"")
+    .replace(/\s+([,.;:!?])/g,"$1");
+  if(!normalized||!/^[A-Za-z]/.test(normalized)||!/[A-Za-z]$/.test(normalized)) return "";
+  if(normalized.length>120||normalized.split(/\s+/).length>12) return "";
+  return normalized;
+}
+function selectionInsideQuestion(selection){
+  const area=$("#questionArea");
+  if(!area||!selection||selection.isCollapsed||!selection.rangeCount) return false;
+  const node=selection.getRangeAt(0).commonAncestorContainer;
+  return area.contains(node.nodeType===Node.ELEMENT_NODE?node:node.parentElement);
+}
+function currentSelectionDetails(){
+  const selection=window.getSelection?.();
+  if(!selectionInsideQuestion(selection)) return null;
+  const text=normalizeLookupText(selection.toString());
+  if(!text) return null;
+  const rect=selection.getRangeAt(0).getBoundingClientRect();
+  return { text, rect };
+}
+function getTranslationCache(){
+  const cache=load(KEYS.translationCache,{});
+  return cache&&typeof cache==="object"&&!Array.isArray(cache)?cache:{};
+}
+function cacheTranslation(text,result){
+  const cache=getTranslationCache();
+  cache[text.toLowerCase()]={...result,cachedAt:Date.now()};
+  const trimmed=Object.fromEntries(
+    Object.entries(cache)
+      .sort((a,b)=>(b[1]?.cachedAt||0)-(a[1]?.cachedAt||0))
+      .slice(0,SELECTION_TRANSLATION_CACHE_LIMIT)
+  );
+  save(KEYS.translationCache,trimmed);
+}
+function decodeTranslationText(value){
+  const decoder=document.createElement("textarea");
+  decoder.innerHTML=String(value||"");
+  return decoder.value.trim();
+}
+async function translateSelectionText(text,signal){
+  const singleWord=/^[A-Za-z][A-Za-z'-]*$/.test(text);
+  if(singleWord){
+    const normalized=normalizeAutoWord(text);
+    const key=autoLexiconKey(normalized);
+    const info=TOEIC_VOCAB_LEXICON[key];
+    if(info?.zh){
+      return { meaning:info.zh, kk:info.kk||"", pos:info.pos||"", source:"題庫單字庫" };
+    }
+  }
+  const cached=getTranslationCache()[text.toLowerCase()];
+  if(cached?.meaning){
+    return { meaning:cached.meaning, kk:cached.kk||"", pos:cached.pos||"", source:"翻譯快取" };
+  }
+  const url=new URL(SELECTION_TRANSLATION_ENDPOINT);
+  url.searchParams.set("q",text);
+  url.searchParams.set("langpair","en|zh-TW");
+  const response=await fetch(url,{signal,headers:{Accept:"application/json"}});
+  if(!response.ok) throw new Error(`Translation request failed: ${response.status}`);
+  const payload=await response.json();
+  const meaning=decodeTranslationText(payload?.responseData?.translatedText);
+  if(!meaning||meaning.toLowerCase()===text.toLowerCase()) throw new Error("Translation unavailable");
+  const result={meaning,kk:"",pos:"",source:"MyMemory 線上翻譯"};
+  cacheTranslation(text,result);
+  return result;
+}
+function positionSelectionLookup(rect){
+  const menu=$("#selectionTranslateMenu");
+  if(!menu||window.matchMedia("(max-width: 700px)").matches){
+    menu?.style.removeProperty("left");
+    menu?.style.removeProperty("top");
+    return;
+  }
+  const gap=10;
+  const width=menu.offsetWidth||360;
+  const height=menu.offsetHeight||220;
+  const left=Math.min(
+    Math.max(gap,(rect?.left||window.innerWidth/2)-(width/2)),
+    window.innerWidth-width-gap
+  );
+  const preferredTop=(rect?.bottom||80)+gap;
+  const top=preferredTop+height<=window.innerHeight-gap
+    ? preferredTop
+    : Math.max(gap,(rect?.top||80)-height-gap);
+  menu.style.left=`${Math.round(left)}px`;
+  menu.style.top=`${Math.round(top)}px`;
+}
+async function openSelectionLookup(text,rect){
+  const normalized=normalizeLookupText(text);
+  if(!normalized){
+    showToast("請選取 12 個字以內的英文單字或片語");
+    return;
+  }
+  const menu=$("#selectionTranslateMenu");
+  if(!menu) return;
+  selectionLookupState.controller?.abort();
+  const requestId=++selectionLookupState.requestId;
+  const controller=new AbortController();
+  selectionLookupState.text=normalized;
+  selectionLookupState.meaning="";
+  selectionLookupState.kk="";
+  selectionLookupState.pos="";
+  selectionLookupState.source="";
+  selectionLookupState.question=currentQ();
+  selectionLookupState.controller=controller;
+  $("#selectionLookupWord").textContent=normalized;
+  $("#selectionLookupPronunciation").hidden=true;
+  $("#selectionLookupPronunciation").textContent="";
+  $("#selectionLookupResult").textContent="翻譯中…";
+  $("#selectionLookupResult").className="selection-translate-result is-loading";
+  $("#selectionLookupSource").textContent="正在查詢中文解釋";
+  $("#selectionAddVocab").disabled=true;
+  menu.hidden=false;
+  positionSelectionLookup(rect);
+  const timeoutId=setTimeout(()=>controller.abort(),8000);
+  try{
+    const result=await translateSelectionText(normalized,controller.signal);
+    if(requestId!==selectionLookupState.requestId||menu.hidden) return;
+    selectionLookupState.meaning=result.meaning;
+    selectionLookupState.kk=result.kk;
+    selectionLookupState.pos=result.pos;
+    selectionLookupState.source=result.source;
+    $("#selectionLookupResult").textContent=result.meaning;
+    $("#selectionLookupResult").className="selection-translate-result";
+    const pronunciation=[result.pos,result.kk].filter(Boolean).join(" · ");
+    $("#selectionLookupPronunciation").textContent=pronunciation;
+    $("#selectionLookupPronunciation").hidden=!pronunciation;
+    $("#selectionLookupSource").textContent=`來源：${result.source}｜查看不會自動收藏`;
+    $("#selectionAddVocab").disabled=false;
+    positionSelectionLookup(rect);
+  }catch(error){
+    if(error?.name==="AbortError"||requestId!==selectionLookupState.requestId) return;
+    $("#selectionLookupResult").textContent="暫時無法取得翻譯";
+    $("#selectionLookupResult").className="selection-translate-result is-error";
+    $("#selectionLookupSource").textContent="請確認網路後重新選取；題目作答不受影響";
+    positionSelectionLookup(rect);
+  }finally{
+    clearTimeout(timeoutId);
+    if(selectionLookupState.controller===controller) selectionLookupState.controller=null;
+  }
+}
+function closeSelectionLookup({clearSelection=false}={}){
+  clearTimeout(selectionLookupTimer);
+  selectionLookupState.controller?.abort();
+  selectionLookupState.controller=null;
+  selectionLookupState.requestId+=1;
+  const menu=$("#selectionTranslateMenu");
+  if(menu) menu.hidden=true;
+  if(clearSelection) window.getSelection?.().removeAllRanges();
+}
+function saveSelectionLookupVocab(){
+  const q=selectionLookupState.question;
+  if(!selectionLookupState.text||!selectionLookupState.meaning) return;
+  const ok=upsertVocab({
+    word:selectionLookupState.text,
+    meaning:selectionLookupState.meaning,
+    example:findExampleForWord(q||{},selectionLookupState.text),
+    part:q?.part||"other",
+    familiarity:1,
+    sourceQuestionId:q?.id||"",
+    nextReviewAt:dateAfterDays(3)
+  });
+  if(ok){
+    closeSelectionLookup({clearSelection:true});
+    renderVocab();
+    showToast("已加入個人單字本");
+  }
+}
+function scheduleSelectionLookup(delay=450){
+  clearTimeout(selectionLookupTimer);
+  selectionLookupTimer=setTimeout(()=>{
+    if(state.currentView!=="practiceView") return;
+    const details=currentSelectionDetails();
+    if(details) openSelectionLookup(details.text,details.rect);
+  },delay);
 }
 function buildAutoVocabEntries(){
   const map=new Map();
@@ -1722,6 +1902,7 @@ function showToast(msg){
   clearTimeout(showToast.id); showToast.id=setTimeout(()=>t.style.display="none",2200);
 }
 function showView(id){
+  if(id!=="practiceView") closeSelectionLookup({clearSelection:true});
   state.currentView=id;
   closeMobileNav();
   $$(".view").forEach(v=>v.classList.toggle("active",v.id===id));
@@ -2409,6 +2590,7 @@ function goToQuestion(index){
 }
 
 function renderQuestion(){
+  closeSelectionLookup({clearSelection:true});
   clearInterval(state.timerId);
   const q=currentQ(); if(!q){ finishSession(); return; }
   ensureQuestionClock();
@@ -3681,6 +3863,29 @@ $("#nextQuestion").onclick=nextQuestion;
 $("#prevQuestion").onclick=previousQuestion;
 $("#quitPractice").onclick=requestQuitPractice;
 $("#addSelectedVocab").onclick=addSelectedVocab;
+$("#closeSelectionLookup").onclick=()=>closeSelectionLookup({clearSelection:true});
+$("#selectionLookupOnly").onclick=()=>closeSelectionLookup({clearSelection:true});
+$("#selectionAddVocab").onclick=saveSelectionLookupVocab;
+$("#questionArea").addEventListener("pointerup",event=>{
+  scheduleSelectionLookup(event.pointerType==="touch"?550:0);
+});
+$("#questionArea").addEventListener("contextmenu",event=>{
+  const details=currentSelectionDetails();
+  if(!details) return;
+  event.preventDefault();
+  openSelectionLookup(details.text,details.rect);
+});
+document.addEventListener("selectionchange",()=>{
+  if(state.currentView!=="practiceView") return;
+  if(window.matchMedia("(pointer: coarse), (max-width: 1120px)").matches) scheduleSelectionLookup(550);
+});
+document.addEventListener("pointerdown",event=>{
+  const menu=$("#selectionTranslateMenu");
+  if(!menu?.hidden&&!menu.contains(event.target)&&!$("#addSelectedVocab").contains(event.target)){
+    closeSelectionLookup();
+  }
+});
+window.addEventListener("resize",()=>closeSelectionLookup());
 $("#retryWrong").onclick=()=>{ const list=state.lastResult.results.filter(x=>!x.correct).map(x=>x.question); startSession(list,{count:list.length,seconds:0,shuffle:true,instant:true,mode:"practice"}); };
 $("#practiceDue").onclick=startDueReview;
 $("#practiceWrong").onclick=()=>{ const ids=getWrongIds(),map=new Map(getActiveBank().map(q=>[q.id,q])); const list=ids.map(id=>map.get(id)).filter(Boolean); startSession(list,{count:list.length,seconds:0}); };
@@ -3778,7 +3983,10 @@ $("#importBank").onclick=async()=>{
   }catch(e){showToast("匯入失敗："+e.message);}
 };
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape") closeMobileNav();
+  if(e.key==="Escape"){
+    closeSelectionLookup({clearSelection:true});
+    closeMobileNav();
+  }
   if(state.currentView==="vocabReviewView"){
     if(["1","2","3","4"].includes(e.key)) answerVocabQuestion(Number(e.key)-1);
     if(e.key==="Enter") nextVocabQuestion();

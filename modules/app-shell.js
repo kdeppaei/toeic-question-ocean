@@ -1,9 +1,9 @@
 window.TOEIC_APP_SHELL = {
-  version: "4.7.0",
+  version: "4.8.0",
   release: {
-    title: "整句填空與複合文件判讀",
-    summary: "新增高難度 Part 6 整句銜接，以及合約、補助表單、行事曆與行銷圖表等跨文件推論題。",
-    badges: ["v4.7.0", "1,083 題", "8 題 Part 6", "16 題 Part 7"]
+    title: "跨裝置選字翻譯",
+    summary: "手機與平板長按單字即可查中文並選擇是否收藏；電腦選取文字後也會開啟相同翻譯選單。",
+    badges: ["v4.8.0", "1,083 題", "行動長按", "翻譯後收藏"]
   },
   viewTitles: {
     homeView: "多益題海學習儀表板",

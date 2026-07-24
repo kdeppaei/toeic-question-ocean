@@ -14,7 +14,7 @@
   <aside class="sidebar" aria-label="主要功能選單">
     <div class="brand">
       <div class="brand-mark">TQ</div>
-      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.7.0</span></strong></div>
+      <div><small>TOEIC QUESTION OCEAN</small><strong>多益題海 <span id="brandVersion" style="font-size:11px;color:var(--primary)">v4.8.0</span></strong></div>
     </div>
     <nav class="nav" aria-label="主要導覽">
       <button class="active nav-home" data-nav="homeView"><span>⌂</span><span>學習總覽</span></button>
@@ -95,7 +95,7 @@
         </section>
 
         <article class="card" style="margin-top:18px;border-color:color-mix(in srgb,var(--primary) 35%,var(--line));">
-          <div class="badges" id="releaseBadges"><span class="badge">v4.7.0</span><span class="badge gray">1,083 題</span><span class="badge gray">Part 6 整句填空</span><span class="badge gray">複合文件題</span></div>
+          <div class="badges" id="releaseBadges"><span class="badge">v4.8.0</span><span class="badge gray">1,083 題</span><span class="badge gray">長按翻譯</span><span class="badge gray">選字收藏</span></div>
           <h3 id="releaseTitle" style="margin:13px 0 7px">完整聽力播報與長期解析紀錄</h3>
           <p id="releaseSummary" style="margin:0;color:var(--muted);line-height:1.75">聽力加入暖機防截音、Part 1–4 Directions、題號與題組後五秒作答節奏；逐題答案與詳解改用 Local Storage 長期保存。</p>
         </article>
@@ -196,7 +196,7 @@
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn danger" id="quitPractice">結束練習</button>
                 <button class="btn" id="prevQuestion">← 返回上一題</button>
-                <button class="btn" id="addSelectedVocab">＋選取單字</button>
+                <button class="btn" id="addSelectedVocab">＋選字翻譯</button>
                 <button class="btn" id="markReview">☆ 標記待檢查</button>
                 <button class="btn" id="favoriteQuestion">☆ 收藏題目</button>
               </div>
@@ -741,6 +741,22 @@
     <button class="btn primary mock-section-action" id="mockSectionResultAction" type="button">開始 Reading 75 分鐘</button>
   </div>
 </dialog>
+<aside class="selection-translate-menu" id="selectionTranslateMenu" role="dialog" aria-labelledby="selectionLookupWord" hidden>
+  <div class="selection-translate-head">
+    <div>
+      <span class="selection-translate-kicker">英中快查</span>
+      <strong id="selectionLookupWord"></strong>
+    </div>
+    <button class="icon-btn" id="closeSelectionLookup" type="button" aria-label="關閉翻譯選單" title="關閉">×</button>
+  </div>
+  <div class="selection-translate-pronunciation" id="selectionLookupPronunciation" hidden></div>
+  <div class="selection-translate-result" id="selectionLookupResult" aria-live="polite">翻譯中…</div>
+  <div class="selection-translate-source" id="selectionLookupSource"></div>
+  <div class="selection-translate-actions">
+    <button class="btn primary" id="selectionAddVocab" type="button" disabled>加入個人單字本</button>
+    <button class="btn" id="selectionLookupOnly" type="button">僅查看</button>
+  </div>
+</aside>
 <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="./question-bank.js"></script>

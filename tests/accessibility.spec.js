@@ -25,8 +25,32 @@ async function navigate(page, view) {
   await target.click();
 }
 
+async function selectPracticeText(page, phrase, pointerType = "mouse") {
+  await page.evaluate(({ phrase, pointerType }) => {
+    const root = document.querySelector("#questionArea");
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node && !node.textContent.includes(phrase)) node = walker.nextNode();
+    if (!node) throw new Error(`Could not find selectable text: ${phrase}`);
+    const start = node.textContent.indexOf(phrase);
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, start + phrase.length);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const rect = range.getBoundingClientRect();
+    root.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      pointerType,
+      clientX: rect.left,
+      clientY: rect.bottom
+    }));
+  }, { phrase, pointerType });
+}
+
 test.beforeEach(async ({ page }) => {
-  await page.goto("/?v=4.5.0");
+  await page.goto("/?v=4.8.0");
   await expect(page.locator("#totalBank")).toHaveText("1083");
 });
 
@@ -101,6 +125,87 @@ test("Part 1 practice keeps image, displayed choices, and spoken order aligned",
   await expect(secondChoice).toHaveAttribute("aria-pressed", "true");
   await expect(firstChoice).toHaveAttribute("aria-pressed", "false");
   await expectNoSeriousA11yViolations(page);
+});
+
+test("desktop selection translates before optionally saving to the vocabulary book", async ({ page }) => {
+  await page.route("https://api.mymemory.translated.net/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify({
+        responseStatus: 200,
+        responseData: { translatedText: "設施監控協議" }
+      })
+    });
+  });
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R104");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
+  });
+
+  await selectPracticeText(page, "FACILITY MONITORING AGREEMENT");
+  await expect(page.locator("#selectionTranslateMenu")).toBeVisible();
+  await expect(page.locator("#selectionLookupResult")).toHaveText("設施監控協議");
+  await expect(page.locator("#selectionLookupSource")).toContainText("線上翻譯");
+  await page.locator("#selectionLookupOnly").click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.vocab.v1") || "[]"))).toHaveLength(0);
+
+  await selectPracticeText(page, "FACILITY MONITORING AGREEMENT");
+  await expect(page.locator("#selectionAddVocab")).toBeEnabled();
+  await page.locator("#selectionAddVocab").click();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.vocab.v1") || "[]")[0]);
+  expect(saved).toMatchObject({
+    word: "FACILITY MONITORING AGREEMENT",
+    meaning: "設施監控協議",
+    part: "7",
+    sourceQuestionId: "P7-R104-Q1"
+  });
+});
+
+test("mobile and tablet long press open an in-viewport translation menu without saving", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("https://api.mymemory.translated.net/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify({
+        responseStatus: 200,
+        responseData: { translatedText: "年度基本費用" }
+      })
+    });
+  });
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R104");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
+  });
+
+  await selectPracticeText(page, "Annual base fee", "touch");
+  await expect(page.locator("#selectionTranslateMenu")).toBeVisible();
+  await expect(page.locator("#selectionLookupResult")).toHaveText("年度基本費用");
+  const layout = await page.locator("#selectionTranslateMenu").evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      withinViewport: rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight,
+      rootOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  expect(layout).toEqual({ withinViewport: true, rootOverflow: 0 });
+  await page.locator("#selectionLookupOnly").click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("toeicOcean.vocab.v1") || "[]"))).toHaveLength(0);
+
+  await page.setViewportSize({ width: 834, height: 1112 });
+  await selectPracticeText(page, "Annual base fee", "touch");
+  await expect(page.locator("#selectionTranslateMenu")).toBeVisible();
+  const tabletLayout = await page.locator("#selectionTranslateMenu").evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      withinViewport: rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight,
+      rootOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  expect(tabletLayout).toEqual({ withinViewport: true, rootOverflow: 0 });
 });
 
 test("every Part 1 source image is landscape and large enough to judge", async ({ page }) => {

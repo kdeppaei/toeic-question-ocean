@@ -10,7 +10,7 @@ const viewports = [
 for (const viewport of viewports) {
   test(`home visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.7.0");
+    await page.goto("/?v=4.8.0");
     await expect(page.locator("#totalBank")).toHaveText("1083");
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.addStyleTag({
@@ -67,7 +67,7 @@ const mockDialogViewports = [
 for (const viewport of mockDialogViewports) {
   test(`mock section break visual regression ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    await page.goto("/?v=4.7.0");
+    await page.goto("/?v=4.8.0");
     await page.evaluate(() => showView("setupView"));
     await page.locator("#startMockExam").click();
     await page.evaluate(() => completeListeningSection("manual"));
@@ -92,7 +92,7 @@ for (const viewport of mockDialogViewports) {
 
 test("Part 6 and Part 7 format cues stay distinct on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?v=4.7.0");
+  await page.goto("/?v=4.8.0");
   await page.addStyleTag({
     content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
   });
@@ -116,7 +116,7 @@ test("Part 6 and Part 7 format cues stay distinct on mobile", async ({ page }) =
 
 test("Part 7 data-literacy documents wrap without mobile overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/?v=4.7.0");
+  await page.goto("/?v=4.8.0");
   await page.addStyleTag({
     content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
   });
@@ -132,4 +132,51 @@ test("Part 7 data-literacy documents wrap without mobile overflow", async ({ pag
   expect(overflow).toEqual({ root: 0, passage: 0 });
   await expect(page.locator(".passage")).toContainText("Average first response");
   await expect(page).toHaveScreenshot("part7-data-phone-390.png", { maxDiffPixelRatio: 0.12 });
+});
+
+test("selection translation menu stays usable on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("https://api.mymemory.translated.net/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify({
+        responseStatus: 200,
+        responseData: { translatedText: "年度基本費用" }
+      })
+    });
+  });
+  await page.goto("/?v=4.8.0");
+  await page.evaluate(() => {
+    const questions = getActiveBank().filter((question) => question.groupId === "P7-R104");
+    startSession(questions, { count: questions.length, seconds: 0, shuffle: false, instant: true, mode: "literacy" });
+    const root = document.querySelector("#questionArea");
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node && !node.textContent.includes("Annual base fee")) node = walker.nextNode();
+    const start = node.textContent.indexOf("Annual base fee");
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, start + "Annual base fee".length);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    root.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" }));
+  });
+  await expect(page.locator("#selectionLookupResult")).toHaveText("年度基本費用");
+  await page.evaluate(() => window.getSelection().removeAllRanges());
+  await page.addStyleTag({
+    content: `*, *::before, *::after { animation: none !important; transition: none !important; }`
+  });
+
+  const layout = await page.locator("#selectionTranslateMenu").evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      withinViewport: rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight,
+      rootOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  expect(layout).toEqual({ withinViewport: true, rootOverflow: 0 });
+  await expect(page).toHaveScreenshot("selection-translate-phone-390.png", { maxDiffPixelRatio: 0.12 });
 });

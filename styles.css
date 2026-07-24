@@ -945,6 +945,33 @@
       background:#101828; color:white; padding:12px 17px; border-radius:12px; font-weight:800;
       box-shadow:0 14px 40px rgba(0,0,0,.25); display:none;
     }
+    .selection-translate-menu {
+      position:fixed; z-index:130; width:min(360px,calc(100vw - 24px)); padding:16px;
+      border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text);
+      box-shadow:0 18px 50px rgba(16,24,40,.22);
+    }
+    .selection-translate-menu[hidden] { display:none; }
+    .selection-translate-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .selection-translate-head > div { min-width:0; }
+    .selection-translate-kicker {
+      display:block; margin-bottom:3px; color:var(--primary); font-size:11px; font-weight:950;
+    }
+    .selection-translate-head strong {
+      display:block; overflow-wrap:anywhere; font-size:19px; line-height:1.35;
+    }
+    .selection-translate-pronunciation {
+      margin-top:6px; color:var(--primary); font-size:13px; font-weight:800;
+    }
+    .selection-translate-result {
+      min-height:52px; margin-top:12px; padding:12px; border-left:4px solid var(--primary);
+      border-radius:6px; background:var(--primary-soft); font-size:17px; font-weight:850;
+      line-height:1.55; overflow-wrap:anywhere;
+    }
+    .selection-translate-result.is-loading { color:var(--muted); font-weight:750; }
+    .selection-translate-result.is-error { border-color:var(--red); background:var(--red-soft); color:var(--red); }
+    .selection-translate-source { min-height:18px; margin-top:7px; color:var(--muted); font-size:11px; }
+    .selection-translate-actions { display:flex; gap:8px; margin-top:13px; }
+    .selection-translate-actions .btn { flex:1; }
     .mobile-menu { display:none; }
     .mobile-scrim { display:none; }
     @media (max-width: 1120px) {
@@ -972,6 +999,10 @@
       body { padding-bottom:66px; }
       .content, .topbar-inner { padding-left:12px; padding-right:12px; }
       .content { padding-top:14px; padding-bottom:86px; }
+      .selection-translate-menu {
+        left:12px !important; right:12px; top:auto !important; bottom:76px;
+        width:auto; max-height:min(52vh,390px); overflow:auto;
+      }
       .topbar-inner { min-height:64px; align-items:center; }
       .page-title small { font-size:11px; }
       .page-title h1 { font-size:20px; }
