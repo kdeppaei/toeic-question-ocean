@@ -2,6 +2,10 @@
 
 Local-first TOEIC practice site for Parts 1-7. The app runs as a static website and stores practice history, wrong answers, spaced-review schedules, vocabulary notebooks, strategy practice, theme preference, and resumable sessions in the browser.
 
+## Public Website
+
+Open the public TOEIC practice site: [https://kdeppaei.github.io/toeic-question-ocean/](https://kdeppaei.github.io/toeic-question-ocean/)
+
 ## Version Rhythm
 
 Each feature release should include a focused question-bank expansion. Large changes should be committed, tagged, and deployed through GitHub Pages.
@@ -182,13 +186,13 @@ Each feature release should include a focused question-bank expansion. Large cha
 - Add listening voice-availability diagnostics; browser speech synthesis cannot guarantee that every device has a distinct male voice for every accent.
 - Expand the lexicon in reviewed batches with sourced pronunciation and Traditional Chinese definitions rather than auto-filling uncertain entries.
 
-## Local Preview
+## Local Development Preview
 
 ```bash
 python -m http.server 4173
 ```
 
-Then open http://localhost:4173.
+Then open `http://localhost:4173`. This address is only available on the computer running the local server; use the [public website](https://kdeppaei.github.io/toeic-question-ocean/) for the deployed TOEIC practice site.
 
 ## Quality Checks
 
@@ -202,4 +206,4 @@ Update intentional visual baselines with `pnpm run test:update-snapshots`, then 
 
 ## Deployment
 
-The repository includes a GitHub Pages workflow at `.github/workflows/pages.yml`. Push to `main` and GitHub Actions will publish the static site.
+The repository includes a GitHub Pages workflow at `.github/workflows/pages.yml`. Push to `main` and GitHub Actions will publish the static site at [https://kdeppaei.github.io/toeic-question-ocean/](https://kdeppaei.github.io/toeic-question-ocean/).
