@@ -207,3 +207,7 @@ Update intentional visual baselines with `pnpm run test:update-snapshots`, then 
 ## Deployment
 
 The repository includes a GitHub Pages workflow at `.github/workflows/pages.yml`. Push to `main` and GitHub Actions will publish the static site at [https://kdeppaei.github.io/toeic-question-ocean/](https://kdeppaei.github.io/toeic-question-ocean/).
+
+## License
+
+[MIT](LICENSE)
